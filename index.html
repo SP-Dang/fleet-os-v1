@@ -23,7 +23,7 @@
         <header class="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
             <div>
                 <h1 class="text-2xl font-black text-slate-900 tracking-tighter">🚀 FLEET OS</h1>
-                <p id="db-status" class="text-[10px] text-red-500 font-black uppercase tracking-widest">System Offline</p>
+                <p id="db-status" class="text-[10px] text-red-500 font-black uppercase tracking-widest transition-all">System Offline</p>
             </div>
             <div class="flex gap-2 mt-4 md:mt-0">
                 <button onclick="switchView('dashboard')" class="px-5 py-2 rounded-2xl text-xs font-black bg-slate-100 hover:bg-slate-900 hover:text-white transition-all uppercase">Dashboard</button>
@@ -36,7 +36,7 @@
                 
                 <div class="lg:col-span-2">
                     <div id="vehicle-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="p-10 text-slate-400 font-bold">Connecting...</div>
+                        <div class="p-10 text-slate-400 font-bold">Connecting to Database...</div>
                     </div>
                 </div>
 
@@ -97,7 +97,7 @@
     </div>
 
     <script>
-        // --- 1. CONFIG & CONNECTION ---
+        // --- 1. CONFIG ---
         const SUPABASE_URL = 'https://unaeguquzlvjmiebxsvg.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVuYWVndXF1emx2am1pZWJ4c3ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNDk5MTAsImV4cCI6MjA5MTYyNTkxMH0.m6kCJus2-oHlzvmVxfFtbedKPbf8ricpQdIOQeB0fVg';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -110,27 +110,49 @@
             if (view === 'rentals') fetchRentals();
         }
 
-        // --- 2. LOAD VEHICLES ---
+        // --- 2. LOAD VEHICLES (FIXED CASE SENSITIVITY) ---
         async function loadVehicles() {
-    const grid = document.getElementById('vehicle-grid');
-    const status = document.getElementById('db-status');
-    try {
-        // MATCH THE CASE EXACTLY (Try 'Vehicles' if 'vehicles' fails)
-        const { data, error } = await supabase.from('Vehicles').select('*'); 
-        
-        if (error) throw error;
-        
-        status.innerText = "● System Online";
-        status.className = "text-[10px] text-green-500 font-black uppercase tracking-widest";
-        
-        // ... (rest of your mapping code)
-    } catch (e) {
-        status.innerText = "● Offline: " + e.message;
-        console.error("Database Error:", e.message);
-    }
-}
+            const grid = document.getElementById('vehicle-grid');
+            const status = document.getElementById('db-status');
+            try {
+                // Trying 'Vehicles' with a Capital V
+                const { data, error } = await supabase.from('Vehicles').select('*');
+                
+                if (error) throw error;
 
-        // --- 3. CUSTOMER REGISTRATION (Matches CSV columns) ---
+                // Update Status to Online
+                status.innerText = "● System Online";
+                status.className = "text-[10px] text-green-500 font-black uppercase tracking-widest";
+                
+                if (!data || data.length === 0) {
+                    grid.innerHTML = '<div class="p-10 text-slate-400 font-bold text-center w-full">No vehicles found in database.</div>';
+                    return;
+                }
+
+                // Map data to HTML cards
+                grid.innerHTML = data.map(v => `
+                    <div class="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm hover:shadow-2xl transition-all ${v.status !== 'available' ? 'opacity-50' : ''}">
+                        <div class="flex justify-between items-start mb-8">
+                            <span class="bg-slate-50 border border-slate-100 px-3 py-1 rounded-full text-[9px] font-black text-slate-400 uppercase tracking-tighter">${v.license_plate}</span>
+                            <span class="text-[9px] font-black uppercase ${v.status === 'available' ? 'text-green-500' : 'text-red-400'}">${v.status}</span>
+                        </div>
+                        <h3 class="text-xl font-black mb-8 italic uppercase leading-none tracking-tighter">${v.make_model}</h3>
+                        <button 
+                            onclick="openBooking('${v.id}', '${v.make_model}')" 
+                            ${v.status !== 'available' ? 'disabled' : ''}
+                            class="w-full py-4 rounded-[20px] font-black text-[10px] uppercase tracking-[0.2em] transition-all ${v.status === 'available' ? 'bg-slate-900 text-white hover:bg-blue-600' : 'bg-slate-100 text-slate-300'}">
+                            ${v.status === 'available' ? 'Select' : 'Rented'}
+                        </button>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error("Fetch Error:", err.message);
+                status.innerText = "● Offline: " + err.message;
+                status.className = "text-[10px] text-red-500 font-black uppercase tracking-widest";
+            }
+        }
+
+        // --- 3. CUSTOMER REGISTRATION ---
         async function handleCreateCustomer() {
             const fullName = document.getElementById('cust-full-name').value;
             const phone = document.getElementById('cust-phone').value;
@@ -140,13 +162,12 @@
             const license = document.getElementById('cust-license').value;
             const btn = document.getElementById('reg-btn');
 
-            if (!fullName || !phone) return alert("Please enter at least Name and Phone");
+            if (!fullName || !phone) return alert("Required: Full Name and Phone");
 
             btn.disabled = true;
             btn.innerText = "SAVING...";
 
             try {
-                // Sending data to your specific table columns
                 const { data, error } = await supabase.from('customers').insert([{
                     full_name: fullName,
                     phone: phone,
@@ -161,19 +182,19 @@
                 document.getElementById('selected-customer-id').value = data.id;
                 document.getElementById('display-name').innerText = data.full_name;
                 document.getElementById('selected-customer-display').classList.remove('hidden');
-                
-                alert("Customer registered successfully!");
+                alert("Customer registered!");
             } catch (err) {
-                alert("Database Error: " + err.message);
+                alert("Error: " + err.message);
             } finally {
                 btn.disabled = false;
                 btn.innerText = "Register & Select";
             }
         }
 
-        // --- 4. BOOKING LOGIC ---
+        // --- 4. BOOKING ---
         function openBooking(id, name) {
-            if (!document.getElementById('selected-customer-id').value) return alert("Please register or select a customer first!");
+            const custId = document.getElementById('selected-customer-id').value;
+            if (!custId) return alert("Select a customer first!");
             activeVehicleId = id;
             document.getElementById('modal-vehicle-info').innerText = name;
             document.getElementById('booking-modal').classList.add('active');
@@ -193,33 +214,38 @@
                     status: 'active'
                 }]);
                 if (error) throw error;
-                alert("Booking Successful!");
+                
+                // Update vehicle status to rented
+                await supabase.from('Vehicles').update({ status: 'rented' }).eq('id', activeVehicleId);
+                
+                alert("Rental Successful!");
                 closeModal();
                 loadVehicles();
             } catch (e) { alert(e.message); }
         }
 
-        // --- 5. RENTALS VIEW ---
+        // --- 5. RENTALS ---
         async function fetchRentals() {
             const list = document.getElementById('rental-list');
-            const { data, error } = await supabase
-                .from('rentals')
-                .select('*, vehicles(make_model), customers(full_name, passport_number)');
-            
-            if (error) {
-                list.innerHTML = `<tr><td colspan="5" class="p-6 text-red-500">${error.message}</td></tr>`;
-                return;
-            }
+            try {
+                const { data, error } = await supabase
+                    .from('rentals')
+                    .select('*, Vehicles(make_model), customers(full_name, passport_number)');
+                
+                if (error) throw error;
 
-            list.innerHTML = data.map(r => `
-                <tr class="border-b">
-                    <td class="p-6 font-bold uppercase">${r.vehicles?.make_model}</td>
-                    <td class="p-6">${r.customers?.full_name}</td>
-                    <td class="p-6 text-slate-400 font-mono text-xs">${r.customers?.passport_number || 'N/A'}</td>
-                    <td class="p-6">${r.rental_days} Days</td>
-                    <td class="p-6"><span class="text-blue-600 font-bold uppercase text-[10px]">Active</span></td>
-                </tr>
-            `).join('');
+                list.innerHTML = data.map(r => `
+                    <tr class="border-b">
+                        <td class="p-6 font-bold uppercase tracking-tighter">${r.Vehicles?.make_model || 'N/A'}</td>
+                        <td class="p-6">${r.customers?.full_name || 'N/A'}</td>
+                        <td class="p-6 text-slate-400 font-mono text-xs">${r.customers?.passport_number || 'N/A'}</td>
+                        <td class="p-6">${r.rental_days} Days</td>
+                        <td class="p-6"><span class="text-blue-600 font-black uppercase text-[9px]">Active</span></td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                list.innerHTML = `<tr><td colspan="5" class="p-6 text-red-500">Error: ${err.message}</td></tr>`;
+            }
         }
 
         window.onload = loadVehicles;
