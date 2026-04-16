@@ -10,6 +10,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700&display=swap');
@@ -246,9 +247,64 @@
             renderGrid(allVehicles.filter(v => v.make_model.toLowerCase().includes(q) || v.license_plate.toLowerCase().includes(q)));
         }
 
-        function triggerScanner() {
-            alert("QR Scanner: This requires a secure HTTPS connection and a scanning library. In a real environment, this would open your camera.");
-        }
+       let html5QrCode;
+
+async function triggerScanner() {
+    // 1. Show the scanner modal
+    document.getElementById('scanner-modal').classList.add('active');
+    
+    // 2. Initialize the scanner
+    html5QrCode = new Html5Qrcode("reader");
+    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+    try {
+        await html5QrCode.start(
+            { facingMode: "environment" }, 
+            config, 
+            async (decodedText) => {
+                // When a QR is found, stop camera and process
+                await html5QrCode.stop();
+                document.getElementById('scanner-modal').classList.remove('active');
+                
+                await handleScannedRental(decodedText);
+            }
+        );
+    } catch (err) {
+        console.error("Scanner Error:", err);
+        alert("Camera access failed. Ensure you are using HTTPS or localhost.");
+        closeScanner();
+    }
+}
+
+async function handleScannedRental(invId) {
+    // 3. Search Supabase for the ID from the QR
+    const { data, error } = await client
+        .from('rentals')
+        .select(`
+            *,
+            vehicles:vehicle_id (*),
+            customers:customer_id (*)
+        `)
+        .ilike('id', `%${invId}%`) 
+        .single();
+
+    if (data) {
+        // 4. Call your existing professional print function
+        preparePrint(data); 
+    } else {
+        alert("No rental found for ID: " + invId);
+    }
+}
+
+function closeScanner() {
+    if (html5QrCode) {
+        html5QrCode.stop().finally(() => {
+            document.getElementById('scanner-modal').classList.remove('active');
+        });
+    } else {
+        document.getElementById('scanner-modal').classList.remove('active');
+    }
+}
 
         function openCustomerModal() { document.getElementById('customer-modal').classList.add('active'); }
 
@@ -586,5 +642,21 @@
         function closeModal(id) { document.getElementById(id).classList.remove('active'); }
         window.onload = init;
     </script>
+    <div id="scanner-modal" class="modal">
+    <div class="bg-white w-full max-w-lg rounded-[48px] shadow-2xl overflow-hidden flex flex-col">
+        <div class="bg-slate-900 p-8 text-white flex justify-between items-center">
+            <h2 class="text-2xl font-black uppercase italic tracking-tighter">Scan Receipt</h2>
+            <button onclick="closeScanner()" class="text-slate-400 hover:text-white text-2xl">✕</button>
+        </div>
+        <div class="p-4">
+            <div id="reader" class="overflow-hidden rounded-3xl"></div>
+        </div>
+        <div class="p-8 bg-slate-50">
+            <p class="text-[10px] font-black uppercase text-slate-400 text-center tracking-widest">
+                Align the QR code within the frame to search
+            </p>
+        </div>
+    </div>
+</div>
 </body>
 </html>
