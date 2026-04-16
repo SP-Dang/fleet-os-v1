@@ -6,15 +6,14 @@
     <title>Fleet OS v1.0 | Management System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf-autotable.min.js"></script>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700&display=swap');
         body { font-family: 'Noto Sans Lao', sans-serif; }
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 50; padding: 20px; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 50; padding: 20px; backdrop-filter: blur(4px); }
         .modal.active { display: flex; }
         .view-content.hidden { display: none; }
+        .badge { font-size: 8px; font-weight: 900; padding: 2px 8px; border-radius: 99px; text-transform: uppercase; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900">
@@ -38,20 +37,19 @@
                         <div class="p-10 text-slate-400 font-bold">Connecting to Database...</div>
                     </div>
                 </div>
+                
                 <div class="bg-white p-8 rounded-[40px] border border-slate-200 shadow-xl h-fit">
-                    <h2 class="text-xl font-black mb-6 uppercase italic text-slate-400">Customer Registration</h2>
+                    <h2 class="text-xl font-black mb-6 uppercase italic text-slate-400 text-center">Registration</h2>
                     <div class="flex flex-col gap-3">
-                        <input id="cust-full-name" type="text" placeholder="Full Name (ຊື່ແທ້)" class="w-full bg-slate-50 p-4 rounded-2xl font-bold outline-none border border-slate-100 focus:border-slate-900">
-                        <input id="cust-phone" type="text" placeholder="Phone Number" class="w-full bg-slate-50 p-4 rounded-2xl font-bold outline-none border border-slate-100 focus:border-slate-900">
-                        <input id="cust-email" type="email" placeholder="Email Address" class="w-full bg-slate-50 p-4 rounded-2xl font-bold outline-none border border-slate-100 focus:border-slate-900">
-                        <input id="cust-nationality" type="text" placeholder="Nationality" class="w-full bg-slate-50 p-4 rounded-2xl font-bold outline-none border border-slate-100 focus:border-slate-900">
-                        <input id="cust-passport" type="text" placeholder="Passport Number" class="w-full bg-slate-50 p-4 rounded-2xl font-bold outline-none border border-slate-100 focus:border-slate-900">
-                        <input id="cust-license" type="text" placeholder="License Number" class="w-full bg-slate-50 p-4 rounded-2xl font-bold outline-none border border-slate-100 focus:border-slate-900">
+                        <input id="cust-full-name" type="text" placeholder="Full Name" class="w-full bg-slate-50 p-4 rounded-2xl font-bold outline-none border border-slate-100">
+                        <input id="cust-phone" type="text" placeholder="Phone Number" class="w-full bg-slate-50 p-4 rounded-2xl font-bold outline-none border border-slate-100">
+                        <input id="cust-passport" type="text" placeholder="Passport No." class="w-full bg-slate-50 p-4 rounded-2xl font-bold outline-none border border-slate-100">
                     </div>
-                    <button onclick="handleCreateCustomer()" id="reg-btn" class="w-full bg-slate-900 text-white font-black py-5 rounded-2xl uppercase text-xs tracking-widest mt-4 hover:bg-blue-600 transition-colors">Create & Select</button>
+                    <button onclick="handleCreateCustomer()" id="reg-btn" class="w-full bg-slate-900 text-white font-black py-5 rounded-2xl uppercase text-xs tracking-widest mt-4 shadow-lg hover:bg-blue-600 transition-all">Register & Select</button>
                     
-                    <div id="selected-customer-display" class="hidden mt-6 pt-6 border-t border-dashed border-slate-200 text-blue-600 font-black uppercase text-sm">
-                        Active: <span id="display-name" class="text-slate-900"></span>
+                    <div id="selected-customer-display" class="hidden mt-6 pt-6 border-t border-dashed border-slate-200">
+                        <p class="text-[9px] font-black text-blue-600 uppercase mb-1">Active Client</p>
+                        <p id="display-name" class="text-lg font-black text-slate-900"></p>
                         <input type="hidden" id="selected-customer-id">
                     </div>
                 </div>
@@ -62,7 +60,7 @@
             <div class="bg-white rounded-[32px] border border-slate-200 overflow-hidden shadow-sm">
                 <table class="w-full text-left">
                     <thead class="bg-slate-50 text-[10px] font-black uppercase text-slate-400">
-                        <tr><th class="p-6">Vehicle</th><th class="p-6">Customer</th><th class="p-6">Days</th><th class="p-6">Action</th></tr>
+                        <tr><th class="p-6">Vehicle</th><th class="p-6">Customer</th><th class="p-6">Duration</th><th class="p-6">Total Price</th></tr>
                     </thead>
                     <tbody id="rental-list"></tbody>
                 </table>
@@ -71,12 +69,27 @@
     </div>
 
     <div id="booking-modal" class="modal">
-        <div class="bg-white w-full max-w-md p-10 rounded-[48px] shadow-2xl">
-            <h2 id="modal-vehicle-info" class="text-2xl font-black italic mb-6 uppercase"></h2>
-            <input id="rental-days" type="number" value="1" min="1" class="w-full bg-slate-100 p-5 rounded-3xl text-3xl font-black mb-6 outline-none">
-            <div class="flex gap-4">
-                <button onclick="closeModal()" class="flex-1 py-5 rounded-3xl font-black text-slate-400 bg-slate-50 uppercase text-xs">Cancel</button>
-                <button onclick="confirmBooking()" class="flex-1 py-5 rounded-3xl font-black bg-slate-900 text-white uppercase text-xs">Confirm</button>
+        <div class="bg-white w-full max-w-md p-8 rounded-[40px] shadow-2xl relative">
+            <h2 id="modal-vehicle-info" class="text-2xl font-black italic mb-2 uppercase"></h2>
+            <p id="modal-daily-rate" class="text-blue-600 font-bold text-sm mb-6"></p>
+            
+            <div class="bg-slate-50 p-6 rounded-3xl mb-6">
+                <label class="text-[10px] font-black uppercase text-slate-400 block mb-3 text-center">Rental Days</label>
+                <div class="flex items-center justify-between gap-4">
+                    <button onclick="adjustDays(-1)" class="w-12 h-12 bg-white border border-slate-200 rounded-full font-black text-xl hover:bg-slate-900 hover:text-white transition-all">-</button>
+                    <input id="rental-days" type="number" value="1" min="1" oninput="calculateTotal()" class="flex-1 bg-transparent text-center text-4xl font-black outline-none">
+                    <button onclick="adjustDays(1)" class="w-12 h-12 bg-white border border-slate-200 rounded-full font-black text-xl hover:bg-slate-900 hover:text-white transition-all">+</button>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center px-4 mb-8">
+                <span class="text-slate-400 font-black uppercase text-[10px]">Total Amount</span>
+                <span id="total-price-display" class="text-2xl font-black text-slate-900">$0.00</span>
+            </div>
+
+            <div class="flex gap-3">
+                <button onclick="closeModal()" class="flex-1 py-4 rounded-2xl font-black text-slate-400 bg-slate-100 uppercase text-xs">Cancel</button>
+                <button onclick="confirmBooking()" class="flex-1 py-4 rounded-2xl font-black bg-slate-900 text-white uppercase text-xs">Confirm Booking</button>
             </div>
         </div>
     </div>
@@ -86,7 +99,7 @@
         const myFleetAppKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVuYWVndXF1emx2am1pZWJ4c3ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNDk5MTAsImV4cCI6MjA5MTYyNTkxMH0.m6kCJus2-oHlzvmVxfFtbedKPbf8ricpQdIOQeB0fVg';
         const fleetClient = window.supabase.createClient(myFleetAppUrl, myFleetAppKey);
 
-        let activeVehicleId = null;
+        let activeVehicle = null;
 
         function switchView(view) {
             document.querySelectorAll('.view-content').forEach(el => el.classList.add('hidden'));
@@ -100,75 +113,106 @@
             try {
                 const { data, error } = await fleetClient.from('vehicles').select('*');
                 if (error) throw error;
-
                 status.innerText = "● System Online";
                 status.className = "text-[10px] text-green-500 font-black uppercase tracking-widest";
                 
                 grid.innerHTML = data.map(v => `
-                    <div class="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm hover:shadow-2xl transition-all">
-                        <h3 class="text-xl font-black mb-8 italic uppercase">${v.make_model}</h3>
-                        <p class="text-[10px] text-slate-400 mb-4">${v.license_plate}</p>
-                        <button onclick="openBooking('${v.id}', '${v.make_model}')" class="w-full py-4 rounded-[20px] font-black bg-slate-900 text-white text-xs uppercase">Select</button>
+                    <div class="bg-white p-6 rounded-[35px] border border-slate-100 shadow-sm hover:shadow-xl transition-all">
+                        <div class="flex justify-between items-start mb-4">
+                            <span class="badge ${v.status === 'available' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}">${v.status}</span>
+                            <span class="text-[12px] font-black text-blue-600">$${v.daily_rate}/Day</span>
+                        </div>
+                        <h3 class="text-lg font-black italic uppercase mb-1">${v.make_model}</h3>
+                        <p class="text-[9px] text-slate-400 font-bold mb-4 tracking-widest uppercase">${v.license_plate}</p>
+                        
+                        <div class="grid grid-cols-3 gap-2 mb-6 border-t border-slate-50 pt-4">
+                            <div class="text-center">
+                                <p class="text-[7px] uppercase text-slate-400 font-black">Type</p>
+                                <p class="text-[9px] font-bold">${v.vehicle_type}</p>
+                            </div>
+                            <div class="text-center border-x border-slate-50">
+                                <p class="text-[7px] uppercase text-slate-400 font-black">Fuel</p>
+                                <p class="text-[9px] font-bold">${v.fuel_type}</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-[7px] uppercase text-slate-400 font-black">Trans</p>
+                                <p class="text-[9px] font-bold">${v.transmission}</p>
+                            </div>
+                        </div>
+
+                        <button onclick='openBooking(${JSON.stringify(v)})' 
+                            ${v.status !== 'available' ? 'disabled' : ''}
+                            class="w-full py-4 rounded-2xl font-black bg-slate-900 text-white text-[10px] uppercase tracking-widest ${v.status !== 'available' ? 'opacity-20 grayscale' : 'hover:bg-blue-600'} transition-all">
+                            ${v.status === 'available' ? 'Select Vehicle' : 'Unavailable'}
+                        </button>
                     </div>
                 `).join('');
-            } catch (e) {
-                status.innerText = "● Offline: " + e.message;
-                grid.innerHTML = `<div class="p-10 text-red-500 font-bold">Error: ${e.message}</div>`;
-            }
+            } catch (e) { status.innerText = "● Offline: " + e.message; }
         }
 
-        // UPDATED TO MATCH YOUR TABLE STRUCTURE
         async function handleCreateCustomer() {
             const fullName = document.getElementById('cust-full-name').value;
             const phone = document.getElementById('cust-phone').value;
-            const email = document.getElementById('cust-email').value;
-            const nationality = document.getElementById('cust-nationality').value;
             const passport = document.getElementById('cust-passport').value;
-            const license = document.getElementById('cust-license').value;
-
-            if (!fullName || !phone) return alert("Please enter at least Name and Phone");
+            if (!fullName || !phone) return alert("Required: Name & Phone");
 
             try {
                 const { data, error } = await fleetClient.from('customers').insert([{ 
                     full_name: fullName, 
                     phone: phone,
-                    email: email,
-                    nationality: nationality,
-                    passport_number: passport,
-                    license_number: license
+                    passport_number: passport
                 }]).select().single();
 
                 if (error) throw error;
-
                 document.getElementById('selected-customer-id').value = data.id;
                 document.getElementById('display-name').innerText = data.full_name;
                 document.getElementById('selected-customer-display').classList.remove('hidden');
-                alert("Customer Ready");
-            } catch (e) { 
-                console.error(e);
-                alert("Database Error: " + e.message); 
-            }
+            } catch (e) { alert("Error: " + e.message); }
         }
 
-        function openBooking(id, name) {
-            if (!document.getElementById('selected-customer-id').value) return alert("Select customer first");
-            activeVehicleId = id;
-            document.getElementById('modal-vehicle-info').innerText = name;
+        function openBooking(vehicle) {
+            if (!document.getElementById('selected-customer-id').value) return alert("Please register/select a customer first!");
+            activeVehicle = vehicle;
+            document.getElementById('modal-vehicle-info').innerText = vehicle.make_model;
+            document.getElementById('modal-daily-rate').innerText = `Daily Rate: $${vehicle.daily_rate}`;
+            document.getElementById('rental-days').value = 1;
+            calculateTotal();
             document.getElementById('booking-modal').classList.add('active');
+        }
+
+        function adjustDays(val) {
+            const input = document.getElementById('rental-days');
+            let current = parseInt(input.value) + val;
+            if (current < 1) current = 1;
+            input.value = current;
+            calculateTotal();
+        }
+
+        function calculateTotal() {
+            const days = parseInt(document.getElementById('rental-days').value) || 1;
+            const rate = activeVehicle ? activeVehicle.daily_rate : 0;
+            document.getElementById('total-price-display').innerText = `$${(days * rate).toFixed(2)}`;
         }
 
         function closeModal() { document.getElementById('booking-modal').classList.remove('active'); }
 
         async function confirmBooking() {
             const custId = document.getElementById('selected-customer-id').value;
-            const days = document.getElementById('rental-days').value;
+            const days = parseInt(document.getElementById('rental-days').value);
             try {
                 const { error } = await fleetClient.from('rentals').insert([{
-                    vehicle_id: activeVehicleId, customer_id: custId, 
-                    start_date: new Date().toISOString().split('T')[0], rental_days: parseInt(days), status: 'active'
+                    vehicle_id: activeVehicle.id, 
+                    customer_id: custId, 
+                    start_date: new Date().toISOString().split('T')[0], 
+                    rental_days: days,
+                    status: 'active'
                 }]);
                 if (error) throw error;
-                alert("Success!");
+
+                // Mark vehicle as rented in the DB
+                await fleetClient.from('vehicles').update({ status: 'rented' }).eq('id', activeVehicle.id);
+
+                alert("Successfully Booked!");
                 closeModal();
                 loadVehicles();
             } catch (e) { alert(e.message); }
@@ -176,15 +220,15 @@
 
         async function fetchRentals() {
             const list = document.getElementById('rental-list');
-            try {
-                const { data, error } = await fleetClient.from('rentals').select('*, vehicles(make_model), customers(full_name)');
-                if (error) throw error;
-                list.innerHTML = data.map(r => `
-                    <tr class="border-b"><td class="p-6 font-bold uppercase">${r.vehicles?.make_model}</td><td class="p-6">${r.customers?.full_name}</td><td class="p-6">${r.rental_days}</td><td class="p-6">Active</td></tr>
-                `).join('');
-            } catch (e) {
-                list.innerHTML = `<tr><td colspan="4" class="p-6 text-red-500">${e.message}</td></tr>`;
-            }
+            const { data } = await fleetClient.from('rentals').select('*, vehicles(make_model, daily_rate), customers(full_name)');
+            list.innerHTML = (data || []).map(r => `
+                <tr class="border-b">
+                    <td class="p-6 font-bold uppercase italic">${r.vehicles?.make_model || 'N/A'}</td>
+                    <td class="p-6">${r.customers?.full_name || 'N/A'}</td>
+                    <td class="p-6">${r.rental_days} Days</td>
+                    <td class="p-6 font-black text-blue-600">$${(r.rental_days * (r.vehicles?.daily_rate || 0)).toFixed(2)}</td>
+                </tr>
+            `).join('');
         }
 
         window.onload = loadVehicles;
