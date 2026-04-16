@@ -40,9 +40,16 @@
                 </div>
                 <div class="bg-white p-8 rounded-[40px] border border-slate-200 shadow-xl h-fit">
                     <h2 class="text-xl font-black mb-6 uppercase italic text-slate-400">Customer Registration</h2>
-                    <input id="cust-name" type="text" placeholder="Full Name" class="w-full bg-slate-50 p-4 rounded-2xl font-bold mb-4 outline-none">
-                    <input id="cust-phone" type="text" placeholder="Phone Number" class="w-full bg-slate-50 p-4 rounded-2xl font-bold mb-4 outline-none">
-                    <button onclick="handleCreateCustomer()" id="reg-btn" class="w-full bg-slate-900 text-white font-black py-5 rounded-2xl uppercase text-xs tracking-widest">Create & Select</button>
+                    <div class="flex flex-col gap-3">
+                        <input id="cust-full-name" type="text" placeholder="Full Name (ຊື່ແທ້)" class="w-full bg-slate-50 p-4 rounded-2xl font-bold outline-none border border-slate-100 focus:border-slate-900">
+                        <input id="cust-phone" type="text" placeholder="Phone Number" class="w-full bg-slate-50 p-4 rounded-2xl font-bold outline-none border border-slate-100 focus:border-slate-900">
+                        <input id="cust-email" type="email" placeholder="Email Address" class="w-full bg-slate-50 p-4 rounded-2xl font-bold outline-none border border-slate-100 focus:border-slate-900">
+                        <input id="cust-nationality" type="text" placeholder="Nationality" class="w-full bg-slate-50 p-4 rounded-2xl font-bold outline-none border border-slate-100 focus:border-slate-900">
+                        <input id="cust-passport" type="text" placeholder="Passport Number" class="w-full bg-slate-50 p-4 rounded-2xl font-bold outline-none border border-slate-100 focus:border-slate-900">
+                        <input id="cust-license" type="text" placeholder="License Number" class="w-full bg-slate-50 p-4 rounded-2xl font-bold outline-none border border-slate-100 focus:border-slate-900">
+                    </div>
+                    <button onclick="handleCreateCustomer()" id="reg-btn" class="w-full bg-slate-900 text-white font-black py-5 rounded-2xl uppercase text-xs tracking-widest mt-4 hover:bg-blue-600 transition-colors">Create & Select</button>
+                    
                     <div id="selected-customer-display" class="hidden mt-6 pt-6 border-t border-dashed border-slate-200 text-blue-600 font-black uppercase text-sm">
                         Active: <span id="display-name" class="text-slate-900"></span>
                         <input type="hidden" id="selected-customer-id">
@@ -52,7 +59,7 @@
         </div>
 
         <div id="view-rentals" class="view-content hidden">
-            <div class="bg-white rounded-[32px] border border-slate-200 overflow-hidden">
+            <div class="bg-white rounded-[32px] border border-slate-200 overflow-hidden shadow-sm">
                 <table class="w-full text-left">
                     <thead class="bg-slate-50 text-[10px] font-black uppercase text-slate-400">
                         <tr><th class="p-6">Vehicle</th><th class="p-6">Customer</th><th class="p-6">Days</th><th class="p-6">Action</th></tr>
@@ -75,8 +82,6 @@
     </div>
 
     <script>
-        // --- 1. INITIALIZE ---
-        // Using a unique variable name to avoid the "already declared" error
         const myFleetAppUrl = 'https://unaeguquzlvjmiebxsvg.supabase.co';
         const myFleetAppKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVuYWVndXF1emx2am1pZWJ4c3ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNDk5MTAsImV4cCI6MjA5MTYyNTkxMH0.m6kCJus2-oHlzvmVxfFtbedKPbf8ricpQdIOQeB0fVg';
         const fleetClient = window.supabase.createClient(myFleetAppUrl, myFleetAppKey);
@@ -89,7 +94,6 @@
             if (view === 'rentals') fetchRentals();
         }
 
-        // --- 2. DATA FUNCTIONS ---
         async function loadVehicles() {
             const grid = document.getElementById('vehicle-grid');
             const status = document.getElementById('db-status');
@@ -113,18 +117,37 @@
             }
         }
 
+        // UPDATED TO MATCH YOUR TABLE STRUCTURE
         async function handleCreateCustomer() {
-            const name = document.getElementById('cust-name').value;
+            const fullName = document.getElementById('cust-full-name').value;
             const phone = document.getElementById('cust-phone').value;
-            if (!name || !phone) return alert("Fill all fields");
+            const email = document.getElementById('cust-email').value;
+            const nationality = document.getElementById('cust-nationality').value;
+            const passport = document.getElementById('cust-passport').value;
+            const license = document.getElementById('cust-license').value;
+
+            if (!fullName || !phone) return alert("Please enter at least Name and Phone");
+
             try {
-                const { data, error } = await fleetClient.from('customers').insert([{ name, phone_number: phone }]).select().single();
+                const { data, error } = await fleetClient.from('customers').insert([{ 
+                    full_name: fullName, 
+                    phone: phone,
+                    email: email,
+                    nationality: nationality,
+                    passport_number: passport,
+                    license_number: license
+                }]).select().single();
+
                 if (error) throw error;
+
                 document.getElementById('selected-customer-id').value = data.id;
-                document.getElementById('display-name').innerText = data.name;
+                document.getElementById('display-name').innerText = data.full_name;
                 document.getElementById('selected-customer-display').classList.remove('hidden');
                 alert("Customer Ready");
-            } catch (e) { alert(e.message); }
+            } catch (e) { 
+                console.error(e);
+                alert("Database Error: " + e.message); 
+            }
         }
 
         function openBooking(id, name) {
@@ -153,13 +176,17 @@
 
         async function fetchRentals() {
             const list = document.getElementById('rental-list');
-            const { data } = await fleetClient.from('rentals').select('*, vehicles(make_model), customers(name)');
-            list.innerHTML = data.map(r => `
-                <tr class="border-b"><td class="p-6 font-bold">${r.vehicles?.make_model}</td><td class="p-6">${r.customers?.name}</td><td class="p-6">${r.rental_days}</td><td class="p-6">Active</td></tr>
-            `).join('');
+            try {
+                const { data, error } = await fleetClient.from('rentals').select('*, vehicles(make_model), customers(full_name)');
+                if (error) throw error;
+                list.innerHTML = data.map(r => `
+                    <tr class="border-b"><td class="p-6 font-bold uppercase">${r.vehicles?.make_model}</td><td class="p-6">${r.customers?.full_name}</td><td class="p-6">${r.rental_days}</td><td class="p-6">Active</td></tr>
+                `).join('');
+            } catch (e) {
+                list.innerHTML = `<tr><td colspan="4" class="p-6 text-red-500">${e.message}</td></tr>`;
+            }
         }
 
-        // Start
         window.onload = loadVehicles;
     </script>
 </body>
