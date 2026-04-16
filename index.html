@@ -277,8 +277,11 @@ async function triggerScanner() {
 }
 
 async function handleScannedRental(invId) {
-    // We use .like() with a % wildcard to find the full ID 
-    // that starts with the 8 characters from the QR code
+    // 1. Log for debugging
+    console.log("Searching for ID starting with:", invId);
+
+    // 2. Search using .ilike (Case-Insensitive) 
+    // We add the % wildcard to match the start of the UUID
     const { data, error } = await client
         .from('rentals')
         .select(`
@@ -286,15 +289,21 @@ async function handleScannedRental(invId) {
             vehicles:vehicle_id (*),
             customers:customer_id (*)
         `)
-        .like('id', `${invId.toLowerCase()}%`) // Find ID starting with these chars
-        .limit(1); // Ensure we only get one result
+        .ilike('id', `${invId}%`) // This searches for: 110a5653...
+        .limit(1);
+
+    if (error) {
+        console.error("Database Error:", error);
+        alert("Error searching database: " + error.message);
+        return;
+    }
 
     if (data && data.length > 0) {
-        // data is an array because of .like(), so we take the first item
+        // 3. Success: Found the full record, now call your print function
         preparePrint(data[0]); 
     } else {
-        console.error("Search error:", error);
-        alert("Rental record not found for ID: " + invId);
+        // 4. Not found logic
+        alert(`Rental record not found.\n\nScanned: ${invId}\nDatabase expects start of: 110a5653...`);
     }
 }
         
