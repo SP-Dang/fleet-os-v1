@@ -6,8 +6,10 @@
     <title>Fleet OS | Professional Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf-autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700&display=swap');
         body { font-family: 'Noto Sans Lao', sans-serif; }
@@ -247,7 +249,6 @@
             alert("QR Scanner: This requires a secure HTTPS connection and a scanning library. In a real environment, this would open your camera.");
         }
 
-        // --- CUSTOMER LOGIC ---
         function openCustomerModal() { document.getElementById('customer-modal').classList.add('active'); }
 
         async function saveNewCustomer() {
@@ -273,7 +274,6 @@
             } else alert(error.message);
         }
 
-        // --- VEHICLE ADD/EDIT ---
         function openAddVehicle() {
             activeV = null;
             document.getElementById('v-modal-title').innerText = "Add New Vehicle";
@@ -318,7 +318,6 @@
             };
         }
 
-        // --- BOOKING LOGIC ---
         async function openBooking(v) {
             activeV = v;
             document.getElementById('b-title').innerText = v.make_model;
@@ -352,101 +351,86 @@
             } else alert(error.message);
         }
 
-        // --- FIXED PRINT RECEIPT ---
+        // --- UPDATED PRINT RECEIPT LOGIC ---
         function preparePrint(rental) {
-    try {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
 
-        // --- CRITICAL FIX START ---
-        // Manually apply the autoTable plugin if it's not detected
-        if (typeof doc.autoTable !== 'function') {
-            if (window.jspdf.jsPDF.API.autoTable) {
-                // If it exists on the API but not the instance
-                doc.autoTable = window.jspdf.jsPDF.API.autoTable;
-            } else if (window.autoTable) {
-                // If it's floating globally
-                doc.autoTable = window.autoTable;
-            } else {
-                throw new Error("AutoTable library not loaded. Check script tags in <head>.");
+                // Initialization check for AutoTable plugin
+                const autoTable = doc.autoTable || window.jspdf.jsPDF.API.autoTable || window.autoTable;
+                
+                if (typeof autoTable !== 'function') {
+                    throw new Error("The PDF Table library is not responding. Please refresh the page (Ctrl+F5).");
+                }
+
+                // Data Safety: Handle Supabase nested structures
+                const v = Array.isArray(rental.vehicles) ? rental.vehicles[0] : rental.vehicles;
+                const c = Array.isArray(rental.customers) ? rental.customers[0] : rental.customers;
+
+                // PDF Header
+                doc.setFontSize(22);
+                doc.setFont("helvetica", "bold");
+                doc.text("FLEET OS RENTALS", 105, 20, { align: "center" });
+
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "normal");
+                doc.text(`Customer: ${c?.full_name || 'N/A'}`, 15, 40);
+                doc.text(`Vehicle: ${v?.make_model || 'N/A'}`, 15, 48);
+                doc.text(`Plate: ${v?.license_plate || 'N/A'}`, 15, 56);
+
+                // Generate Table
+                autoTable.call(doc, {
+                    startY: 65,
+                    head: [['Description', 'Days', 'Total Price']],
+                    body: [[
+                        v?.make_model || 'Rental Service',
+                        rental.rental_days || 0,
+                        `$${parseFloat(rental.total_price || 0).toFixed(2)}`
+                    ]],
+                    headStyles: { fillColor: [15, 23, 42] },
+                    theme: 'grid'
+                });
+
+                const invId = (rental.id || '0000').toString().substring(0,8).toUpperCase();
+                doc.save(`Receipt_${invId}.pdf`);
+
+            } catch (err) {
+                console.error("Detailed PDF Error:", err);
+                alert("Print Error: " + err.message);
             }
         }
-        // --- CRITICAL FIX END ---
-
-        // Data Safety
-        const v = Array.isArray(rental.vehicles) ? rental.vehicles[0] : rental.vehicles;
-        const c = Array.isArray(rental.customers) ? rental.customers[0] : rental.customers;
-
-        doc.setFontSize(22);
-        doc.setFont("helvetica", "bold");
-        doc.text("FLEET OS RENTALS", 105, 20, { align: "center" });
-
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "normal");
-        doc.text(`Customer: ${c?.full_name || 'N/A'}`, 15, 40);
-        doc.text(`Vehicle: ${v?.make_model || 'N/A'}`, 15, 48);
-
-        // Generate Table
-        doc.autoTable({
-            startY: 60,
-            head: [['Description', 'Days', 'Total Price']],
-            body: [[
-                v?.make_model || 'Rental',
-                rental.rental_days,
-                `$${parseFloat(rental.total_price).toFixed(2)}`
-            ]],
-            headStyles: { fillColor: [15, 23, 42] },
-            theme: 'grid'
-        });
-
-        const invId = (rental.id || '0000').toString().substring(0,8).toUpperCase();
-        doc.save(`Receipt_${invId}.pdf`);
-
-    } catch (err) {
-        console.error("PDF Crash Detail:", err);
-        alert("Print Error: " + err.message);
-    }
-}
         
-        // --- EXISTING UTILITY LOGIC ---
         async function loadRentals() {
-    // We use .single() logic or mapping to ensure we don't have arrays inside our objects
-    const { data } = await client
-        .from('rentals')
-        .select(`
-            *,
-            vehicles:vehicle_id (make_model, daily_rate, license_plate, vehicle_type, fuel_type),
-            customers:customer_id (full_name, phone, passport_number)
-        `)
-        .order('created_at', { ascending: false });
+            const { data } = await client
+                .from('rentals')
+                .select(`
+                    *,
+                    vehicles:vehicle_id (make_model, daily_rate, license_plate, vehicle_type, fuel_type),
+                    customers:customer_id (full_name, phone, passport_number)
+                `)
+                .order('created_at', { ascending: false });
 
-    document.getElementById('rental-list').innerHTML = (data || []).map(r => `
-        <tr>
-            <td class="p-8">
-                <div class="font-black italic uppercase">${r.vehicles?.make_model || 'Unknown'}</div>
-                <div class="text-[9px] text-slate-400 font-bold">${r.start_date}</div>
-            </td>
-            <td class="p-8 font-bold text-slate-500">${r.customers?.full_name || 'N/A'}</td>
-            <td class="p-8 font-black text-[10px] text-slate-400 uppercase">${r.rental_days} Days</td>
-            <td class="p-8 font-black text-[10px] uppercase ${r.status === 'active' ? 'text-blue-600' : 'text-slate-300'}">${r.status}</td>
-            <td class="p-8 text-right space-x-2">
-                <button onclick='preparePrint(${JSON.stringify(r)})' class="bg-slate-900 text-white px-4 py-2 rounded-xl font-black text-[9px] uppercase">Print</button>
-                ${r.status === 'active' ? `<button onclick="returnVehicle('${r.id}', '${r.vehicle_id}')" class="bg-emerald-500 text-white px-3 py-1 rounded-lg font-black text-[9px] uppercase">Return</button>` : ''}
-            </td>
-        </tr>
-    `).join('');
-}
+            document.getElementById('rental-list').innerHTML = (data || []).map(r => `
+                <tr>
+                    <td class="p-8">
+                        <div class="font-black italic uppercase">${r.vehicles?.make_model || 'Unknown'}</div>
+                        <div class="text-[9px] text-slate-400 font-bold">${r.start_date}</div>
+                    </td>
+                    <td class="p-8 font-bold text-slate-500">${r.customers?.full_name || 'N/A'}</td>
+                    <td class="p-8 font-black text-[10px] text-slate-400 uppercase">${r.rental_days} Days</td>
+                    <td class="p-8 font-black text-[10px] uppercase ${r.status === 'active' ? 'text-blue-600' : 'text-slate-300'}">${r.status}</td>
+                    <td class="p-8 text-right space-x-2">
+                        <button onclick='preparePrint(${JSON.stringify(r)})' class="bg-slate-900 text-white px-4 py-2 rounded-xl font-black text-[9px] uppercase">Print</button>
+                        ${r.status === 'active' ? `<button onclick="returnVehicle('${r.id}', '${r.vehicle_id}')" class="bg-emerald-500 text-white px-3 py-1 rounded-lg font-black text-[9px] uppercase">Return</button>` : ''}
+                    </td>
+                </tr>
+            `).join('');
+        }
 
         async function returnVehicle(rid, vid) {
             if(!confirm("Return vehicle?")) return;
             await client.from('rentals').update({ status: 'completed' }).eq('id', rid);
-            await client.from('vehicles').update({ status: 'available' }).eq('id', vid);
-            loadRentals(); loadVehicles();
-        }
-
-        async function voidRental(rid, vid) {
-            if(!confirm("Void record?")) return;
-            await client.from('rentals').delete().eq('id', rid);
             await client.from('vehicles').update({ status: 'available' }).eq('id', vid);
             loadRentals(); loadVehicles();
         }
