@@ -1,29 +1,293 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="lo">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fleet OS | POS System</title>
+    <title>Fleet OS v1.0 | Management System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf-autotable.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700&display=swap');
+        body { font-family: 'Noto Sans Lao', sans-serif; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 50; padding: 20px; }
+        .modal.active { display: flex; }
+    </style>
 </head>
-<body class="bg-slate-900 text-white antialiased">
-    <div class="max-w-6xl mx-auto p-6">
-        <header class="flex justify-between items-center border-b border-slate-700 pb-6 mb-8">
-            <h1 class="text-2xl font-bold tracking-tight">🚀 FLEET OS <span class="text-blue-400 text-sm font-normal">v1.0</span></h1>
-            <div id="connection-status" class="px-3 py-1 rounded-full text-xs bg-slate-800 text-slate-400">
-                Checking connection...
+<body class="bg-slate-50 text-slate-900">
+
+    <div class="max-w-7xl mx-auto p-4 md:p-6">
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+            <div>
+                <h1 class="text-2xl font-black text-slate-900">🚀 FLEET OS</h1>
+                <p id="db-status" class="text-xs text-slate-500 font-bold uppercase tracking-widest">System Offline</p>
+            </div>
+            
+            <div class="flex gap-2 mt-4 md:mt-0">
+                <button onclick="switchView('dashboard')" class="px-4 py-2 rounded-xl text-sm font-bold bg-slate-100 hover:bg-slate-200 transition-all">Dashboard</button>
+                <button onclick="switchView('vehicles')" class="px-4 py-2 rounded-xl text-sm font-bold bg-slate-100 hover:bg-slate-200 transition-all">Fleet</button>
+                <button onclick="switchView('rentals')" class="px-4 py-2 rounded-xl text-sm font-bold bg-slate-100 hover:bg-slate-200 transition-all">Rentals</button>
             </div>
         </header>
 
-        <main>
-            <h2 class="text-xl font-semibold mb-4">Vehicle Inventory</h2>
-            <div id="vehicle-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div class="animate-pulse bg-slate-800 h-32 rounded-lg"></div>
+        <div id="view-dashboard" class="view-content">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                <div class="lg:col-span-2">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-black italic">CHOOSE VEHICLE</h2>
+                        <select onchange="handleFilter(this.value)" class="bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold outline-none">
+                            <option value="all">All Types</option>
+                            <option value="car">Cars</option>
+                            <option value="van">Vans</option>
+                            <option value="pick truck">Pickups</option>
+                        </select>
+                    </div>
+                    <div id="vehicle-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        </div>
+                </div>
+
+                <div class="space-y-6">
+                    <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-xl">
+                        <h2 class="text-xl font-black mb-4 uppercase italic">Customer</h2>
+                        <div class="space-y-4">
+                            <input id="cust-name" type="text" placeholder="Full Name" class="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl font-bold outline-none focus:border-blue-500 transition-all">
+                            <input id="cust-phone" type="text" placeholder="Phone (20 XXXX XXXX)" class="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl font-bold outline-none focus:border-blue-500 transition-all">
+                            <button onclick="handleCreateCustomer()" id="reg-btn" class="w-full bg-slate-900 text-white font-black py-5 rounded-2xl shadow-xl hover:scale-[1.02] active:scale-95 transition-all">
+                                CREATE & SELECT
+                            </button>
+                        </div>
+                        <div id="selected-customer-display" class="hidden mt-6 pt-6 border-t border-slate-100">
+                            <p class="text-[10px] font-black text-blue-600 uppercase">Selected Client</p>
+                            <p id="display-name" class="text-lg font-black"></p>
+                            <input type="hidden" id="selected-customer-id">
+                        </div>
+                    </div>
+                </div>
+
             </div>
-        </main>
+        </div>
+
+        <div id="view-rentals" class="view-content hidden">
+            <h2 class="text-2xl font-black mb-6 italic uppercase">Rental History</h2>
+            <div class="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-50 border-b border-slate-200 text-[10px] font-black uppercase text-slate-500">
+                        <tr>
+                            <th class="p-4">Vehicle</th>
+                            <th class="p-4">Customer</th>
+                            <th class="p-4">Start Date</th>
+                            <th class="p-4">Days</th>
+                            <th class="p-4">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rental-list">
+                        </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
-    <script src="app.js"></script>
+    <div id="booking-modal" class="modal">
+        <div class="bg-white w-full max-w-md p-8 rounded-[40px] shadow-2xl">
+            <h2 class="text-3xl font-black italic mb-2 italic uppercase">Booking</h2>
+            <p id="modal-vehicle-info" class="text-blue-600 font-black mb-8"></p>
+            
+            <div class="space-y-6">
+                <div>
+                    <label class="text-[10px] font-black uppercase text-slate-400 block mb-2">Duration (Days)</label>
+                    <input id="rental-days" type="number" value="1" min="1" class="w-full bg-slate-100 border-none p-5 rounded-3xl text-2xl font-black outline-none">
+                </div>
+                <div class="flex gap-4">
+                    <button onclick="closeModal()" class="flex-1 py-5 rounded-3xl font-black text-slate-400 bg-slate-100 uppercase">Cancel</button>
+                    <button onclick="confirmBooking()" class="flex-1 py-5 rounded-3xl font-black bg-slate-900 text-white shadow-2xl uppercase">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. CONFIG & INITIALIZATION ---
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+        const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // PLACEHOLDER FOR YOUR LAO FONT FROM utils/laoFont.js
+        const laoFontBase64 = ''; 
+
+        let activeVehicleId = null;
+
+        // --- 2. VIEW SWITCHER ---
+        function switchView(view) {
+            document.querySelectorAll('.view-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById('view-' + view).classList.remove('hidden');
+            if (view === 'rentals') fetchRentals();
+        }
+
+        // --- 3. FETCH VEHICLES ---
+        async function loadVehicles(filter = 'all') {
+            const grid = document.getElementById('vehicle-grid');
+            const status = document.getElementById('db-status');
+
+            try {
+                let query = supabase.from('vehicles').select('*').order('created_at', { ascending: false });
+                if (filter !== 'all') query = query.eq('vehicle_type', filter);
+
+                const { data, error } = await query;
+                if (error) throw error;
+
+                status.innerText = "● System Online";
+                status.className = "text-xs text-green-600 font-bold uppercase tracking-widest";
+
+                grid.innerHTML = data.map(v => `
+                    <div class="bg-white p-6 rounded-[32px] border border-slate-200 shadow-sm hover:shadow-xl transition-all ${v.status !== 'available' ? 'opacity-50' : ''}">
+                        <div class="flex justify-between items-start mb-6">
+                            <span class="bg-slate-100 px-3 py-1 rounded-full text-[10px] font-black text-slate-500">${v.license_plate}</span>
+                            <span class="text-[10px] font-black uppercase ${v.status === 'available' ? 'text-green-500' : 'text-red-500'}">${v.status}</span>
+                        </div>
+                        <h3 class="text-xl font-black mb-6 italic uppercase leading-tight">${v.make_model}</h3>
+                        <button 
+                            onclick="openBooking('${v.id}', '${v.make_model}')" 
+                            ${v.status !== 'available' ? 'disabled' : ''}
+                            class="w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${v.status === 'available' ? 'bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-600 hover:text-white' : 'bg-slate-50 text-slate-300 cursor-not-allowed'}">
+                            ${v.status === 'available' ? 'Select for Rental' : 'Out of Stock'}
+                        </button>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function handleFilter(val) { loadVehicles(val); }
+
+        // --- 4. CUSTOMER LOGIC ---
+        async function handleCreateCustomer() {
+            const name = document.getElementById('cust-name').value;
+            const phone = document.getElementById('cust-phone').value;
+            const btn = document.getElementById('reg-btn');
+
+            if (!name || !phone) return alert("Please fill name and phone");
+
+            btn.disabled = true;
+            btn.innerText = "SAVING...";
+
+            try {
+                const { data, error } = await supabase
+                    .from('customers')
+                    .insert([{ name, phone_number: phone }])
+                    .select().single();
+
+                if (error) throw error;
+
+                document.getElementById('selected-customer-id').value = data.id;
+                document.getElementById('display-name').innerText = data.name;
+                document.getElementById('selected-customer-display').classList.remove('hidden');
+                
+                alert("Customer registered and selected!");
+            } catch (err) {
+                alert(err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "CREATE & SELECT";
+            }
+        }
+
+        // --- 5. BOOKING LOGIC ---
+        function openBooking(id, name) {
+            const custId = document.getElementById('selected-customer-id').value;
+            if (!custId) return alert("Register or Select a customer first!");
+            
+            activeVehicleId = id;
+            document.getElementById('modal-vehicle-info').innerText = name;
+            document.getElementById('booking-modal').classList.add('active');
+        }
+
+        function closeModal() { document.getElementById('booking-modal').classList.remove('active'); }
+
+        async function confirmBooking() {
+            const custId = document.getElementById('selected-customer-id').value;
+            const days = document.getElementById('rental-days').value;
+            const startDate = new Date().toISOString().split('T')[0];
+
+            try {
+                // Insert Rental
+                const { error: rentError } = await supabase.from('rentals').insert([{
+                    vehicle_id: activeVehicleId,
+                    customer_id: custId,
+                    start_date: startDate,
+                    rental_days: parseInt(days),
+                    status: 'active'
+                }]);
+                if (rentError) throw rentError;
+
+                // Update Vehicle
+                await supabase.from('vehicles').update({ status: 'rented' }).eq('id', activeVehicleId);
+
+                alert("Rental Processed Successfully!");
+                closeModal();
+                loadVehicles();
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        // --- 6. RENTAL HISTORY & PDF ---
+        async function fetchRentals() {
+            const list = document.getElementById('rental-list');
+            const { data, error } = await supabase
+                .from('rentals')
+                .select('*, vehicles(make_model), customers(name)')
+                .order('created_at', { ascending: false });
+
+            if (!error) {
+                list.innerHTML = data.map(r => `
+                    <tr class="border-b border-slate-100 text-sm font-bold">
+                        <td class="p-4 italic uppercase">${r.vehicles.make_model}</td>
+                        <td class="p-4">${r.customers.name}</td>
+                        <td class="p-4 text-slate-400 font-mono text-xs">${r.start_date}</td>
+                        <td class="p-4">${r.rental_days} Days</td>
+                        <td class="p-4">
+                            <button onclick='generateReceipt(${JSON.stringify(r)})' class="text-blue-600 uppercase text-[10px] font-black underline">PDF</button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        function generateReceipt(r) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Add Lao Font if Base64 is provided
+            if (laoFontBase64) {
+                doc.addFileToVFS('Lao.ttf', laoFontBase64);
+                doc.addFont('Lao.ttf', 'Lao', 'normal');
+                doc.setFont('Lao');
+            }
+
+            doc.setFontSize(20);
+            doc.text("RENTAL RECEIPT", 10, 20);
+            
+            doc.autoTable({
+                startY: 30,
+                head: [['Field', 'Description']],
+                body: [
+                    ['Customer', r.customers.name],
+                    ['Vehicle', r.vehicles.make_model],
+                    ['Days', r.rental_days],
+                    ['Start Date', r.start_date]
+                ],
+                styles: { font: laoFontBase64 ? 'Lao' : 'helvetica' }
+            });
+
+            doc.save(`receipt-${r.id.substring(0,8)}.pdf`);
+        }
+
+        // Initialize
+        loadVehicles();
+    </script>
 </body>
 </html>
