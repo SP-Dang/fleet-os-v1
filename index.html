@@ -551,17 +551,15 @@ function closeScanner() {
     try {
         console.log("Rental Data for Print:", rental); // DEBUG: Check console to see exact field names
         // This should be at the start of your preparePrint function
-        const v = Array.isArray(rental.vehicles) ? rental.vehicles[0] : rental.vehicles;
-        const c = Array.isArray(rental.customers) ? rental.customers[0] : rental.customers;
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        const autoTable = doc.autoTable || window.jspdf.jsPDF.API.autoTable || window.autoTable;
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const autoTable = doc.autoTable || window.jspdf.jsPDF.API.autoTable || window.autoTable;
         
         // --- IMPROVED DATA EXTRACTION ---
         // We look for the data in multiple places in case Supabase nested it differently
-        const v = (Array.isArray(rental.vehicles) ? rental.vehicles[0] : rental.vehicles) || rental.vehicle || {};
-        const c = (Array.isArray(rental.customers) ? rental.customers[0] : rental.customers) || rental.customer || {};
-        const invId = (rental.id || '0000').toString().substring(0, 8).toUpperCase();
+            const vData = (Array.isArray(rental.vehicles) ? rental.vehicles[0] : rental.vehicles) || {};
+            const cData = (Array.isArray(rental.customers) ? rental.customers[0] : rental.customers) || {};
+            const invId = (rental.id || '0000').toString().substring(0, 8).toUpperCase();
 
         // --- 1. HEADER SECTION ---
         doc.setFontSize(24);
