@@ -277,7 +277,8 @@ async function triggerScanner() {
 }
 
 async function handleScannedRental(invId) {
-    // 3. Search Supabase for the ID from the QR
+    // We use .like() with a % wildcard to find the full ID 
+    // that starts with the 8 characters from the QR code
     const { data, error } = await client
         .from('rentals')
         .select(`
@@ -285,17 +286,18 @@ async function handleScannedRental(invId) {
             vehicles:vehicle_id (*),
             customers:customer_id (*)
         `)
-        .ilike('id', `%${invId}%`) 
-        .single();
+        .like('id', `${invId.toLowerCase()}%`) // Find ID starting with these chars
+        .limit(1); // Ensure we only get one result
 
-    if (data) {
-        // 4. Call your existing professional print function
-        preparePrint(data); 
+    if (data && data.length > 0) {
+        // data is an array because of .like(), so we take the first item
+        preparePrint(data[0]); 
     } else {
-        alert("No rental found for ID: " + invId);
+        console.error("Search error:", error);
+        alert("Rental record not found for ID: " + invId);
     }
 }
-
+        
 function closeScanner() {
     if (html5QrCode) {
         html5QrCode.stop().finally(() => {
