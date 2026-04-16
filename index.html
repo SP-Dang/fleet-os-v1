@@ -280,482 +280,333 @@
     </div>
 
     <script>
-        const client = window.supabase.createClient('https://unaeguquzlvjmiebxsvg.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVuYWVndXF1emx2am1pZWJ4c3ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNDk5MTAsImV4cCI6MjA5MTYyNTkxMH0.m6kCJus2-oHlzvmVxfFtbedKPbf8ricpQdIOQeB0fVg');
+    const client = window.supabase.createClient('https://unaeguquzlvjmiebxsvg.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVuYWVndXF1emx2am1pZWJ4c3ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNDk5MTAsImV4cCI6MjA5MTYyNTkxMH0.m6kCJus2-oHlzvmVxfFtbedKPbf8ricpQdIOQeB0fVg');
 
-        let allVehicles = [];
-        let activeV = null;
-        let maintenanceVehicleId = null;
+    let allVehicles = [];
+    let activeV = null;
+    let maintenanceVehicleId = null;
+    let html5QrCode;
+    let activeScannedRental = null;
 
-        async function init() { 
-            await loadVehicles(); 
-            await loadCustomers(); 
-            document.getElementById('b-start-date').valueAsDate = new Date();
-        }
+    async function init() { 
+        await loadVehicles(); 
+        await loadCustomers(); 
+        document.getElementById('b-start-date').valueAsDate = new Date();
+    }
 
-        function switchView(v) {
-            document.querySelectorAll('.view-content').forEach(e => e.classList.add('hidden'));
-            document.getElementById('view-' + v).classList.remove('hidden');
-            if(v === 'rentals') loadRentals();
-            if(v === 'schedule') renderScheduleGrid();
-        }
+    function switchView(v) {
+        document.querySelectorAll('.view-content').forEach(e => e.classList.add('hidden'));
+        document.getElementById('view-' + v).classList.remove('hidden');
+        if(v === 'rentals') loadRentals();
+        if(v === 'schedule') renderScheduleGrid();
+    }
 
-        async function loadVehicles() {
-            const { data } = await client.from('vehicles').select('*').order('created_at', {ascending: false});
-            allVehicles = data || [];
-            renderGrid(allVehicles);
-        }
+    async function loadVehicles() {
+        const { data } = await client.from('vehicles').select('*').order('created_at', {ascending: false});
+        allVehicles = data || [];
+        renderGrid(allVehicles);
+    }
 
-        function renderGrid(list) {
-            document.getElementById('vehicle-grid').innerHTML = list.map(v => {
-                let sColor = v.status === 'available' ? 'bg-emerald-100 text-emerald-600' : (v.status === 'rented' ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-600');
-                return `
-                <div class="bg-white p-8 rounded-[48px] border border-slate-100 shadow-sm transition-all group hover:shadow-2xl">
-                    <div class="flex justify-between items-start mb-4">
-                        <span class="px-3 py-1 bg-slate-50 border border-slate-100 rounded-full text-[8px] font-black text-slate-400 uppercase">${v.license_plate}</span>
-                        <span class="px-3 py-1 rounded-full text-[8px] font-black uppercase ${sColor}">● ${v.status}</span>
-                    </div>
-                    <h3 class="text-2xl font-black italic uppercase leading-none mb-4 group-hover:text-blue-600">${v.make_model}</h3>
-                    <p class="text-blue-600 font-black text-xl mb-6">$${v.daily_rate}<span class="text-[10px] text-slate-300">/day</span></p>
-                    <div class="grid grid-cols-4 gap-2 mb-8 border-y border-slate-50 py-4">
-                        <div class="text-center"><p class="text-[7px] text-slate-400 font-black uppercase italic">Seats</p><p class="text-[10px] font-bold">${v.seats || '-'}</p></div>
-                        <div class="text-center"><p class="text-[7px] text-slate-400 font-black uppercase italic">Type</p><p class="text-[10px] font-bold truncate">${v.vehicle_type || '-'}</p></div>
-                        <div class="text-center"><p class="text-[7px] text-slate-400 font-black uppercase italic">Fuel</p><p class="text-[10px] font-bold">${v.fuel_type || '-'}</p></div>
-                        <div class="text-center"><p class="text-[7px] text-slate-400 font-black uppercase italic">Trans</p><p class="text-[10px] font-bold">${v.transmission || '-'}</p></div>
-                    </div>
-                    <button onclick='openBooking(${JSON.stringify(v)})' ${v.status !== 'available' ? 'disabled' : ''} class="w-full py-5 bg-slate-900 text-white rounded-3xl font-black text-[10px] uppercase mb-3 active:scale-95 disabled:opacity-20">
-                        ${v.status === 'available' ? 'Select & Book' : 'Unavailable'}
+    function renderGrid(list) {
+        document.getElementById('vehicle-grid').innerHTML = list.map(v => {
+            let sColor = v.status === 'available' ? 'bg-emerald-100 text-emerald-600' : (v.status === 'rented' ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-600');
+            return `
+            <div class="bg-white p-8 rounded-[48px] border border-slate-100 shadow-sm transition-all group hover:shadow-2xl">
+                <div class="flex justify-between items-start mb-4">
+                    <span class="px-3 py-1 bg-slate-50 border border-slate-100 rounded-full text-[8px] font-black text-slate-400 uppercase">${v.license_plate}</span>
+                    <span class="px-3 py-1 rounded-full text-[8px] font-black uppercase ${sColor}">● ${v.status}</span>
+                </div>
+                <h3 class="text-2xl font-black italic uppercase leading-none mb-4 group-hover:text-blue-600">${v.make_model}</h3>
+                <p class="text-blue-600 font-black text-xl mb-6">$${v.daily_rate}<span class="text-[10px] text-slate-300">/day</span></p>
+                <div class="grid grid-cols-4 gap-2 mb-8 border-y border-slate-50 py-4">
+                    <div class="text-center"><p class="text-[7px] text-slate-400 font-black uppercase italic">Seats</p><p class="text-[10px] font-bold">${v.seats || '-'}</p></div>
+                    <div class="text-center"><p class="text-[7px] text-slate-400 font-black uppercase italic">Type</p><p class="text-[10px] font-bold truncate">${v.vehicle_type || '-'}</p></div>
+                    <div class="text-center"><p class="text-[7px] text-slate-400 font-black uppercase italic">Fuel</p><p class="text-[10px] font-bold">${v.fuel_type || '-'}</p></div>
+                    <div class="text-center"><p class="text-[7px] text-slate-400 font-black uppercase italic">Trans</p><p class="text-[10px] font-bold">${v.transmission || '-'}</p></div>
+                </div>
+                <button onclick='openBooking(${JSON.stringify(v)})' ${v.status !== 'available' ? 'disabled' : ''} class="w-full py-5 bg-slate-900 text-white rounded-3xl font-black text-[10px] uppercase mb-3 active:scale-95 disabled:opacity-20">
+                    ${v.status === 'available' ? 'Select & Book' : 'Unavailable'}
+                </button>
+                <div class="flex gap-2">
+                    <button onclick='openEdit(${JSON.stringify(v)})' class="flex-1 py-3 bg-slate-50 text-slate-400 rounded-2xl font-black text-[8px] uppercase hover:bg-blue-50">Edit</button>
+                    <button onclick="toggleMaintenance('${v.id}', '${v.status}')" class="flex-1 py-3 bg-slate-50 text-slate-400 rounded-2xl font-black text-[8px] uppercase hover:bg-amber-50">
+                        ${v.status === 'maintenance' ? 'Set Ready' : 'Repair'}
                     </button>
-                    <div class="flex gap-2">
-                        <button onclick='openEdit(${JSON.stringify(v)})' class="flex-1 py-3 bg-slate-50 text-slate-400 rounded-2xl font-black text-[8px] uppercase hover:bg-blue-50">Edit</button>
-                        <button onclick="toggleMaintenance('${v.id}', '${v.status}')" class="flex-1 py-3 bg-slate-50 text-slate-400 rounded-2xl font-black text-[8px] uppercase hover:bg-amber-50">
-                            ${v.status === 'maintenance' ? 'Set Ready' : 'Repair'}
-                        </button>
-                    </div>
-                </div>`;
-            }).join('');
-        }
+                </div>
+            </div>`;
+        }).join('');
+    }
 
-        function filterVehicles() {
-            const q = document.getElementById('search-input').value.toLowerCase();
-            renderGrid(allVehicles.filter(v => v.make_model.toLowerCase().includes(q) || v.license_plate.toLowerCase().includes(q)));
-        }
+    function filterVehicles() {
+        const q = document.getElementById('search-input').value.toLowerCase();
+        renderGrid(allVehicles.filter(v => v.make_model.toLowerCase().includes(q) || v.license_plate.toLowerCase().includes(q)));
+    }
 
-       let html5QrCode;
-
-async function triggerScanner() {
-    // 1. Show the scanner modal
-    document.getElementById('scanner-modal').classList.add('active');
-    
-    // 2. Initialize the scanner
-    html5QrCode = new Html5Qrcode("reader");
-    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-
-    try {
-        await html5QrCode.start(
-            { facingMode: "environment" }, 
-            config, 
-            async (decodedText) => {
-                // When a QR is found, stop camera and process
+    async function triggerScanner() {
+        document.getElementById('scanner-modal').classList.add('active');
+        html5QrCode = new Html5Qrcode("reader");
+        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+        try {
+            await html5QrCode.start({ facingMode: "environment" }, config, async (decodedText) => {
                 await html5QrCode.stop();
                 document.getElementById('scanner-modal').classList.remove('active');
-                
                 await handleScannedRental(decodedText);
+            });
+        } catch (err) {
+            console.error("Scanner Error:", err);
+            closeScanner();
+        }
+    }
+
+    async function handleScannedRental(invId) {
+        const { data, error } = await client.rpc('search_rentals_by_prefix', { prefix_id: invId });
+        if (data && data[0]) {
+            const { data: fullData } = await client
+                .from('rentals')
+                .select('*, vehicles(*), customers(*)')
+                .eq('id', data[0].id)
+                .single();
+
+            if (fullData) {
+                activeScannedRental = fullData;
+                document.getElementById('ret-vehicle-name').innerText = fullData.vehicles?.make_model || "Unknown";
+                document.getElementById('ret-customer-name').innerText = `Renter: ${fullData.customers?.full_name || "Guest"}`;
+                document.getElementById('ret-plate').innerText = fullData.vehicles?.license_plate || "N/A";
+                document.getElementById('ret-total').innerText = `$${parseFloat(fullData.total_price || 0).toFixed(2)}`;
+                document.getElementById('btn-confirm-return').onclick = () => processReturn(fullData);
+                document.getElementById('return-modal').classList.add('active');
             }
-        );
-    } catch (err) {
-        console.error("Scanner Error:", err);
-        alert("Camera access failed. Ensure you are using HTTPS or localhost.");
-        closeScanner();
+        } else {
+            alert("No active rental found.");
+        }
     }
-}
 
-let activeScannedRental = null;
-
-async function handleScannedRental(invId) {
-    // 1. Fetch via RPC
-    const { data, error } = await client.rpc('search_rentals_by_prefix', { prefix_id: invId });
-
-    if (data && data[0]) {
-        // 2. Fetch full details - UPDATED SELECT LINE BELOW
-        const { data: fullData } = await client
-            .from('rentals')
-            .select('*, vehicles(*), customers(*)') // Clean joins without aliasing
-            .eq('id', data[0].id)
-            .single();
-
-        if (fullData) {
-            activeScannedRental = fullData;
-            
-            // 3. Populate Modal UI
-            document.getElementById('ret-vehicle-name').innerText = fullData.vehicles?.make_model || "Unknown Vehicle";
-            document.getElementById('ret-customer-name').innerText = `Renter: ${fullData.customers?.full_name || "Guest"}`;
-            document.getElementById('ret-plate').innerText = fullData.vehicles?.license_plate || "N/A";
-            document.getElementById('ret-total').innerText = `$${parseFloat(fullData.total_price || 0).toFixed(2)}`;
-            
-            // 4. Set the click action for the button
-            document.getElementById('btn-confirm-return').onclick = () => processReturn(fullData);
-            
-            // 5. Open Modal
-            document.getElementById('return-modal').classList.add('active');
-        }
-    } else {
-        alert("No active rental found for this QR.");
+    async function processReturn(rental) {
+        try {
+            await client.from('rentals').update({ status: 'completed' }).eq('id', rental.id);
+            await client.from('vehicles').update({ status: 'available' }).eq('id', rental.vehicle_id);
+            alert("Return Successful!");
+            closeModal('return-modal');
+            init();
+        } catch (err) { alert("Error processing return."); }
     }
-}
 
-async function processReturn(rental) {
-    try {
-        // 1. Update Rental Status
-        const { error: rErr } = await client.from('rentals')
-            .update({ status: 'completed' })
-            .eq('id', rental.id);
+    function printFromReturn() { if (activeScannedRental) preparePrint(activeScannedRental); }
 
-        // 2. Update Vehicle Status
-        const { error: vErr } = await client.from('vehicles')
-            .update({ status: 'available' })
-            .eq('id', rental.vehicle_id);
-
-        if (rErr || vErr) throw new Error("Update failed");
-
-        alert("Return Successful! Vehicle is now Available.");
-        
-        // 3. UI Cleanup
-        closeModal('return-modal');
-        init(); // Re-fetch all data to update your dashboard layout
-        
-    } catch (err) {
-        console.error(err);
-        alert("Error processing return.");
+    function closeScanner() {
+        if (html5QrCode) html5QrCode.stop().finally(() => document.getElementById('scanner-modal').classList.remove('active'));
+        else document.getElementById('scanner-modal').classList.remove('active');
     }
-}
 
-// Shortcut to use your existing print function from inside the return modal
-function printFromReturn() {
-    if (activeScannedRental) preparePrint(activeScannedRental);
-}
-        
-function closeScanner() {
-    if (html5QrCode) {
-        html5QrCode.stop().finally(() => {
-            document.getElementById('scanner-modal').classList.remove('active');
-        });
-    } else {
-        document.getElementById('scanner-modal').classList.remove('active');
+    async function loadCustomers() {
+        const { data } = await client.from('customers').select('*');
+        document.getElementById('b-customer').innerHTML = (data || []).map(c => `<option value="${c.id}">${c.full_name}</option>`).join('');
     }
-}
 
-        function openCustomerModal() { document.getElementById('customer-modal').classList.add('active'); }
+    function openCustomerModal() { document.getElementById('customer-modal').classList.add('active'); }
 
-        async function saveNewCustomer() {
-            const name = document.getElementById('nc-name').value;
-            const phone = document.getElementById('nc-phone').value;
-            const email = document.getElementById('nc-email').value;
-            const nat = document.getElementById('nc-nat').value;
-            const pass = document.getElementById('nc-pass').value;
-            const lic = document.getElementById('nc-lic').value;
+    async function saveNewCustomer() {
+        const name = document.getElementById('nc-name').value;
+        const phone = document.getElementById('nc-phone').value;
+        if(!name || !phone) return alert("Required fields missing");
+        const { data, error } = await client.from('customers').insert([{ 
+            full_name: name, phone: phone, email: document.getElementById('nc-email').value, 
+            nationality: document.getElementById('nc-nat').value, passport_number: document.getElementById('nc-pass').value, 
+            license_number: document.getElementById('nc-lic').value 
+        }]).select().single();
+        if(!error) { await loadCustomers(); document.getElementById('b-customer').value = data.id; closeModal('customer-modal'); }
+    }
 
-            if(!name || !phone) return alert("Name and Phone are required.");
-            
-            const { data, error } = await client.from('customers').insert([{ 
-                full_name: name, phone: phone, email: email, 
-                nationality: nat, passport_number: pass, license_number: lic 
-            }]).select().single();
+    function openAddVehicle() {
+        activeV = null;
+        document.getElementById('v-modal-title').innerText = "Add New Vehicle";
+        ['e-model','e-plate','e-rate','e-seats','e-type'].forEach(id => document.getElementById(id).value = "");
+        document.getElementById('v-save-btn').onclick = saveNewVehicle;
+        document.getElementById('edit-modal').classList.add('active');
+    }
 
-            if(!error) {
-                await loadCustomers();
-                document.getElementById('b-customer').value = data.id;
-                closeModal('customer-modal');
-                ['nc-name','nc-phone','nc-email','nc-nat','nc-pass','nc-lic'].forEach(id => document.getElementById(id).value = "");
-            } else alert(error.message);
-        }
+    async function saveNewVehicle() {
+        const payload = getVehicleForm();
+        const { error } = await client.from('vehicles').insert([payload]);
+        if(!error) { closeModal('edit-modal'); loadVehicles(); }
+    }
 
-        function openAddVehicle() {
-            activeV = null;
-            document.getElementById('v-modal-title').innerText = "Add New Vehicle";
-            ['e-model','e-plate','e-rate','e-seats','e-type'].forEach(id => document.getElementById(id).value = "");
-            document.getElementById('v-save-btn').onclick = saveNewVehicle;
-            document.getElementById('edit-modal').classList.add('active');
-        }
+    function openEdit(v) {
+        activeV = v;
+        document.getElementById('v-modal-title').innerText = "Edit Vehicle";
+        document.getElementById('e-model').value = v.make_model;
+        document.getElementById('e-plate').value = v.license_plate;
+        document.getElementById('e-rate').value = v.daily_rate;
+        document.getElementById('e-seats').value = v.seats;
+        document.getElementById('e-fuel').value = v.fuel_type;
+        document.getElementById('e-trans').value = v.transmission;
+        document.getElementById('e-type').value = v.vehicle_type;
+        document.getElementById('v-save-btn').onclick = saveVehicleChanges;
+        document.getElementById('edit-modal').classList.add('active');
+    }
 
-        async function saveNewVehicle() {
-            const payload = getVehicleForm();
-            if(!payload.make_model) return alert("Model name is required");
-            const { error } = await client.from('vehicles').insert([payload]);
-            if(!error) { closeModal('edit-modal'); loadVehicles(); } else alert(error.message);
-        }
+    async function saveVehicleChanges() {
+        const payload = getVehicleForm();
+        const { error } = await client.from('vehicles').update(payload).eq('id', activeV.id);
+        if(!error) { closeModal('edit-modal'); loadVehicles(); }
+    }
 
-        function openEdit(v) {
-            activeV = v;
-            document.getElementById('v-modal-title').innerText = "Edit Vehicle";
-            document.getElementById('e-model').value = v.make_model;
-            document.getElementById('e-plate').value = v.license_plate;
-            document.getElementById('e-rate').value = v.daily_rate;
-            document.getElementById('e-seats').value = v.seats;
-            document.getElementById('e-fuel').value = v.fuel_type;
-            document.getElementById('e-trans').value = v.transmission;
-            document.getElementById('e-type').value = v.vehicle_type;
-            document.getElementById('v-save-btn').onclick = saveVehicleChanges;
-            document.getElementById('edit-modal').classList.add('active');
-        }
+    function getVehicleForm() {
+        return {
+            make_model: document.getElementById('e-model').value, license_plate: document.getElementById('e-plate').value,
+            daily_rate: parseFloat(document.getElementById('e-rate').value) || 0, seats: parseInt(document.getElementById('e-seats').value) || 0,
+            fuel_type: document.getElementById('e-fuel').value, transmission: document.getElementById('e-trans').value, vehicle_type: document.getElementById('e-type').value,
+            status: activeV ? activeV.status : 'available'
+        };
+    }
 
-        async function saveVehicleChanges() {
-            const payload = getVehicleForm();
-            const { error } = await client.from('vehicles').update(payload).eq('id', activeV.id);
-            if(!error) { closeModal('edit-modal'); loadVehicles(); } else alert(error.message);
-        }
+    async function openBooking(v) {
+        activeV = v;
+        document.getElementById('b-title').innerText = v.make_model;
+        document.getElementById('b-subtitle').innerText = `Plate: ${v.license_plate} | $${v.daily_rate}/day`;
+        updateBookingTotal();
+        document.getElementById('booking-modal').classList.add('active');
+    }
 
-        function getVehicleForm() {
-            return {
-                make_model: document.getElementById('e-model').value, license_plate: document.getElementById('e-plate').value,
-                daily_rate: parseFloat(document.getElementById('e-rate').value) || 0, seats: parseInt(document.getElementById('e-seats').value) || 0,
-                fuel_type: document.getElementById('e-fuel').value, transmission: document.getElementById('e-trans').value, vehicle_type: document.getElementById('e-type').value,
-                status: activeV ? activeV.status : 'available'
-            };
-        }
+    function updateBookingTotal() {
+        const days = parseInt(document.getElementById('b-days').value) || 0;
+        document.getElementById('b-total').innerText = `$${days * (activeV?.daily_rate || 0)}`;
+    }
 
-        async function openBooking(v) {
-            activeV = v;
-            document.getElementById('b-title').innerText = v.make_model;
-            document.getElementById('b-subtitle').innerText = `Plate: ${v.license_plate} | $${v.daily_rate}/day`;
-            document.getElementById('b-start-date').valueAsDate = new Date();
-            updateBookingTotal();
-            document.getElementById('booking-modal').classList.add('active');
-        }
+    async function confirmRental() {
+        const cid = document.getElementById('b-customer').value;
+        const days = parseInt(document.getElementById('b-days').value);
+        const start = document.getElementById('b-start-date').value;
+        const { error } = await client.from('rentals').insert([{ 
+            vehicle_id: activeV.id, customer_id: cid, start_date: start, 
+            rental_days: days, total_price: days * activeV.daily_rate, status: 'active' 
+        }]);
+        if(!error) { await client.from('vehicles').update({ status: 'rented' }).eq('id', activeV.id); closeModal('booking-modal'); loadVehicles(); }
+    }
 
-        function updateBookingTotal() {
-            const days = parseInt(document.getElementById('b-days').value) || 0;
-            document.getElementById('b-total').innerText = `$${days * (activeV?.daily_rate || 0)}`;
-        }
-
-        async function confirmRental() {
-            const cid = document.getElementById('b-customer').value;
-            const days = parseInt(document.getElementById('b-days').value);
-            const start = document.getElementById('b-start-date').value;
-            if(!cid || !start || days < 1) return alert("Please select Customer and Date.");
-            
-            const { error } = await client.from('rentals').insert([{ 
-                vehicle_id: activeV.id, customer_id: cid, start_date: start, 
-                rental_days: days, total_price: days * activeV.daily_rate, status: 'active' 
-            }]);
-            
-            if(!error) {
-                await client.from('vehicles').update({ status: 'rented' }).eq('id', activeV.id);
-                closeModal('booking-modal'); 
-                loadVehicles();
-                alert("Booking Confirmed!");
-            } else alert(error.message);
-        }
-
-        // --- UPDATED PRINT RECEIPT LOGIC ---
-        async function preparePrint(rental) {
-    try {
-        console.log("Rental Data for Print:", rental); // DEBUG: Check console to see exact field names
-        // This should be at the start of your preparePrint function
+    // FIXED PREPARE PRINT FUNCTION
+    async function preparePrint(rental) {
+        try {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             const autoTable = doc.autoTable || window.jspdf.jsPDF.API.autoTable || window.autoTable;
-        
-        // --- IMPROVED DATA EXTRACTION ---
-        // We look for the data in multiple places in case Supabase nested it differently
+            
+            // Fixed extraction - no duplicate 'const'
             const vData = (Array.isArray(rental.vehicles) ? rental.vehicles[0] : rental.vehicles) || {};
             const cData = (Array.isArray(rental.customers) ? rental.customers[0] : rental.customers) || {};
             const invId = (rental.id || '0000').toString().substring(0, 8).toUpperCase();
 
-        // --- 1. HEADER SECTION ---
-        doc.setFontSize(24);
-        doc.setFont("helvetica", "bold");
-        doc.text("FLEET OS RENTALS", 105, 20, { align: "center" });
+            doc.setFontSize(24);
+            doc.setFont("helvetica", "bold");
+            doc.text("FLEET OS RENTALS", 105, 20, { align: "center" });
 
-        doc.setFontSize(9);
-        doc.setFont("helvetica", "normal");
-        const companyAddress = ["123 Business Lane,","Vientiane Capital, Lao PDR","Phone: +856 20 5555 5555","Email: contact@fleetos.com"];
-        doc.text(companyAddress, 15, 30);
+            doc.setFontSize(9);
+            doc.setFont("helvetica", "normal");
+            doc.text(["123 Business Lane,","Vientiane Capital, Lao PDR","Phone: +856 20 5555 5555"], 15, 30);
 
-        // --- 2. QR CODE ---
-        const qrContainer = document.createElement('div');
-        qrContainer.style.display = 'none';
-        document.body.appendChild(qrContainer);
-        new QRCode(qrContainer, { text: invId, width: 128, height: 128 });
-        await new Promise(r => setTimeout(r, 150));
-        const qrImg = qrContainer.querySelector('img');
-        const qrCanvas = qrContainer.querySelector('canvas');
-        const qrData = qrImg ? qrImg.src : (qrCanvas ? qrCanvas.toDataURL("image/png") : null);
-        if (qrData) doc.addImage(qrData, 'PNG', 165, 25, 30, 30);
-        doc.setFontSize(8);
-        doc.text(`INV: ${invId}`, 180, 58, { align: "center" });
-        document.body.removeChild(qrContainer);
+            const qrContainer = document.createElement('div');
+            qrContainer.style.display = 'none';
+            document.body.appendChild(qrContainer);
+            new QRCode(qrContainer, { text: invId, width: 128, height: 128 });
+            await new Promise(r => setTimeout(r, 150));
+            const qrCanvas = qrContainer.querySelector('canvas');
+            if (qrCanvas) doc.addImage(qrCanvas.toDataURL("image/png"), 'PNG', 165, 25, 30, 30);
+            doc.setFontSize(8);
+            doc.text(`INV: ${invId}`, 180, 58, { align: "center" });
+            document.body.removeChild(qrContainer);
 
-        doc.setLineWidth(0.5);
-        doc.line(15, 65, 195, 65);
+            doc.line(15, 65, 195, 65);
 
-        // --- 3. CUSTOMER INFORMATION ---
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "bold");
-        doc.text("CUSTOMER INFORMATION", 15, 75);
-        
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(9);
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "bold");
+            doc.text("CUSTOMER INFORMATION", 15, 75);
+            doc.text("VEHICLE DETAILS", 110, 75);
+            
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(9);
+            doc.text([
+                `Name: ${cData.full_name || 'N/A'}`,
+                `Phone: ${cData.phone || 'N/A'}`,
+                `Email: ${cData.email || 'N/A'}`,
+                `Passport: ${cData.passport_number || 'N/A'}`,
+                `Nationality: ${cData.nationality || 'N/A'}`,
+                `License: ${cData.license_number || 'N/A'}`
+            ], 15, 82);
 
-        // Map fields carefully based on Supabase common naming
-        const customerInfo = [
-            `Name: ${c.full_name || 'N/A'}`,
-            `Phone: ${c.phone || 'N/A'}`,
-            `Email: ${c.email || 'N/A'}`,
-            `Passport: ${c.passport_number || c.passport || 'N/A'}`, // Added fallback
-            `Nationality: ${c.nationality || 'N/A'}`,
-            `License: ${c.license_number || c.driver_license || 'N/A'}` // Added fallback
-        ];
-        doc.text(customerInfo, 15, 82);
+            doc.text([
+                `Model: ${vData.make_model || 'N/A'}`,
+                `Plate: ${vData.license_plate || 'N/A'}`,
+                `Type: ${vData.vehicle_type || 'N/A'}`,
+                `Fuel: ${vData.fuel_type || 'N/A'}`,
+                `Transmission: ${vData.transmission || 'N/A'}`,
+                `Daily Rate: $${vData.daily_rate || '0'}`
+            ], 110, 82);
 
-        // --- 4. VEHICLE DETAILS ---
-        doc.setFont("helvetica", "bold");
-        doc.text("VEHICLE DETAILS", 110, 75);
+            autoTable.call(doc, {
+                startY: 125,
+                head: [['Description', 'Days', 'Rate', 'Subtotal']],
+                body: [[`Rental - ${vData.make_model || 'Unit'}`, rental.rental_days, `$${parseFloat(vData.daily_rate || 0).toFixed(2)}`, `$${parseFloat(rental.total_price || 0).toFixed(2)}`]],
+                headStyles: { fillColor: [15, 23, 42] },
+                theme: 'striped'
+            });
 
-        doc.setFont("helvetica", "normal");
-        const vehicleInfo = [
-            `Model: ${v.make_model || 'N/A'}`,
-            `Plate: ${v.license_plate || 'N/A'}`,
-            `Type: ${v.vehicle_type || 'N/A'}`,
-            `Fuel: ${v.fuel_type || 'N/A'}`,
-            `Transmission: ${v.transmission || 'N/A'}`,
-            `Daily Rate: $${v.daily_rate || '0'}`
-        ];
-        doc.text(vehicleInfo, 110, 82);
-
-        // --- 5. RENTAL PERIOD ---
-        const startDate = new Date(rental.start_date);
-        const endDate = new Date(startDate);
-        endDate.setDate(startDate.getDate() + (parseInt(rental.rental_days) || 0));
-        
-        const dateRange = `Rental Period: ${startDate.toLocaleDateString('en-GB')} to ${endDate.toLocaleDateString('en-GB')}`;
-        doc.setFont("helvetica", "bolditalic");
-        doc.text(dateRange, 15, 120);
-
-        // --- 6. SUMMARY TABLE ---
-        autoTable.call(doc, {
-            startY: 125,
-            head: [['Description', 'Days', 'Rate', 'Subtotal']],
-            body: [[
-                `Vehicle Rental - ${v.make_model || 'Vehicle'}`,
-                rental.rental_days || 0,
-                `$${parseFloat(v.daily_rate || 0).toFixed(2)}`,
-                `$${parseFloat(rental.total_price || 0).toFixed(2)}`
-            ]],
-            headStyles: { fillColor: [15, 23, 42], halign: 'center' },
-            columnStyles: { 3: { halign: 'right' } },
-            theme: 'striped'
-        });
-
-        // --- 7. GRAND TOTAL ---
-        const finalY = doc.lastAutoTable.finalY + 10;
-        doc.setFontSize(12);
-        doc.setFont("helvetica", "bold");
-        doc.text("GRAND TOTAL:", 140, finalY);
-        doc.text(`$${parseFloat(rental.total_price || 0).toFixed(2)}`, 195, finalY, { align: "right" });
-
-        // --- 8. FOOTER ---
-        const footerY = 260; 
-        doc.setLineWidth(0.2);
-        doc.line(15, footerY, 80, footerY);
-        doc.setFontSize(8);
-        doc.setFont("helvetica", "normal");
-        doc.text("Authorized Signature", 15, footerY + 5);
-        
-        doc.line(130, footerY, 195, footerY);
-        doc.text("Customer Signature", 130, footerY + 5);
-        doc.text(c.full_name || "Guest", 130, footerY + 10);
-
-        doc.save(`Invoice_${invId}.pdf`);
-
-    } catch (err) {
-        console.error("PDF Error:", err);
-        alert("Print Error: " + err.message);
+            doc.save(`Invoice_${invId}.pdf`);
+        } catch (err) { console.error(err); }
     }
-}
-        
-        async function loadRentals() {
-            const { data } = await client
-                .from('rentals')
-                .select(`
-                    *,
-                    vehicles:vehicle_id (make_model, daily_rate, license_plate, vehicle_type, fuel_type),
-                    customers:customer_id (full_name, phone, passport_number)
-                `)
-                .order('created_at', { ascending: false });
+    
+    async function loadRentals() {
+        const { data } = await client.from('rentals').select('*, vehicles(*), customers(*)').order('created_at', { ascending: false });
+        document.getElementById('rental-list').innerHTML = (data || []).map(r => `
+            <tr>
+                <td class="p-8"><div class="font-black italic uppercase">${r.vehicles?.make_model || 'Unknown'}</div></td>
+                <td class="p-8 font-bold">${r.customers?.full_name || 'N/A'}</td>
+                <td class="p-8">${r.rental_days} Days</td>
+                <td class="p-8 uppercase ${r.status === 'active' ? 'text-blue-600' : 'text-slate-300'}">${r.status}</td>
+                <td class="p-8 text-right"><button onclick='preparePrint(${JSON.stringify(r)})' class="bg-slate-900 text-white px-4 py-2 rounded-xl text-[9px]">Print</button></td>
+            </tr>`).join('');
+    }
 
-            document.getElementById('rental-list').innerHTML = (data || []).map(r => `
-                <tr>
-                    <td class="p-8">
-                        <div class="font-black italic uppercase">${r.vehicles?.make_model || 'Unknown'}</div>
-                        <div class="text-[9px] text-slate-400 font-bold">${r.start_date}</div>
-                    </td>
-                    <td class="p-8 font-bold text-slate-500">${r.customers?.full_name || 'N/A'}</td>
-                    <td class="p-8 font-black text-[10px] text-slate-400 uppercase">${r.rental_days} Days</td>
-                    <td class="p-8 font-black text-[10px] uppercase ${r.status === 'active' ? 'text-blue-600' : 'text-slate-300'}">${r.status}</td>
-                    <td class="p-8 text-right space-x-2">
-                        <button onclick='preparePrint(${JSON.stringify(r)})' class="bg-slate-900 text-white px-4 py-2 rounded-xl font-black text-[9px] uppercase">Print</button>
-                        ${r.status === 'active' ? `<button onclick="returnVehicle('${r.id}', '${r.vehicle_id}')" class="bg-emerald-500 text-white px-3 py-1 rounded-lg font-black text-[9px] uppercase">Return</button>` : ''}
-                    </td>
-                </tr>
-            `).join('');
+    async function renderScheduleGrid() {
+        const { data: vList } = await client.from('vehicles').select('*');
+        const { data: rList } = await client.from('rentals').select('*').eq('status', 'active');
+        const today = new Date(); today.setHours(0,0,0,0);
+        let html = `<div class="flex"><div class="w-40 shrink-0"></div>`;
+        for(let i=0; i<14; i++) {
+            let d = new Date(today); d.setDate(today.getDate() + i);
+            html += `<div class="day-cell text-slate-400">${d.getDate()}/${d.getMonth()+1}</div>`;
         }
-
-        async function returnVehicle(rid, vid) {
-            if(!confirm("Return vehicle?")) return;
-            await client.from('rentals').update({ status: 'completed' }).eq('id', rid);
-            await client.from('vehicles').update({ status: 'available' }).eq('id', vid);
-            loadRentals(); loadVehicles();
-        }
-
-        async function renderScheduleGrid() {
-            const container = document.getElementById('timeline-container');
-            const { data: vList } = await client.from('vehicles').select('*');
-            const { data: rList } = await client.from('rentals').select('*').eq('status', 'active');
-            const today = new Date(); today.setHours(0,0,0,0);
-
-            let html = `<div class="flex"><div class="w-40 shrink-0"></div>`;
+        html += `</div>`;
+        vList.forEach(v => {
+            html += `<div class="flex items-center"><div class="w-40 shrink-0 p-3 font-black text-[9px] uppercase">${v.make_model}</div>`;
             for(let i=0; i<14; i++) {
-                let d = new Date(today); d.setDate(today.getDate() + i);
-                html += `<div class="day-cell text-slate-400 border-none">${d.getDate()}/${d.getMonth()+1}</div>`;
+                let checkDate = new Date(today); checkDate.setDate(today.getDate() + i);
+                let isRented = rList.some(r => {
+                    let s = new Date(r.start_date); s.setHours(0,0,0,0);
+                    let e = new Date(s); e.setDate(s.getDate() + r.rental_days);
+                    return r.vehicle_id === v.id && checkDate >= s && checkDate < e;
+                });
+                html += `<div class="day-cell ${isRented ? 'rented-cell' : 'bg-slate-50/50'}"></div>`;
             }
             html += `</div>`;
-            vList.forEach(v => {
-                html += `<div class="flex items-center"><div class="w-40 shrink-0 p-3 font-black text-[9px] uppercase truncate border-r border-slate-50">${v.make_model}</div>`;
-                for(let i=0; i<14; i++) {
-                    let checkDate = new Date(today); checkDate.setDate(today.getDate() + i);
-                    let isRented = rList.some(r => {
-                        let start = new Date(r.start_date); start.setHours(0,0,0,0);
-                        let end = new Date(start); end.setDate(start.getDate() + r.rental_days);
-                        return r.vehicle_id === v.id && checkDate >= start && checkDate < end;
-                    });
-                    html += `<div class="day-cell ${isRented ? 'rented-cell' : 'bg-slate-50/50'}"></div>`;
-                }
-                html += `</div>`;
-            });
-            container.innerHTML = html;
-        }
+        });
+        document.getElementById('timeline-container').innerHTML = html;
+    }
 
-        async function loadCustomers() {
-            const { data } = await client.from('customers').select('*');
-            document.getElementById('b-customer').innerHTML = (data || []).map(c => `<option value="${c.id}">${c.full_name}</option>`).join('');
-        }
+    async function toggleMaintenance(id, cur) {
+        if (cur === 'maintenance') { maintenanceVehicleId = id; document.getElementById('repair-modal').classList.add('active'); }
+        else { await client.from('vehicles').update({ status: 'maintenance' }).eq('id', id); loadVehicles(); }
+    }
 
-        async function toggleMaintenance(id, cur) {
-            if (cur === 'maintenance') { maintenanceVehicleId = id; document.getElementById('repair-modal').classList.add('active'); }
-            else { await client.from('vehicles').update({ status: 'maintenance' }).eq('id', id); loadVehicles(); }
-        }
+    async function submitRepairLog() {
+        await client.from('maintenance_logs').insert([{ vehicle_id: maintenanceVehicleId, description: document.getElementById('r-description').value, cost: document.getElementById('r-cost').value, is_resolved: true }]);
+        await client.from('vehicles').update({ status: 'available' }).eq('id', maintenanceVehicleId);
+        closeModal('repair-modal'); loadVehicles();
+    }
 
-        async function submitRepairLog() {
-            const desc = document.getElementById('r-description').value;
-            const cost = document.getElementById('r-cost').value;
-            await client.from('maintenance_logs').insert([{ vehicle_id: maintenanceVehicleId, description: desc, cost: cost, is_resolved: true }]);
-            await client.from('vehicles').update({ status: 'available' }).eq('id', maintenanceVehicleId);
-            closeModal('repair-modal'); loadVehicles();
-        }
-
-        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-        window.onload = init;
-    </script>
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+    window.onload = init;
+</script>
+        
     <div id="scanner-modal" class="modal">
     <div class="bg-white w-full max-w-lg rounded-[48px] shadow-2xl overflow-hidden flex flex-col">
         <div class="bg-slate-900 p-8 text-white flex justify-between items-center">
