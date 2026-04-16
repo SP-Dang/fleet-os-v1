@@ -124,6 +124,47 @@
         </div>
     </div>
 
+    <div id="return-modal" class="modal">
+    <div class="bg-white w-full max-w-lg rounded-[48px] shadow-2xl overflow-hidden flex flex-col border border-slate-200">
+        <div class="bg-slate-900 p-8 text-white">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-emerald-400 text-[10px] font-black uppercase tracking-[0.2em]">Active Rental Found</span>
+                <button onclick="closeModal('return-modal')" class="text-slate-400 hover:text-white transition-colors">✕</button>
+            </div>
+            <h2 id="ret-vehicle-name" class="text-3xl font-black uppercase italic tracking-tighter">VEHICLE NAME</h2>
+            <p id="ret-customer-name" class="text-slate-400 font-bold uppercase text-xs mt-1">Customer Name</p>
+        </div>
+
+        <div class="p-8 space-y-6">
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-slate-50 p-4 rounded-3xl border border-slate-100">
+                    <p class="text-[10px] font-black text-slate-400 uppercase mb-1">Plate Number</p>
+                    <p id="ret-plate" class="font-bold text-slate-900">---</p>
+                </div>
+                <div class="bg-slate-50 p-4 rounded-3xl border border-slate-100">
+                    <p class="text-[10px] font-black text-slate-400 uppercase mb-1">Total Paid</p>
+                    <p id="ret-total" class="font-bold text-slate-900">---</p>
+                </div>
+            </div>
+
+            <div class="bg-emerald-50 p-6 rounded-[32px] border border-emerald-100">
+                <p class="text-emerald-800 text-sm font-medium leading-relaxed">
+                    Confirming this return will mark the vehicle as <span class="font-bold">Available</span> for new bookings and archive this rental record.
+                </p>
+            </div>
+        </div>
+
+        <div class="p-8 pt-0 flex flex-col gap-3">
+            <button id="btn-confirm-return" class="w-full bg-slate-900 text-white h-16 rounded-full font-black uppercase tracking-widest hover:bg-emerald-600 transition-all active:scale-95 shadow-lg shadow-slate-200">
+                Complete Return & Release Vehicle
+            </button>
+            <button onclick="printFromReturn()" class="w-full border-2 border-slate-200 text-slate-600 h-14 rounded-full font-bold uppercase text-xs hover:bg-slate-50 transition-all">
+                Print Duplicate Receipt
+            </button>
+        </div>
+    </div>
+</div>
+    
     <div id="customer-modal" class="modal">
         <div class="bg-white w-full max-w-md rounded-[48px] shadow-2xl overflow-hidden flex flex-col">
             <div class="bg-blue-600 p-8 text-white"><h2 class="text-2xl font-black uppercase italic tracking-tighter">Register New Customer</h2></div>
@@ -276,42 +317,69 @@ async function triggerScanner() {
     }
 }
 
+let activeScannedRental = null;
+
 async function handleScannedRental(invId) {
-    console.log("Searching via RPC for prefix:", invId);
+    // 1. Fetch via RPC as we set up before
+    const { data, error } = await client.rpc('search_rentals_by_prefix', { prefix_id: invId });
 
-    // Use .rpc() to call the SQL function we just created
-    // This bypasses the UUID type restriction
-    const { data, error } = await client
-        .rpc('search_rentals_by_prefix', { prefix_id: invId });
-
-    if (error) {
-        console.error("RPC Error:", error);
-        alert("Search failed. Please try manual lookup.");
-        return;
-    }
-
-    if (data && data.length > 0) {
-        const rental = data[0];
-        
-        // Since RPC only returns the rental, we need to quickly 
-        // fetch the joined vehicle and customer data for your receipt
+    if (data && data[0]) {
+        // 2. Fetch full details including joins
         const { data: fullData } = await client
             .from('rentals')
-            .select(`
-                *,
-                vehicles:vehicle_id (*),
-                customers:customer_id (*)
-            `)
-            .eq('id', rental.id)
+            .select('*, vehicles:vehicle_id(*), customers:customer_id(*)')
+            .eq('id', data[0].id)
             .single();
 
         if (fullData) {
-            console.log("Full Record Found:", fullData);
-            preparePrint(fullData); 
+            activeScannedRental = fullData;
+            
+            // 3. Populate Modal UI
+            document.getElementById('ret-vehicle-name').innerText = fullData.vehicles?.make_model || "Unknown Vehicle";
+            document.getElementById('ret-customer-name').innerText = `Renter: ${fullData.customers?.full_name || "Guest"}`;
+            document.getElementById('ret-plate').innerText = fullData.vehicles?.license_plate || "N/A";
+            document.getElementById('ret-total').innerText = `$${parseFloat(fullData.total_price || 0).toFixed(2)}`;
+            
+            // 4. Set the click action for the button
+            document.getElementById('btn-confirm-return').onclick = () => processReturn(fullData);
+            
+            // 5. Open Modal
+            document.getElementById('return-modal').classList.add('active');
         }
     } else {
-        alert(`No record found for: ${invId}`);
+        alert("No active rental found for this QR.");
     }
+}
+
+async function processReturn(rental) {
+    try {
+        // 1. Update Rental Status
+        const { error: rErr } = await client.from('rentals')
+            .update({ status: 'completed' })
+            .eq('id', rental.id);
+
+        // 2. Update Vehicle Status
+        const { error: vErr } = await client.from('vehicles')
+            .update({ status: 'available' })
+            .eq('id', rental.vehicle_id);
+
+        if (rErr || vErr) throw new Error("Update failed");
+
+        alert("Return Successful! Vehicle is now Available.");
+        
+        // 3. UI Cleanup
+        closeModal('return-modal');
+        init(); // Re-fetch all data to update your dashboard layout
+        
+    } catch (err) {
+        console.error(err);
+        alert("Error processing return.");
+    }
+}
+
+// Shortcut to use your existing print function from inside the return modal
+function printFromReturn() {
+    if (activeScannedRental) preparePrint(activeScannedRental);
 }
         
 function closeScanner() {
