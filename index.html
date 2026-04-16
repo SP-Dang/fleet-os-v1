@@ -8,14 +8,13 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf-autotable.min.js"></script>
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700&display=swap');
         body { font-family: 'Noto Sans Lao', sans-serif; }
         .modal { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.9); align-items: center; justify-content: center; z-index: 50; padding: 20px; backdrop-filter: blur(8px); }
         .modal.active { display: flex; }
         .view-content.hidden { display: none; }
-        .day-cell { min-width: 45px; height: 45px; border: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; flex-shrink: 0; }
-        .rented-cell { background: #3b82f6; color: white; border-radius: 4px; border: 2px solid #fff; }
     </style>
 </head>
 <body class="bg-[#F8FAFC] text-slate-900">
@@ -26,26 +25,19 @@
                 <div class="w-10 h-10 bg-slate-900 rounded-2xl flex items-center justify-center text-white text-xl">🚀</div>
                 <div>
                     <h1 class="text-xl font-black tracking-tighter uppercase">Fleet<span class="text-blue-600">OS</span></h1>
-                    <div class="flex items-center gap-1">
-                        <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                        <span class="text-[9px] font-black uppercase text-slate-400">System Online</span>
+                    <div id="db-status" class="flex items-center gap-1">
+                        <span id="status-dot" class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                        <span id="status-text" class="text-[9px] font-black uppercase text-slate-400">Connecting...</span>
                     </div>
                 </div>
             </div>
             <nav class="flex bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
                 <button onclick="switchView('dashboard')" class="px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all hover:bg-white">Fleet</button>
                 <button onclick="switchView('rentals')" class="px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all hover:bg-white">Rent History</button>
-                <button onclick="switchView('schedule')" class="px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all hover:bg-white">14-Day Grid</button>
             </nav>
         </header>
 
         <div id="view-dashboard" class="view-content">
-            <div class="flex flex-col md:flex-row gap-4 mb-10">
-                <div class="flex-1 relative group">
-                    <input type="text" id="search-input" oninput="filterVehicles()" placeholder="Search vehicle model or plate..." class="w-full bg-white border border-slate-100 p-6 pl-14 rounded-[32px] font-bold outline-none focus:ring-4 focus:ring-blue-50 transition-all shadow-sm">
-                    <span class="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors">🔍</span>
-                </div>
-            </div>
             <div id="vehicle-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
         </div>
 
@@ -57,7 +49,7 @@
                             <th class="p-8">Vehicle</th>
                             <th class="p-8">Customer</th>
                             <th class="p-8">Duration</th>
-                            <th class="p-8">Status</th>
+                            <th class="p-8">Total Price</th>
                             <th class="p-8 text-right">Actions</th>
                         </tr>
                     </thead>
@@ -65,108 +57,132 @@
                 </table>
             </div>
         </div>
-
-        <div id="view-schedule" class="view-content hidden">
-            <div class="bg-white rounded-[40px] border border-slate-100 p-8 shadow-sm">
-                <h2 class="text-xl font-black mb-6 uppercase italic">Availability Timeline</h2>
-                <div id="timeline-container" class="overflow-x-auto pb-4"></div>
-            </div>
-        </div>
     </div>
 
     <div id="booking-modal" class="modal">
-        <div class="bg-white w-full max-w-lg rounded-[48px] shadow-2xl overflow-hidden">
-            <div class="bg-slate-900 p-10 text-white">
-                <h2 id="b-title" class="text-3xl font-black uppercase italic mb-2 tracking-tighter">Confirm Booking</h2>
-                <p id="b-subtitle" class="text-blue-400 font-black text-[10px] uppercase tracking-widest"></p>
-            </div>
-            <div class="p-10 space-y-6">
+        <div class="bg-white w-full max-w-lg rounded-[48px] shadow-2xl overflow-hidden relative flex flex-col max-h-[90vh]">
+            <div class="bg-slate-900 p-8 text-white shrink-0 flex justify-between items-start">
                 <div>
-                    <label class="text-[10px] font-black uppercase text-slate-400 mb-2 block">Customer Selection</label>
-                    <select id="b-customer" class="w-full bg-slate-50 p-5 rounded-3xl font-bold border border-slate-100 outline-none focus:ring-4 focus:ring-blue-50 transition-all"></select>
+                    <h2 id="m-title" class="text-3xl font-black italic uppercase leading-none">Vehicle</h2>
+                    <p id="m-rate" class="text-blue-400 font-bold text-sm mt-2">Rate: $0.00/day</p>
                 </div>
-                <div>
-                    <label class="text-[10px] font-black uppercase text-slate-400 mb-2 block">Rental Duration (Days)</label>
-                    <input id="b-days" type="number" value="1" min="1" oninput="updateBookingTotal()" class="w-full bg-slate-50 p-5 rounded-3xl font-bold border border-slate-100 outline-none focus:ring-4 focus:ring-blue-50 transition-all">
+                <button onclick="closeModal('booking-modal')" class="text-slate-500 hover:text-white font-black text-xl">✕</button>
+            </div>
+            <div class="p-8 overflow-y-auto">
+                <label class="text-[10px] font-black uppercase text-slate-400 mb-4 block tracking-widest">1. Select or Add Customer</label>
+                <div class="flex gap-2 mb-4">
+                    <select id="cust-select" class="flex-1 bg-slate-50 p-5 rounded-3xl font-bold border border-slate-100 outline-none focus:ring-2 ring-blue-500/20"></select>
+                    <button onclick="toggleNewCustomer()" class="px-5 bg-slate-100 rounded-3xl font-black text-xl hover:bg-blue-600 hover:text-white transition-all">+</button>
                 </div>
-                <div class="bg-blue-50 p-6 rounded-[32px] flex justify-between items-center">
-                    <span class="text-[10px] font-black uppercase text-blue-600">Total Price</span>
-                    <span id="b-total" class="text-2xl font-black text-blue-600">$0</span>
+
+                <div id="new-cust-form" class="hidden mb-8 space-y-3 bg-blue-50/50 p-6 rounded-[32px] border border-blue-100">
+                    <p class="text-[10px] font-black text-blue-600 uppercase mb-2">New Customer Details</p>
+                    <input id="c-name" type="text" placeholder="Full Name" class="w-full bg-white p-4 rounded-xl text-sm font-bold border border-slate-200 outline-none">
+                    <div class="grid grid-cols-2 gap-2">
+                        <input id="c-phone" type="text" placeholder="Phone" class="w-full bg-white p-4 rounded-xl text-sm font-bold border border-slate-200 outline-none">
+                        <input id="c-passport" type="text" placeholder="Passport" class="w-full bg-white p-4 rounded-xl text-sm font-bold border border-slate-200 outline-none">
+                    </div>
+                    <button onclick="quickRegister()" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl text-[10px] uppercase">Register & Select</button>
+                </div>
+
+                <label class="text-[10px] font-black uppercase text-slate-400 mb-4 block tracking-widest">2. Rental Start Date</label>
+                <input id="rental-date" type="date" class="w-full bg-slate-50 p-5 rounded-3xl font-bold border border-slate-100 outline-none mb-8 focus:ring-2 ring-blue-500/20">
+
+                <label class="text-[10px] font-black uppercase text-slate-400 mb-4 block tracking-widest">3. Rental Duration</label>
+                <div class="flex items-center justify-between bg-slate-50 p-4 rounded-[32px] border border-slate-100">
+                    <button onclick="adjustDays(-1)" class="w-14 h-14 bg-white shadow-sm rounded-2xl flex items-center justify-center font-black text-xl hover:bg-slate-900 hover:text-white transition-all">-</button>
+                    <div class="text-center">
+                        <input id="rental-days" type="number" value="1" min="1" oninput="updateTotal()" class="bg-transparent text-center text-4xl font-black w-24 outline-none">
+                        <p class="text-[9px] font-black uppercase text-slate-300">Days</p>
+                    </div>
+                    <button onclick="adjustDays(1)" class="w-14 h-14 bg-white shadow-sm rounded-2xl flex items-center justify-center font-black text-xl hover:bg-slate-900 hover:text-white transition-all">+</button>
                 </div>
             </div>
-            <div class="p-10 pt-0 flex gap-4">
-                <button onclick="closeModal('booking-modal')" class="flex-1 py-5 font-black uppercase text-[10px] tracking-widest">Back</button>
-                <button onclick="confirmRental()" class="flex-[2] py-5 bg-blue-600 text-white rounded-3xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-blue-100 active:scale-95 transition-all">Confirm & Rent</button>
+            <div class="p-8 border-t border-dashed border-slate-100 bg-slate-50 shrink-0 text-center">
+                <div class="flex items-center justify-between mb-6">
+                    <div><p class="text-[10px] font-black text-slate-400 uppercase">Total to Pay</p><h3 id="m-total" class="text-3xl font-black text-slate-900">$0.00</h3></div>
+                </div>
+                <button onclick="confirmBooking()" class="w-full py-5 bg-slate-900 text-white rounded-[24px] font-black uppercase text-xs tracking-widest shadow-xl hover:bg-blue-600 transition-all">Confirm Rental</button>
             </div>
         </div>
     </div>
 
     <div id="repair-modal" class="modal">
-        <div class="bg-white w-full max-w-md rounded-[48px] shadow-2xl overflow-hidden flex flex-col">
-            <div class="bg-amber-500 p-8 text-white"><h2 class="text-2xl font-black uppercase italic">Repair Summary</h2></div>
+        <div class="bg-white w-full max-w-md rounded-[48px] shadow-2xl overflow-hidden relative flex flex-col">
+            <div class="bg-amber-500 p-8 text-white">
+                <h2 class="text-2xl font-black uppercase italic">Repair Summary</h2>
+                <p class="text-xs font-bold opacity-80 mt-1">Closing maintenance ticket</p>
+            </div>
             <div class="p-8 space-y-4">
-                <textarea id="r-description" placeholder="Description of work..." class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none h-24"></textarea>
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase ml-2">Description of Work</label>
+                    <textarea id="r-description" placeholder="Describe the repairs..." class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none h-24"></textarea>
+                </div>
                 <div class="grid grid-cols-2 gap-4">
-                    <input id="r-mileage" type="number" placeholder="Mileage" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none">
-                    <input id="r-cost" type="number" placeholder="Cost ($)" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none">
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase ml-2">Current Mileage</label>
+                        <input id="r-mileage" type="number" placeholder="0" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase ml-2">Repair Cost ($)</label>
+                        <input id="r-cost" type="number" placeholder="0.00" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none">
+                    </div>
                 </div>
             </div>
             <div class="p-8 bg-slate-50 flex gap-3">
-                <button onclick="closeModal('repair-modal')" class="flex-1 py-4 font-black uppercase text-[10px]">Cancel</button>
-                <button onclick="submitRepairLog()" class="flex-[2] py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px]">Complete Repair</button>
+                <button onclick="closeModal('repair-modal')" class="flex-1 py-4 bg-slate-200 text-slate-500 rounded-2xl font-black uppercase text-[10px]">Cancel</button>
+                <button onclick="submitRepairLog()" class="flex-[2] py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] shadow-lg">Submit & Set Ready</button>
             </div>
         </div>
     </div>
 
     <div id="edit-modal" class="modal">
-        <div class="bg-white w-full max-w-md rounded-[48px] shadow-2xl overflow-hidden relative flex flex-col">
-            <div class="bg-blue-600 p-8 text-white"><h2 class="text-2xl font-black uppercase italic tracking-tighter">Edit Vehicle</h2></div>
-            <div class="p-8 space-y-4 overflow-y-auto max-h-[60vh]">
-                <input id="e-model" type="text" placeholder="Make & Model" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none">
-                <input id="e-plate" type="text" placeholder="License Plate" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none">
+        <div class="bg-white w-full max-w-lg rounded-[48px] shadow-2xl overflow-hidden relative flex flex-col max-h-[90vh]">
+            <div class="bg-blue-600 p-8 text-white shrink-0 flex justify-between items-center">
+                <h2 class="text-2xl font-black uppercase italic">Edit Vehicle Details</h2>
+                <button onclick="closeModal('edit-modal')" class="text-white/50 hover:text-white font-black text-xl">✕</button>
+            </div>
+            <div class="p-8 overflow-y-auto space-y-4">
                 <div class="grid grid-cols-2 gap-4">
-                    <input id="e-rate" type="number" placeholder="Daily Rate ($)" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none">
-                    <input id="e-seats" type="number" placeholder="Seats" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none">
+                    <div class="col-span-2"><label class="text-[10px] font-black text-slate-400 uppercase ml-2">Make / Model</label><input id="e-model" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none"></div>
+                    <div><label class="text-[10px] font-black text-slate-400 uppercase ml-2">Plate</label><input id="e-plate" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none"></div>
+                    <div><label class="text-[10px] font-black text-slate-400 uppercase ml-2">Daily Rate ($)</label><input id="e-rate" type="number" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none"></div>
+                    <div><label class="text-[10px] font-black text-slate-400 uppercase ml-2">Seats</label><input id="e-seats" type="number" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none"></div>
+                    <div><label class="text-[10px] font-black text-slate-400 uppercase ml-2">Fuel Type</label><input id="e-fuel" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none"></div>
+                    <div><label class="text-[10px] font-black text-slate-400 uppercase ml-2">Transmission</label><input id="e-trans" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none"></div>
+                    <div><label class="text-[10px] font-black text-slate-400 uppercase ml-2">Vehicle Type</label><input id="e-type" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none"></div>
                 </div>
-                <select id="e-fuel" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none">
-                    <option value="Diesel">Diesel</option><option value="Gasoline">Gasoline</option><option value="Electric">Electric</option>
-                </select>
-                <select id="e-trans" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none">
-                    <option value="Manual">Manual</option><option value="Auto">Auto</option>
-                </select>
-                <input id="e-type" type="text" placeholder="Type (SUV, Truck...)" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none">
             </div>
-            <div class="p-8 bg-slate-50 flex gap-3">
-                <button onclick="closeModal('edit-modal')" class="flex-1 py-4 font-black uppercase text-[10px]">Cancel</button>
-                <button onclick="saveVehicleChanges()" class="flex-[2] py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px]">Save Changes</button>
-            </div>
+            <div class="p-8 bg-slate-50 shrink-0 text-center"><button onclick="saveVehicleChanges()" class="w-full py-5 bg-slate-900 text-white rounded-3xl font-black uppercase text-xs tracking-widest">Update Database</button></div>
         </div>
     </div>
 
     <script>
         const client = window.supabase.createClient('https://unaeguquzlvjmiebxsvg.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVuYWVndXF1emx2am1pZWJ4c3ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNDk5MTAsImV4cCI6MjA5MTYyNTkxMH0.m6kCJus2-oHlzvmVxfFtbedKPbf8ricpQdIOQeB0fVg');
 
-        let allVehicles = [];
         let activeV = null;
         let maintenanceVehicleId = null;
 
-        async function init() { await loadVehicles(); await loadCustomers(); }
+        async function init() { 
+            await loadVehicles(); 
+            await loadCustomers(); 
+            // Set default date to today
+            document.getElementById('rental-date').valueAsDate = new Date();
+        }
 
         function switchView(v) {
             document.querySelectorAll('.view-content').forEach(e => e.classList.add('hidden'));
             document.getElementById('view-' + v).classList.remove('hidden');
             if(v === 'rentals') loadRentals();
-            if(v === 'schedule') renderScheduleGrid();
         }
 
         async function loadVehicles() {
-            const { data } = await client.from('vehicles').select('*');
-            allVehicles = data || [];
-            renderGrid(allVehicles);
-        }
-
-        function renderGrid(list) {
-            document.getElementById('vehicle-grid').innerHTML = list.map(v => {
+            const { data, error } = await client.from('vehicles').select('*');
+            if(error) return;
+            document.getElementById('status-dot').className = "w-1.5 h-1.5 rounded-full bg-green-500";
+            document.getElementById('status-text').innerText = "System Online";
+            
+            document.getElementById('vehicle-grid').innerHTML = (data || []).map(v => {
                 let sColor = v.status === 'available' ? 'bg-emerald-100 text-emerald-600' : (v.status === 'rented' ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-600');
                 return `
                 <div class="bg-white p-8 rounded-[48px] border border-slate-100 shadow-sm transition-all group hover:shadow-2xl">
@@ -174,151 +190,226 @@
                         <span class="px-3 py-1 bg-slate-50 border border-slate-100 rounded-full text-[8px] font-black text-slate-400 uppercase">${v.license_plate}</span>
                         <span class="px-3 py-1 rounded-full text-[8px] font-black uppercase ${sColor}">● ${v.status}</span>
                     </div>
-                    <h3 class="text-2xl font-black italic uppercase leading-none mb-4 group-hover:text-blue-600">${v.make_model}</h3>
+                    <h3 class="text-2xl font-black italic uppercase leading-none mb-4 group-hover:text-blue-600 transition-all">${v.make_model}</h3>
                     <p class="text-blue-600 font-black text-xl mb-6">$${v.daily_rate}<span class="text-[10px] text-slate-300">/day</span></p>
+                    
                     <div class="grid grid-cols-4 gap-2 mb-8 border-y border-slate-50 py-4">
-                        <div class="text-center"><p class="text-[7px] text-slate-400 font-black uppercase italic">Seats</p><p class="text-[10px] font-bold">${v.seats || '-'}</p></div>
-                        <div class="text-center"><p class="text-[7px] text-slate-400 font-black uppercase italic">Type</p><p class="text-[10px] font-bold truncate">${v.vehicle_type || '-'}</p></div>
-                        <div class="text-center"><p class="text-[7px] text-slate-400 font-black uppercase italic">Fuel</p><p class="text-[10px] font-bold">${v.fuel_type || '-'}</p></div>
-                        <div class="text-center"><p class="text-[7px] text-slate-400 font-black uppercase italic">Trans</p><p class="text-[10px] font-bold">${v.transmission || '-'}</p></div>
+                        <div class="text-center"><p class="text-[7px] text-slate-400 font-black uppercase">Seats</p><p class="text-[10px] font-bold">${v.seats || '-'}</p></div>
+                        <div class="text-center"><p class="text-[7px] text-slate-400 font-black uppercase">Type</p><p class="text-[10px] font-bold truncate">${v.vehicle_type || '-'}</p></div>
+                        <div class="text-center"><p class="text-[7px] text-slate-400 font-black uppercase">Fuel</p><p class="text-[10px] font-bold">${v.fuel_type || '-'}</p></div>
+                        <div class="text-center"><p class="text-[7px] text-slate-400 font-black uppercase">Trans</p><p class="text-[10px] font-bold">${v.transmission || '-'}</p></div>
                     </div>
+
                     <button onclick='openBooking(${JSON.stringify(v)})' ${v.status !== 'available' ? 'disabled' : ''} class="w-full py-5 bg-slate-900 text-white rounded-3xl font-black text-[10px] uppercase mb-3 active:scale-95 disabled:opacity-20">
                         ${v.status === 'available' ? 'Select & Book' : 'Unavailable'}
                     </button>
+
                     <div class="flex gap-2">
-                        <button onclick='openEdit(${JSON.stringify(v)})' class="flex-1 py-3 bg-slate-50 text-slate-400 rounded-2xl font-black text-[8px] uppercase hover:bg-blue-50">Edit</button>
-                        <button onclick="toggleMaintenance('${v.id}', '${v.status}')" class="flex-1 py-3 bg-slate-50 text-slate-400 rounded-2xl font-black text-[8px] uppercase hover:bg-amber-50">
-                            ${v.status === 'maintenance' ? 'Set Ready' : 'Repair'}
+                        <button onclick='openEditModal(${JSON.stringify(v)})' class="flex-1 py-3 bg-slate-50 text-slate-400 rounded-2xl font-black text-[8px] uppercase hover:bg-blue-50 hover:text-blue-600 transition-all">Edit Details</button>
+                        <button onclick="toggleMaintenance('${v.id}', '${v.status}')" class="flex-1 py-3 bg-slate-50 text-slate-400 rounded-2xl font-black text-[8px] uppercase hover:bg-amber-50 hover:text-amber-600 transition-all">
+                            ${v.status === 'maintenance' ? 'Set Available' : 'Repair Mode'}
                         </button>
                     </div>
                 </div>`;
             }).join('');
         }
 
-        function filterVehicles() {
-            const q = document.getElementById('search-input').value.toLowerCase();
-            renderGrid(allVehicles.filter(v => v.make_model.toLowerCase().includes(q) || v.license_plate.toLowerCase().includes(q)));
+        async function loadCustomers() {
+            const { data } = await client.from('customers').select('*');
+            document.getElementById('cust-select').innerHTML = '<option value="">-- Choose Existing --</option>' + (data || []).map(c => `<option value="${c.id}">${c.full_name}</option>`).join('');
         }
 
-        // --- RENTALS & STATUS ---
-        async function openBooking(v) {
+        function toggleNewCustomer() { document.getElementById('new-cust-form').classList.toggle('hidden'); }
+
+        async function quickRegister() {
+            const name = document.getElementById('c-name').value;
+            const phone = document.getElementById('c-phone').value;
+            const passport = document.getElementById('c-passport').value;
+            
+            if(!name || !phone) return alert("Fill required info!");
+
+            const { data, error } = await client.from('customers').insert([{ 
+                full_name: name, 
+                phone: phone, 
+                passport_number: passport 
+            }]).select().single();
+            
+            if(!error) { 
+                await loadCustomers(); 
+                document.getElementById('cust-select').value = data.id; 
+                toggleNewCustomer(); 
+                // Reset form
+                document.getElementById('c-name').value = "";
+                document.getElementById('c-phone').value = "";
+                document.getElementById('c-passport').value = "";
+            } else {
+                alert(error.message);
+            }
+        }
+
+        function openBooking(v) {
             activeV = v;
-            document.getElementById('b-title').innerText = v.make_model;
-            document.getElementById('b-subtitle').innerText = `Plate: ${v.license_plate} | $${v.daily_rate}/day`;
-            updateBookingTotal();
+            document.getElementById('m-title').innerText = v.make_model;
+            document.getElementById('m-rate').innerText = `Rate: $${v.daily_rate}/day`;
+            document.getElementById('rental-days').value = 1;
+            document.getElementById('rental-date').valueAsDate = new Date();
+            updateTotal();
             document.getElementById('booking-modal').classList.add('active');
         }
 
-        function updateBookingTotal() {
-            const days = document.getElementById('b-days').value;
-            document.getElementById('b-total').innerText = `$${days * activeV.daily_rate}`;
-        }
+        function adjustDays(n) { let el = document.getElementById('rental-days'); let v = parseInt(el.value) + n; if(v >= 1) el.value = v; updateTotal(); }
+        function updateTotal() { document.getElementById('m-total').innerText = `$${(document.getElementById('rental-days').value * activeV.daily_rate).toFixed(2)}`; }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
-        async function confirmRental() {
-            const cid = document.getElementById('b-customer').value;
-            const days = parseInt(document.getElementById('b-days').value);
-            const start = new Date().toISOString().split('T')[0];
-            await client.from('rentals').insert([{ vehicle_id: activeV.id, customer_id: cid, start_date: start, rental_days: days, total_price: days * activeV.daily_rate, status: 'active' }]);
-            await client.from('vehicles').update({ status: 'rented' }).eq('id', activeV.id);
-            closeModal('booking-modal'); loadVehicles();
-        }
+        async function confirmBooking() {
+            const cid = document.getElementById('cust-select').value;
+            const days = parseInt(document.getElementById('rental-days').value);
+            const startDate = document.getElementById('rental-date').value;
 
-        async function returnVehicle(rid, vid) {
-            if(!confirm("Complete Return? Vehicle will be Available.")) return;
-            await client.from('rentals').update({ status: 'completed' }).eq('id', rid);
-            await client.from('vehicles').update({ status: 'available' }).eq('id', vid);
-            loadRentals(); loadVehicles();
-        }
+            if(!cid) return alert("Select customer!");
+            if(!startDate) return alert("Select date!");
 
-        async function voidRental(rid, vid) {
-            if(!confirm("Void/Delete record?")) return;
-            await client.from('rentals').delete().eq('id', rid);
-            await client.from('vehicles').update({ status: 'available' }).eq('id', vid);
-            loadRentals(); loadVehicles();
+            const { error } = await client.from('rentals').insert([{ 
+                vehicle_id: activeV.id, 
+                customer_id: cid, 
+                start_date: startDate, 
+                rental_days: days, 
+                total_price: days * activeV.daily_rate, 
+                status: 'active' 
+            }]);
+
+            if(!error) { 
+                await client.from('vehicles').update({ status: 'rented' }).eq('id', activeV.id); 
+                closeModal('booking-modal'); 
+                loadVehicles(); 
+                alert("Booking Confirmed!");
+            }
         }
 
         async function loadRentals() {
             const { data } = await client.from('rentals').select('*, vehicles(*), customers(*)').order('created_at', { ascending: false });
             document.getElementById('rental-list').innerHTML = (data || []).map(r => `
                 <tr>
-                    <td class="p-8">
-                        <div class="font-black italic uppercase">${r.vehicles?.make_model}</div>
-                        <div class="text-[9px] text-slate-400 font-bold">${r.start_date}</div>
-                    </td>
-                    <td class="p-8 font-bold text-slate-500">${r.customers?.full_name || 'N/A'}</td>
+                    <td class="p-8 font-black uppercase italic text-sm">${r.vehicles?.make_model}</td>
+                    <td class="p-8 text-slate-500 font-bold">${r.customers?.full_name}</td>
                     <td class="p-8 font-black text-[10px] text-slate-400 uppercase">${r.rental_days} Days</td>
-                    <td class="p-8 font-black text-[10px] uppercase ${r.status === 'active' ? 'text-blue-600' : 'text-slate-300'}">${r.status}</td>
-                    <td class="p-8 text-right space-x-2">
-                        <button onclick='printReceipt(${JSON.stringify(r)})' class="text-blue-500 font-black text-[9px] uppercase">Receipt</button>
-                        ${r.status === 'active' ? `<button onclick="returnVehicle('${r.id}', '${r.vehicle_id}')" class="bg-emerald-500 text-white px-3 py-1 rounded-lg font-black text-[9px] uppercase">Return</button>` : ''}
-                        <button onclick="voidRental('${r.id}', '${r.vehicle_id}')" class="text-rose-400 font-black text-[9px] uppercase">Void</button>
+                    <td class="p-8 font-black text-blue-600">$${(r.total_price || 0).toFixed(2)}</td>
+                    <td class="p-8 text-right">
+                        <button onclick='printReceipt(${JSON.stringify(r)})' class="bg-slate-900 text-white px-4 py-2 rounded-xl font-black text-[9px] uppercase shadow-sm hover:bg-blue-600 transition-all">Print Receipt</button>
                     </td>
-                </tr>
-            `).join('');
+                </tr>`).join('');
         }
 
-        // --- PROFESSIONAL RECEIPT ---
+        // --- PROFESSIONAL RECEIPT GENERATION ---
         function printReceipt(r) {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            doc.setFontSize(22); doc.setFont("helvetica", "bold"); doc.text("ABC RENTALS", 105, 20, { align: "center" });
-            doc.setFontSize(9); doc.setFont("helvetica", "normal"); doc.text("123 Business Avenue, Vientiane, Laos\nContact: +856 20 XXXX XXXX", 15, 30);
-            doc.rect(145, 25, 50, 18); doc.setFont("helvetica", "bold"); doc.text("INVOICE", 150, 31);
-            doc.setFont("helvetica", "normal"); doc.text(`#${r.id.substring(0,8).toUpperCase()}`, 150, 37);
-            doc.line(15, 48, 195, 48);
-            doc.setFont("helvetica", "bold"); doc.text("CUSTOMER DETAILS", 15, 58); doc.text("VEHICLE INFO", 110, 58);
+            
+            const companyName = "FLEET OS RENTALS";
+            const companyAddress = "123 Business Avenue\nVientiane, Laos\nTel: +856 20 555 555";
+            const invoiceNum = `INV-${r.id.toString().substring(0,8).toUpperCase()}`;
+
+            // 1. HEADER (Company Name Center)
+            doc.setFontSize(20);
+            doc.setFont("helvetica", "bold");
+            doc.text(companyName, 105, 20, { align: "center" });
+
+            // 2. ADDRESS (Left)
+            doc.setFontSize(10);
             doc.setFont("helvetica", "normal");
-            doc.text(`Name: ${r.customers?.full_name}\nPhone: ${r.customers?.phone}\nPassport: ${r.customers?.passport_number}`, 15, 65);
-            doc.text(`Model: ${r.vehicles?.make_model}\nPlate: ${r.vehicles?.license_plate}\nType: ${r.vehicles?.vehicle_type}`, 110, 65);
+            doc.text(companyAddress, 15, 30);
+
+            // 3. QR / INVOICE INFO (Right)
+            // Simulated QR Code box
+            doc.setDrawColor(0);
+            doc.rect(160, 25, 30, 30); 
+            doc.setFontSize(8);
+            doc.text("SCAN FOR VALIDITY", 160, 58);
+            
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "bold");
+            doc.text(`INVOICE: ${invoiceNum}`, 195, 20, { align: "right" });
+
+            // 4. HORIZONTAL LINE
+            doc.setLineWidth(0.5);
+            doc.line(15, 65, 195, 65);
+
+            // 5. CUSTOMER & VEHICLE INFO (Side by Side)
+            doc.setFontSize(10);
+            doc.text("CUSTOMER INFORMATION", 15, 75);
+            doc.setFont("helvetica", "normal");
+            doc.text(`Name: ${r.customers?.full_name}`, 15, 82);
+            doc.text(`Phone: ${r.customers?.phone}`, 15, 88);
+            doc.text(`Passport: ${r.customers?.passport_number || 'N/A'}`, 15, 94);
+
+            doc.setFont("helvetica", "bold");
+            doc.text("VEHICLE INFORMATION", 110, 75);
+            doc.setFont("helvetica", "normal");
+            doc.text(`Model: ${r.vehicles?.make_model}`, 110, 82);
+            doc.text(`Plate: ${r.vehicles?.license_plate}`, 110, 88);
+            doc.text(`Trans: ${r.vehicles?.transmission}`, 110, 94);
+
+            // 6. TABLE (Description, Period, Days, Amount)
+            const tableData = [[
+                `${r.vehicles?.make_model} Rental`,
+                r.start_date.substring(0, 10),
+                `${r.rental_days} Days`,
+                `$${r.total_price.toFixed(2)}`
+            ]];
+
             doc.autoTable({
-                startY: 85,
+                startY: 105,
                 head: [['Description', 'Period', 'Days', 'Amount']],
-                body: [[`${r.vehicles?.make_model} Rental`, r.start_date, r.rental_days, `$${r.total_price}.00`]],
-                headStyles: { fillColor: [15, 23, 42] }, theme: 'grid'
+                body: tableData,
+                theme: 'striped',
+                headStyles: { fillColor: [15, 23, 42] },
+                margin: { left: 15, right: 15 }
             });
-            const finalY = doc.lastAutoTable.finalY + 10;
-            doc.setFont("helvetica", "bold"); doc.setFontSize(14); doc.text(`TOTAL PAID: $${r.total_price}.00`, 195, finalY, { align: "right" });
-            doc.setFontSize(9); doc.setFont("helvetica", "normal");
-            doc.line(15, 250, 75, 250); doc.text("Authorized Signature", 15, 255);
-            doc.line(135, 250, 195, 250); doc.text("Customer Signature", 135, 255);
-            doc.save(`Receipt_${r.id.substring(0,8)}.pdf`);
+
+            // 7. TOTAL PAID
+            const finalY = doc.lastAutoTable.finalY + 15;
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(14);
+            doc.text(`TOTAL PAID: $${r.total_price.toFixed(2)}`, 195, finalY, { align: "right" });
+
+            // 8. FOOTER SIGNATURES
+            const footerY = 250;
+            doc.setLineWidth(0.2);
+            doc.line(15, footerY, 75, footerY);
+            doc.line(135, footerY, 195, footerY);
+            
+            doc.setFontSize(10);
+            doc.text("Authorized Signature", 15, footerY + 5);
+            doc.text("Customer Signature", 135, footerY + 5);
+
+            // Download PDF
+            doc.save(`${invoiceNum}.pdf`);
         }
 
-        // --- GRID & UTILS ---
-        async function renderScheduleGrid() {
-            const container = document.getElementById('timeline-container');
-            const { data: vList } = await client.from('vehicles').select('*');
-            const { data: rList } = await client.from('rentals').select('*').eq('status', 'active');
-            const today = new Date(); today.setHours(0,0,0,0);
-
-            let html = `<div class="flex"><div class="w-40 shrink-0"></div>`;
-            for(let i=0; i<14; i++) {
-                let d = new Date(today); d.setDate(today.getDate() + i);
-                html += `<div class="day-cell text-slate-400 border-none">${d.getDate()}/${d.getMonth()+1}</div>`;
+        // Other utility functions (Repair, Edit) remain same as backup...
+        async function toggleMaintenance(id, currentStatus) {
+            if (currentStatus === 'maintenance') {
+                maintenanceVehicleId = id;
+                document.getElementById('repair-modal').classList.add('active');
+            } else {
+                await client.from('vehicles').update({ status: 'maintenance' }).eq('id', id);
+                loadVehicles();
             }
-            html += `</div>`;
-            vList.forEach(v => {
-                html += `<div class="flex items-center"><div class="w-40 shrink-0 p-3 font-black text-[9px] uppercase truncate border-r border-slate-50">${v.make_model}</div>`;
-                for(let i=0; i<14; i++) {
-                    let checkDate = new Date(today); checkDate.setDate(today.getDate() + i);
-                    let isRented = rList.some(r => {
-                        let start = new Date(r.start_date); start.setHours(0,0,0,0);
-                        let end = new Date(start); end.setDate(start.getDate() + r.rental_days);
-                        return r.vehicle_id === v.id && checkDate >= start && checkDate < end;
-                    });
-                    html += `<div class="day-cell ${isRented ? 'rented-cell' : 'bg-slate-50/50'}"></div>`;
-                }
-                html += `</div>`;
-            });
-            container.innerHTML = html;
         }
 
-        async function loadCustomers() {
-            const { data } = await client.from('customers').select('*');
-            document.getElementById('b-customer').innerHTML = (data || []).map(c => `<option value="${c.id}">${c.full_name}</option>`).join('');
+        async function submitRepairLog() {
+            const desc = document.getElementById('r-description').value;
+            const cost = parseFloat(document.getElementById('r-cost').value) || 0;
+            if(!desc) return alert("Describe the fix!");
+            await client.from('maintenance_logs').insert([{
+                vehicle_id: maintenanceVehicleId,
+                description: desc, cost: cost, is_resolved: true
+            }]);
+            await client.from('vehicles').update({ status: 'available' }).eq('id', maintenanceVehicleId);
+            closeModal('repair-modal'); loadVehicles();
         }
 
-        function openEdit(v) {
+        function openEditModal(v) {
             activeV = v;
             document.getElementById('e-model').value = v.make_model;
             document.getElementById('e-plate').value = v.license_plate;
@@ -332,28 +423,14 @@
 
         async function saveVehicleChanges() {
             const updates = {
-                make_model: document.getElementById('e-model').value, license_plate: document.getElementById('e-plate').value,
-                daily_rate: parseFloat(document.getElementById('e-rate').value), seats: parseInt(document.getElementById('e-seats').value),
-                fuel_type: document.getElementById('e-fuel').value, transmission: document.getElementById('e-trans').value, vehicle_type: document.getElementById('e-type').value
+                make_model: document.getElementById('e-model').value,
+                license_plate: document.getElementById('e-plate').value,
+                daily_rate: parseFloat(document.getElementById('e-rate').value)
             };
             await client.from('vehicles').update(updates).eq('id', activeV.id);
             closeModal('edit-modal'); loadVehicles();
         }
 
-        async function toggleMaintenance(id, cur) {
-            if (cur === 'maintenance') { maintenanceVehicleId = id; document.getElementById('repair-modal').classList.add('active'); }
-            else { await client.from('vehicles').update({ status: 'maintenance' }).eq('id', id); loadVehicles(); }
-        }
-
-        async function submitRepairLog() {
-            const desc = document.getElementById('r-description').value;
-            const cost = document.getElementById('r-cost').value;
-            await client.from('maintenance_logs').insert([{ vehicle_id: maintenanceVehicleId, description: desc, cost: cost, is_resolved: true }]);
-            await client.from('vehicles').update({ status: 'available' }).eq('id', maintenanceVehicleId);
-            closeModal('repair-modal'); loadVehicles();
-        }
-
-        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
         window.onload = init;
     </script>
 </body>
