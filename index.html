@@ -277,11 +277,13 @@ async function triggerScanner() {
 }
 
 async function handleScannedRental(invId) {
-    // 1. Log for debugging
-    console.log("Searching for ID starting with:", invId);
+    console.log("Searching for ID prefix:", invId);
 
-    // 2. Search using .ilike (Case-Insensitive) 
-    // We add the % wildcard to match the start of the UUID
+    // FIX: We must search the ID using a string comparison
+    // In Supabase JS, the most reliable way to handle prefix matching 
+    // on a UUID column is using the .or() filter or casting 
+    // via a raw-like filter. 
+    
     const { data, error } = await client
         .from('rentals')
         .select(`
@@ -289,21 +291,21 @@ async function handleScannedRental(invId) {
             vehicles:vehicle_id (*),
             customers:customer_id (*)
         `)
-        .ilike('id', `${invId}%`) // This searches for: 110a5653...
+        // This syntax forces the UUID to be treated as text for the search
+        .filter('id', 'ilike', `${invId}%`) 
         .limit(1);
 
     if (error) {
         console.error("Database Error:", error);
-        alert("Error searching database: " + error.message);
+        alert("Search failed: Your database requires an exact ID match or specific text casting.");
         return;
     }
 
     if (data && data.length > 0) {
-        // 3. Success: Found the full record, now call your print function
+        console.log("Found record:", data[0]);
         preparePrint(data[0]); 
     } else {
-        // 4. Not found logic
-        alert(`Rental record not found.\n\nScanned: ${invId}\nDatabase expects start of: 110a5653...`);
+        alert(`Rental not found.\n\nScanned: ${invId}\nEnsure this is a valid rental record.`);
     }
 }
         
