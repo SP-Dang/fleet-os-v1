@@ -549,15 +549,16 @@ function closeScanner() {
         // --- UPDATED PRINT RECEIPT LOGIC ---
         async function preparePrint(rental) {
     try {
+        console.log("Rental Data for Print:", rental); // DEBUG: Check console to see exact field names
+
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-        
-        // Setup AutoTable
         const autoTable = doc.autoTable || window.jspdf.jsPDF.API.autoTable || window.autoTable;
         
-        // Data Safety
-        const v = Array.isArray(rental.vehicles) ? rental.vehicles[0] : rental.vehicles;
-        const c = Array.isArray(rental.customers) ? rental.customers[0] : rental.customers;
+        // --- IMPROVED DATA EXTRACTION ---
+        // We look for the data in multiple places in case Supabase nested it differently
+        const v = (Array.isArray(rental.vehicles) ? rental.vehicles[0] : rental.vehicles) || rental.vehicle || {};
+        const c = (Array.isArray(rental.customers) ? rental.customers[0] : rental.customers) || rental.customer || {};
         const invId = (rental.id || '0000').toString().substring(0, 8).toUpperCase();
 
         // --- 1. HEADER SECTION ---
@@ -565,101 +566,79 @@ function closeScanner() {
         doc.setFont("helvetica", "bold");
         doc.text("FLEET OS RENTALS", 105, 20, { align: "center" });
 
-        // Company Address (Left)
         doc.setFontSize(9);
         doc.setFont("helvetica", "normal");
-        const companyAddress = [
-            "123 Business Lane,",
-            "Vientiane Capital, Lao PDR",
-            "Phone: +856 20 5555 5555",
-            "Email: contact@fleetos.com"
-        ];
+        const companyAddress = ["123 Business Lane,","Vientiane Capital, Lao PDR","Phone: +856 20 5555 5555","Email: contact@fleetos.com"];
         doc.text(companyAddress, 15, 30);
 
-        // --- QR CODE GENERATION (Hidden Container Logic) ---
-        // Create a temporary hidden div for the QR library
+        // --- 2. QR CODE ---
         const qrContainer = document.createElement('div');
         qrContainer.style.display = 'none';
         document.body.appendChild(qrContainer);
-
-        // Initialize QR code in the hidden container
-        const qrcode = new QRCode(qrContainer, {
-            text: invId,
-            width: 128,
-            height: 128,
-            correctLevel: QRCode.CorrectLevel.H
-        });
-
-        // Wait for the library to render the image/canvas
-        await new Promise(resolve => setTimeout(resolve, 150));
-
-        // Get the generated image source
+        new QRCode(qrContainer, { text: invId, width: 128, height: 128 });
+        await new Promise(r => setTimeout(r, 150));
         const qrImg = qrContainer.querySelector('img');
         const qrCanvas = qrContainer.querySelector('canvas');
         const qrData = qrImg ? qrImg.src : (qrCanvas ? qrCanvas.toDataURL("image/png") : null);
-
-        if (qrData) {
-            doc.addImage(qrData, 'PNG', 165, 25, 30, 30);
-        }
-
+        if (qrData) doc.addImage(qrData, 'PNG', 165, 25, 30, 30);
         doc.setFontSize(8);
         doc.text(`INV: ${invId}`, 180, 58, { align: "center" });
-
-        // Cleanup temporary container
         document.body.removeChild(qrContainer);
 
-        // --- 2. HORIZONTAL LINE ---
         doc.setLineWidth(0.5);
         doc.line(15, 65, 195, 65);
 
-        // --- 3. INFO BLOCKS (Customer & Vehicle) ---
+        // --- 3. CUSTOMER INFORMATION ---
         doc.setFontSize(10);
         doc.setFont("helvetica", "bold");
         doc.text("CUSTOMER INFORMATION", 15, 75);
-        doc.text("VEHICLE DETAILS", 110, 75);
-
+        
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
 
-        // All Customer Info from Supabase
+        // Map fields carefully based on Supabase common naming
         const customerInfo = [
-            `Name: ${c?.full_name || 'N/A'}`,
-            `Phone: ${c?.phone || 'N/A'}`,
-            `Email: ${c?.email || 'N/A'}`,
-            `Passport: ${c?.passport_number || 'N/A'}`,
-            `Nationality: ${c?.nationality || 'N/A'}`,
-            `License: ${c?.license_number || 'N/A'}`
+            `Name: ${c.full_name || 'N/A'}`,
+            `Phone: ${c.phone || 'N/A'}`,
+            `Email: ${c.email || 'N/A'}`,
+            `Passport: ${c.passport_number || c.passport || 'N/A'}`, // Added fallback
+            `Nationality: ${c.nationality || 'N/A'}`,
+            `License: ${c.license_number || c.driver_license || 'N/A'}` // Added fallback
         ];
         doc.text(customerInfo, 15, 82);
 
-        // All Vehicle Info
+        // --- 4. VEHICLE DETAILS ---
+        doc.setFont("helvetica", "bold");
+        doc.text("VEHICLE DETAILS", 110, 75);
+
+        doc.setFont("helvetica", "normal");
         const vehicleInfo = [
-            `Model: ${v?.make_model || 'N/A'}`,
-            `Plate: ${v?.license_plate || 'N/A'}`,
-            `Type: ${v?.vehicle_type || 'N/A'}`,
-            `Fuel: ${v?.fuel_type || 'N/A'}`,
-            `Transmission: ${v?.transmission || 'N/A'}`,
-            `Daily Rate: $${v?.daily_rate || '0'}`
+            `Model: ${v.make_model || 'N/A'}`,
+            `Plate: ${v.license_plate || 'N/A'}`,
+            `Type: ${v.vehicle_type || 'N/A'}`,
+            `Fuel: ${v.fuel_type || 'N/A'}`,
+            `Transmission: ${v.transmission || 'N/A'}`,
+            `Daily Rate: $${v.daily_rate || '0'}`
         ];
         doc.text(vehicleInfo, 110, 82);
 
-        // --- 4. RENTAL PERIOD ---
+        // --- 5. RENTAL PERIOD ---
         const startDate = new Date(rental.start_date);
         const endDate = new Date(startDate);
-        endDate.setDate(startDate.getDate() + (rental.rental_days || 0));
+        endDate.setDate(startDate.getDate() + (parseInt(rental.rental_days) || 0));
         
         const dateRange = `Rental Period: ${startDate.toLocaleDateString('en-GB')} to ${endDate.toLocaleDateString('en-GB')}`;
         doc.setFont("helvetica", "bolditalic");
         doc.text(dateRange, 15, 120);
 
-        // --- 5. SUMMARY TABLE ---
+        // --- 6. SUMMARY TABLE ---
         autoTable.call(doc, {
             startY: 125,
             head: [['Description', 'Days', 'Rate', 'Subtotal']],
             body: [[
-                `Vehicle Rental - ${v?.make_model}`,
-                rental.rental_days,
-                `$${parseFloat(v?.daily_rate || 0).toFixed(2)}`,
+                `Vehicle Rental - ${v.make_model || 'Vehicle'}`,
+                rental.rental_days || 0,
+                `$${parseFloat(v.daily_rate || 0).toFixed(2)}`,
                 `$${parseFloat(rental.total_price || 0).toFixed(2)}`
             ]],
             headStyles: { fillColor: [15, 23, 42], halign: 'center' },
@@ -667,28 +646,25 @@ function closeScanner() {
             theme: 'striped'
         });
 
-        // --- 6. GRAND TOTAL ---
+        // --- 7. GRAND TOTAL ---
         const finalY = doc.lastAutoTable.finalY + 10;
         doc.setFontSize(12);
         doc.setFont("helvetica", "bold");
         doc.text("GRAND TOTAL:", 140, finalY);
         doc.text(`$${parseFloat(rental.total_price || 0).toFixed(2)}`, 195, finalY, { align: "right" });
 
-        // --- 7. FOOTER (Signatures) ---
+        // --- 8. FOOTER ---
         const footerY = 260; 
         doc.setLineWidth(0.2);
-        
         doc.line(15, footerY, 80, footerY);
         doc.setFontSize(8);
         doc.setFont("helvetica", "normal");
         doc.text("Authorized Signature", 15, footerY + 5);
-        doc.text("Fleet OS Management", 15, footerY + 10);
-
+        
         doc.line(130, footerY, 195, footerY);
         doc.text("Customer Signature", 130, footerY + 5);
-        doc.text(c?.full_name || "Guest", 130, footerY + 10);
+        doc.text(c.full_name || "Guest", 130, footerY + 10);
 
-        // Download
         doc.save(`Invoice_${invId}.pdf`);
 
     } catch (err) {
