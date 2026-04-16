@@ -116,189 +116,183 @@
     </div>
 
     <script>
-        // --- 1. CONFIG & CONNECTION ---
+    // --- 1. CONFIG & CONNECTION ---
+    // We check if supabase is already defined to avoid the "Already Declared" error
+    if (typeof supabase === 'undefined') {
         const SUPABASE_URL = 'https://unaeguquzlvjmiebxsvg.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVuYWVndXF1emx2am1pZWJ4c3ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNDk5MTAsImV4cCI6MjA5MTYyNTkxMH0.m6kCJus2-oHlzvmVxfFtbedKPbf8ricpQdIOQeB0fVg';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        // We use 'var' or just assign to window to be safe in HTML environments
+        window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    }
 
-        let activeVehicleId = null;
+    let activeVehicleId = null;
 
-        // --- 2. VIEW CONTROLLER ---
-        function switchView(view) {
-            document.querySelectorAll('.view-content').forEach(el => el.classList.add('hidden'));
-            document.getElementById('view-' + view).classList.remove('hidden');
-            if (view === 'rentals') fetchRentals();
-        }
+    // --- 2. VIEW CONTROLLER ---
+    function switchView(view) {
+        document.querySelectorAll('.view-content').forEach(el => el.classList.add('hidden'));
+        document.getElementById('view-' + view).classList.remove('hidden');
+        if (view === 'rentals') fetchRentals();
+    }
 
-        // --- 3. FETCH VEHICLES ---
-        async function loadVehicles(filter = 'all') {
-            const grid = document.getElementById('vehicle-grid');
-            const status = document.getElementById('db-status');
+    // --- 3. FETCH VEHICLES ---
+    async function loadVehicles(filter = 'all') {
+        const grid = document.getElementById('vehicle-grid');
+        const status = document.getElementById('db-status');
 
-            try {
-                let query = supabase.from('vehicles').select('*');
-                if (filter !== 'all') query = query.eq('vehicle_type', filter);
+        try {
+            // Use the window.supabaseClient we created above
+            let query = window.supabaseClient.from('vehicles').select('*');
+            if (filter !== 'all') query = query.eq('vehicle_type', filter);
 
-                const { data, error } = await query;
-                if (error) throw error;
+            const { data, error } = await query;
+            if (error) throw error;
 
-                status.innerText = "● System Online";
-                status.className = "text-[10px] text-green-500 font-black uppercase tracking-widest";
+            status.innerText = "● System Online";
+            status.className = "text-[10px] text-green-500 font-black uppercase tracking-widest";
 
-                if (data.length === 0) {
-                    grid.innerHTML = '<div class="p-10 text-slate-400 font-bold">No vehicles found in this category.</div>';
-                    return;
-                }
+            if (!data || data.length === 0) {
+                grid.innerHTML = '<div class="p-10 text-slate-400 font-bold text-center w-full">No vehicles found.</div>';
+                return;
+            }
 
-                grid.innerHTML = data.map(v => `
-                    <div class="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm hover:shadow-2xl transition-all ${v.status !== 'available' ? 'opacity-40 grayscale-[0.5]' : ''}">
-                        <div class="flex justify-between items-start mb-8">
-                            <span class="bg-slate-50 border border-slate-100 px-3 py-1 rounded-full text-[9px] font-black text-slate-400 uppercase tracking-tighter">${v.license_plate}</span>
-                            <span class="text-[9px] font-black uppercase ${v.status === 'available' ? 'text-green-500' : 'text-red-400'}">${v.status}</span>
-                        </div>
-                        <h3 class="text-xl font-black mb-8 italic uppercase leading-none tracking-tighter">${v.make_model}</h3>
-                        <button 
-                            onclick="openBooking('${v.id}', '${v.make_model}')" 
-                            ${v.status !== 'available' ? 'disabled' : ''}
-                            class="w-full py-4 rounded-[20px] font-black text-[10px] uppercase tracking-[0.2em] transition-all ${v.status === 'available' ? 'bg-slate-900 text-white hover:bg-blue-600' : 'bg-slate-100 text-slate-300 cursor-not-allowed'}">
-                            ${v.status === 'available' ? 'Select' : 'Unavailable'}
-                        </button>
+            grid.innerHTML = data.map(v => `
+                <div class="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm hover:shadow-2xl transition-all ${v.status !== 'available' ? 'opacity-40 grayscale-[0.5]' : ''}">
+                    <div class="flex justify-between items-start mb-8">
+                        <span class="bg-slate-50 border border-slate-100 px-3 py-1 rounded-full text-[9px] font-black text-slate-400 uppercase tracking-tighter">${v.license_plate}</span>
+                        <span class="text-[9px] font-black uppercase ${v.status === 'available' ? 'text-green-500' : 'text-red-400'}">${v.status}</span>
                     </div>
-                `).join('');
-            } catch (err) {
-                console.error("Fetch Error:", err);
-                status.innerText = "● Error: Check Connection";
-                grid.innerHTML = `<div class="p-10 text-red-400 font-bold">Database Error: ${err.message}</div>`;
-            }
+                    <h3 class="text-xl font-black mb-8 italic uppercase leading-none tracking-tighter">${v.make_model}</h3>
+                    <button 
+                        onclick="openBooking('${v.id}', '${v.make_model}')" 
+                        ${v.status !== 'available' ? 'disabled' : ''}
+                        class="w-full py-4 rounded-[20px] font-black text-[10px] uppercase tracking-[0.2em] transition-all ${v.status === 'available' ? 'bg-slate-900 text-white hover:bg-blue-600' : 'bg-slate-100 text-slate-300 cursor-not-allowed'}">
+                        ${v.status === 'available' ? 'Select' : 'Unavailable'}
+                    </button>
+                </div>
+            `).join('');
+        } catch (err) {
+            console.error("Fetch Error:", err);
+            status.innerText = "● Offline: " + err.message;
+            grid.innerHTML = `<div class="p-10 text-red-400 font-bold">Error: ${err.message}</div>`;
         }
+    }
 
-        function handleFilter(val) { loadVehicles(val); }
+    // --- 4. CUSTOMER LOGIC ---
+    async function handleCreateCustomer() {
+        const name = document.getElementById('cust-name').value;
+        const phone = document.getElementById('cust-phone').value;
+        const btn = document.getElementById('reg-btn');
 
-        // --- 4. CUSTOMER LOGIC ---
-        async function handleCreateCustomer() {
-            const name = document.getElementById('cust-name').value;
-            const phone = document.getElementById('cust-phone').value;
-            const btn = document.getElementById('reg-btn');
+        if (!name || !phone) return alert("Please fill name and phone");
+        btn.disabled = true;
+        btn.innerText = "SAVING...";
 
-            if (!name || !phone) return alert("Please fill name and phone");
+        try {
+            const { data, error } = await window.supabaseClient
+                .from('customers')
+                .insert([{ name, phone_number: phone }])
+                .select().single();
 
-            btn.disabled = true;
-            btn.innerText = "SAVING...";
+            if (error) throw error;
 
-            try {
-                const { data, error } = await supabase
-                    .from('customers')
-                    .insert([{ name, phone_number: phone }])
-                    .select().single();
-
-                if (error) throw error;
-
-                document.getElementById('selected-customer-id').value = data.id;
-                document.getElementById('display-name').innerText = data.name;
-                document.getElementById('selected-customer-display').classList.remove('hidden');
-                
-                alert("Customer registered!");
-            } catch (err) {
-                alert("Error: " + err.message);
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "CREATE & SELECT";
-            }
+            document.getElementById('selected-customer-id').value = data.id;
+            document.getElementById('display-name').innerText = data.name;
+            document.getElementById('selected-customer-display').classList.remove('hidden');
+            alert("Customer registered!");
+        } catch (err) {
+            alert("Error: " + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "CREATE & SELECT";
         }
+    }
 
-        // --- 5. BOOKING LOGIC ---
-        function openBooking(id, name) {
-            const custId = document.getElementById('selected-customer-id').value;
-            if (!custId) return alert("Register or Select a customer first!");
-            
-            activeVehicleId = id;
-            document.getElementById('modal-vehicle-info').innerText = name;
-            document.getElementById('booking-modal').classList.add('active');
+    // --- 5. BOOKING LOGIC ---
+    function openBooking(id, name) {
+        const custId = document.getElementById('selected-customer-id').value;
+        if (!custId) return alert("Register or Select a customer first!");
+        activeVehicleId = id;
+        document.getElementById('modal-vehicle-info').innerText = name;
+        document.getElementById('booking-modal').classList.add('active');
+    }
+
+    function closeModal() { document.getElementById('booking-modal').classList.remove('active'); }
+
+    async function confirmBooking() {
+        const custId = document.getElementById('selected-customer-id').value;
+        const days = document.getElementById('rental-days').value;
+        const startDate = new Date().toISOString().split('T')[0];
+
+        try {
+            const { error: rentError } = await window.supabaseClient.from('rentals').insert([{
+                vehicle_id: activeVehicleId,
+                customer_id: custId,
+                start_date: startDate,
+                rental_days: parseInt(days),
+                status: 'active'
+            }]);
+            if (rentError) throw rentError;
+
+            await window.supabaseClient.from('vehicles').update({ status: 'rented' }).eq('id', activeVehicleId);
+
+            alert("Rental Processed!");
+            closeModal();
+            loadVehicles();
+        } catch (err) {
+            alert(err.message);
         }
+    }
 
-        function closeModal() { document.getElementById('booking-modal').classList.remove('active'); }
+    // --- 6. RENTALS & PDF ---
+    async function fetchRentals() {
+        const list = document.getElementById('rental-list');
+        try {
+            const { data, error } = await window.supabaseClient
+                .from('rentals')
+                .select('*, vehicles(make_model), customers(name)')
+                .order('created_at', { ascending: false });
 
-        async function confirmBooking() {
-            const custId = document.getElementById('selected-customer-id').value;
-            const days = document.getElementById('rental-days').value;
-            const startDate = new Date().toISOString().split('T')[0];
+            if (error) throw error;
 
-            try {
-                // Insert Rental
-                const { error: rentError } = await supabase.from('rentals').insert([{
-                    vehicle_id: activeVehicleId,
-                    customer_id: custId,
-                    start_date: startDate,
-                    rental_days: parseInt(days),
-                    status: 'active'
-                }]);
-                if (rentError) throw rentError;
-
-                // Update Vehicle
-                await supabase.from('vehicles').update({ status: 'rented' }).eq('id', activeVehicleId);
-
-                alert("Rental Processed!");
-                closeModal();
-                loadVehicles();
-            } catch (err) {
-                alert(err.message);
-            }
+            list.innerHTML = data.map(r => `
+                <tr class="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                    <td class="p-6 italic uppercase tracking-tighter">${r.vehicles?.make_model || 'N/A'}</td>
+                    <td class="p-6">${r.customers?.name || 'Unknown'}</td>
+                    <td class="p-6 text-slate-400 font-mono text-xs">${r.start_date}</td>
+                    <td class="p-6">${r.rental_days} Days</td>
+                    <td class="p-6">
+                        <button onclick='generateReceipt(${JSON.stringify(r)})' class="text-blue-600 uppercase text-[9px] font-black underline tracking-widest">Get PDF</button>
+                    </td>
+                </tr>
+            `).join('');
+        } catch (err) {
+            list.innerHTML = `<tr><td colspan="5" class="p-6 text-red-500">Error: ${err.message}</td></tr>`;
         }
+    }
 
-        // --- 6. RENTALS & PDF ---
-        async function fetchRentals() {
-            const list = document.getElementById('rental-list');
-            try {
-                const { data, error } = await supabase
-                    .from('rentals')
-                    .select('*, vehicles(make_model), customers(name)')
-                    .order('created_at', { ascending: false });
+    function generateReceipt(r) {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.text("RENTAL RECEIPT", 10, 20);
+        doc.autoTable({
+            startY: 30,
+            head: [['Field', 'Detail']],
+            body: [
+                ['Client', r.customers?.name],
+                ['Vehicle', r.vehicles?.make_model],
+                ['Days', r.rental_days]
+            ]
+        });
+        doc.save(`receipt-${r.id.substring(0,8)}.pdf`);
+    }
 
-                if (error) throw error;
-
-                list.innerHTML = data.map(r => `
-                    <tr class="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                        <td class="p-6 italic uppercase tracking-tighter">${r.vehicles?.make_model || 'N/A'}</td>
-                        <td class="p-6">${r.customers?.name || 'Unknown'}</td>
-                        <td class="p-6 text-slate-400 font-mono text-xs">${r.start_date}</td>
-                        <td class="p-6">${r.rental_days} Days</td>
-                        <td class="p-6">
-                            <button onclick='generateReceipt(${JSON.stringify(r)})' class="text-blue-600 uppercase text-[9px] font-black underline tracking-widest">Get PDF</button>
-                        </td>
-                    </tr>
-                `).join('');
-            } catch (err) {
-                list.innerHTML = `<tr><td colspan="5" class="p-6 text-red-500">Error loading rentals: ${err.message}</td></tr>`;
-            }
-        }
-
-        function generateReceipt(r) {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            doc.setFontSize(22);
-            doc.text("RENTAL RECEIPT", 10, 20);
-            doc.setFontSize(10);
-            doc.text("Fleet OS Car Rental System", 10, 30);
-            
-            doc.autoTable({
-                startY: 40,
-                head: [['Field', 'Detail']],
-                body: [
-                    ['Client', r.customers?.name],
-                    ['Vehicle', r.vehicles?.make_model],
-                    ['Days', r.rental_days],
-                    ['Start Date', r.start_date],
-                    ['Status', r.status.toUpperCase()]
-                ],
-                theme: 'grid',
-                headStyles: { fillColor: [0, 0, 0] }
-            });
-
-            doc.save(`receipt-${r.id.substring(0,8)}.pdf`);
-        }
-
-        // --- INITIAL START ---
+    // --- INITIAL START ---
+    // Wait for the DOM to be ready
+    document.addEventListener('DOMContentLoaded', () => {
         loadVehicles();
-    </script>
-</body>
+    });
+</script>
+    
+    </body>
 </html>
