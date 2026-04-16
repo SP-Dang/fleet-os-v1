@@ -23,7 +23,7 @@
         <header class="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
             <div>
                 <h1 class="text-2xl font-black text-slate-900 tracking-tighter">🚀 FLEET OS</h1>
-                <p id="db-status" class="text-[10px] text-red-500 font-black uppercase tracking-widest transition-all">System Offline</p>
+                <p id="db-status" class="text-[10px] text-red-500 font-black uppercase tracking-widest">System Offline</p>
             </div>
             <div class="flex gap-2 mt-4 md:mt-0">
                 <button onclick="switchView('dashboard')" class="px-5 py-2 rounded-2xl text-xs font-black bg-slate-100 hover:bg-slate-900 hover:text-white transition-all uppercase">Dashboard</button>
@@ -36,7 +36,7 @@
                 
                 <div class="lg:col-span-2">
                     <div id="vehicle-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="p-10 text-slate-400 font-bold">Connecting to Database...</div>
+                        <div class="p-10 text-slate-400 font-bold">Connecting...</div>
                     </div>
                 </div>
 
@@ -44,20 +44,19 @@
                     <h2 class="text-xl font-black mb-6 uppercase italic text-slate-400">Customer Registration</h2>
                     
                     <div class="space-y-3">
-                        <input id="cust-full-name" type="text" placeholder="Full Name (ຊື່ແທ້)" class="w-full bg-slate-50 p-4 rounded-xl font-bold outline-none border border-slate-100 focus:border-blue-500">
-                        <input id="cust-phone" type="text" placeholder="Phone (ເບີໂທ)" class="w-full bg-slate-50 p-4 rounded-xl font-bold outline-none border border-slate-100 focus:border-blue-500">
-                        <input id="cust-email" type="email" placeholder="Email (ອີເມວ)" class="w-full bg-slate-50 p-4 rounded-xl font-bold outline-none border border-slate-100 focus:border-blue-500">
-                        <input id="cust-nat" type="text" placeholder="Nationality (ສັນຊາດ)" class="w-full bg-slate-50 p-4 rounded-xl font-bold outline-none border border-slate-100 focus:border-blue-500">
-                        <input id="cust-passport" type="text" placeholder="Passport No. (ເລກໜັງສືຜ່ານແດນ)" class="w-full bg-slate-50 p-4 rounded-xl font-bold outline-none border border-slate-100 focus:border-blue-500">
-                        <input id="cust-license" type="text" placeholder="License No. (ເລກໃບຂັບຂີ່)" class="w-full bg-slate-50 p-4 rounded-xl font-bold outline-none border border-slate-100 focus:border-blue-500">
+                        <input id="cust-full-name" type="text" placeholder="Full Name" class="w-full bg-slate-50 p-4 rounded-xl font-bold outline-none border border-slate-100">
+                        <input id="cust-phone" type="text" placeholder="Phone" class="w-full bg-slate-50 p-4 rounded-xl font-bold outline-none border border-slate-100">
+                        <input id="cust-email" type="email" placeholder="Email" class="w-full bg-slate-50 p-4 rounded-xl font-bold outline-none border border-slate-100">
+                        <input id="cust-nat" type="text" placeholder="Nationality" class="w-full bg-slate-50 p-4 rounded-xl font-bold outline-none border border-slate-100">
+                        <input id="cust-passport" type="text" placeholder="Passport No." class="w-full bg-slate-50 p-4 rounded-xl font-bold outline-none border border-slate-100">
+                        <input id="cust-license" type="text" placeholder="License No." class="w-full bg-slate-50 p-4 rounded-xl font-bold outline-none border border-slate-100">
                     </div>
 
-                    <button onclick="handleCreateCustomer()" id="reg-btn" class="w-full bg-slate-900 text-white font-black py-5 rounded-2xl uppercase text-xs tracking-widest mt-6 hover:bg-blue-600 transition-all">
-                        Register & Select
+                    <button onclick="handleCreateCustomer()" id="reg-btn" class="w-full bg-slate-900 text-white font-black py-5 rounded-2xl uppercase text-xs tracking-widest mt-6">
+                        Register Customer
                     </button>
 
                     <div id="selected-customer-display" class="hidden mt-6 pt-6 border-t border-dashed border-slate-200">
-                        <p class="text-[10px] font-black text-blue-600 uppercase">Active Client</p>
                         <p id="display-name" class="text-lg font-black text-slate-900"></p>
                         <input type="hidden" id="selected-customer-id">
                     </div>
@@ -66,17 +65,10 @@
         </div>
 
         <div id="view-rentals" class="view-content hidden">
-            <h2 class="text-2xl font-black mb-6 italic uppercase tracking-tighter">Rental History</h2>
             <div class="bg-white rounded-[32px] border border-slate-200 overflow-hidden shadow-sm">
                 <table class="w-full text-left">
                     <thead class="bg-slate-50 text-[10px] font-black uppercase text-slate-400">
-                        <tr>
-                            <th class="p-6">Vehicle</th>
-                            <th class="p-6">Customer</th>
-                            <th class="p-6">Passport</th>
-                            <th class="p-6">Days</th>
-                            <th class="p-6">Action</th>
-                        </tr>
+                        <tr><th class="p-6">Vehicle</th><th class="p-6">Customer</th><th class="p-6">Days</th><th class="p-6">Action</th></tr>
                     </thead>
                     <tbody id="rental-list"></tbody>
                 </table>
@@ -87,7 +79,6 @@
     <div id="booking-modal" class="modal">
         <div class="bg-white w-full max-w-md p-10 rounded-[48px] shadow-2xl">
             <h2 id="modal-vehicle-info" class="text-2xl font-black italic mb-6 uppercase"></h2>
-            <label class="text-[10px] font-black uppercase text-slate-300 block mb-2 ml-2">How many days?</label>
             <input id="rental-days" type="number" value="1" min="1" class="w-full bg-slate-100 p-5 rounded-3xl text-3xl font-black mb-6 outline-none">
             <div class="flex gap-4">
                 <button onclick="closeModal()" class="flex-1 py-5 rounded-3xl font-black text-slate-400 bg-slate-50 uppercase text-xs">Cancel</button>
@@ -97,7 +88,6 @@
     </div>
 
     <script>
-        // --- 1. CONFIG ---
         const SUPABASE_URL = 'https://unaeguquzlvjmiebxsvg.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVuYWVndXF1emx2am1pZWJ4c3ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNDk5MTAsImV4cCI6MjA5MTYyNTkxMH0.m6kCJus2-oHlzvmVxfFtbedKPbf8ricpQdIOQeB0fVg';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -110,49 +100,30 @@
             if (view === 'rentals') fetchRentals();
         }
 
-        // --- 2. LOAD VEHICLES (FIXED CASE SENSITIVITY) ---
+        // --- LOAD VEHICLES (Using lowercase 'vehicles') ---
         async function loadVehicles() {
             const grid = document.getElementById('vehicle-grid');
             const status = document.getElementById('db-status');
             try {
-                // Trying 'Vehicles' with a Capital V
-                const { data, error } = await supabase.from('Vehicles').select('*');
-                
+                // Try lowercase 'vehicles' first
+                const { data, error } = await supabase.from('vehicles').select('*');
                 if (error) throw error;
 
-                // Update Status to Online
                 status.innerText = "● System Online";
                 status.className = "text-[10px] text-green-500 font-black uppercase tracking-widest";
                 
-                if (!data || data.length === 0) {
-                    grid.innerHTML = '<div class="p-10 text-slate-400 font-bold text-center w-full">No vehicles found in database.</div>';
-                    return;
-                }
-
-                // Map data to HTML cards
                 grid.innerHTML = data.map(v => `
-                    <div class="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm hover:shadow-2xl transition-all ${v.status !== 'available' ? 'opacity-50' : ''}">
-                        <div class="flex justify-between items-start mb-8">
-                            <span class="bg-slate-50 border border-slate-100 px-3 py-1 rounded-full text-[9px] font-black text-slate-400 uppercase tracking-tighter">${v.license_plate}</span>
-                            <span class="text-[9px] font-black uppercase ${v.status === 'available' ? 'text-green-500' : 'text-red-400'}">${v.status}</span>
-                        </div>
-                        <h3 class="text-xl font-black mb-8 italic uppercase leading-none tracking-tighter">${v.make_model}</h3>
-                        <button 
-                            onclick="openBooking('${v.id}', '${v.make_model}')" 
-                            ${v.status !== 'available' ? 'disabled' : ''}
-                            class="w-full py-4 rounded-[20px] font-black text-[10px] uppercase tracking-[0.2em] transition-all ${v.status === 'available' ? 'bg-slate-900 text-white hover:bg-blue-600' : 'bg-slate-100 text-slate-300'}">
-                            ${v.status === 'available' ? 'Select' : 'Rented'}
-                        </button>
+                    <div class="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm">
+                        <h3 class="text-xl font-black mb-8 italic uppercase">${v.make_model}</h3>
+                        <p class="text-[9px] text-slate-400 mb-4">${v.license_plate}</p>
+                        <button onclick="openBooking('${v.id}', '${v.make_model}')" class="w-full py-4 rounded-[20px] font-black bg-slate-900 text-white text-xs uppercase">Select</button>
                     </div>
                 `).join('');
-            } catch (err) {
-                console.error("Fetch Error:", err.message);
-                status.innerText = "● Offline: " + err.message;
-                status.className = "text-[10px] text-red-500 font-black uppercase tracking-widest";
+            } catch (e) {
+                status.innerText = "● Offline: " + e.message;
             }
         }
 
-        // --- 3. CUSTOMER REGISTRATION ---
         async function handleCreateCustomer() {
             const fullName = document.getElementById('cust-full-name').value;
             const phone = document.getElementById('cust-phone').value;
@@ -160,12 +131,6 @@
             const nationality = document.getElementById('cust-nat').value;
             const passport = document.getElementById('cust-passport').value;
             const license = document.getElementById('cust-license').value;
-            const btn = document.getElementById('reg-btn');
-
-            if (!fullName || !phone) return alert("Required: Full Name and Phone");
-
-            btn.disabled = true;
-            btn.innerText = "SAVING...";
 
             try {
                 const { data, error } = await supabase.from('customers').insert([{
@@ -178,23 +143,15 @@
                 }]).select().single();
 
                 if (error) throw error;
-
                 document.getElementById('selected-customer-id').value = data.id;
                 document.getElementById('display-name').innerText = data.full_name;
                 document.getElementById('selected-customer-display').classList.remove('hidden');
-                alert("Customer registered!");
-            } catch (err) {
-                alert("Error: " + err.message);
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "Register & Select";
-            }
+                alert("Saved!");
+            } catch (e) { alert(e.message); }
         }
 
-        // --- 4. BOOKING ---
         function openBooking(id, name) {
-            const custId = document.getElementById('selected-customer-id').value;
-            if (!custId) return alert("Select a customer first!");
+            if (!document.getElementById('selected-customer-id').value) return alert("Select customer!");
             activeVehicleId = id;
             document.getElementById('modal-vehicle-info').innerText = name;
             document.getElementById('booking-modal').classList.add('active');
@@ -207,45 +164,22 @@
             const days = document.getElementById('rental-days').value;
             try {
                 const { error } = await supabase.from('rentals').insert([{
-                    vehicle_id: activeVehicleId,
-                    customer_id: custId,
-                    start_date: new Date().toISOString().split('T')[0],
-                    rental_days: parseInt(days),
-                    status: 'active'
+                    vehicle_id: activeVehicleId, customer_id: custId, 
+                    start_date: new Date().toISOString().split('T')[0], rental_days: parseInt(days)
                 }]);
                 if (error) throw error;
-                
-                // Update vehicle status to rented
-                await supabase.from('Vehicles').update({ status: 'rented' }).eq('id', activeVehicleId);
-                
-                alert("Rental Successful!");
+                alert("Done!");
                 closeModal();
                 loadVehicles();
             } catch (e) { alert(e.message); }
         }
 
-        // --- 5. RENTALS ---
         async function fetchRentals() {
             const list = document.getElementById('rental-list');
-            try {
-                const { data, error } = await supabase
-                    .from('rentals')
-                    .select('*, Vehicles(make_model), customers(full_name, passport_number)');
-                
-                if (error) throw error;
-
-                list.innerHTML = data.map(r => `
-                    <tr class="border-b">
-                        <td class="p-6 font-bold uppercase tracking-tighter">${r.Vehicles?.make_model || 'N/A'}</td>
-                        <td class="p-6">${r.customers?.full_name || 'N/A'}</td>
-                        <td class="p-6 text-slate-400 font-mono text-xs">${r.customers?.passport_number || 'N/A'}</td>
-                        <td class="p-6">${r.rental_days} Days</td>
-                        <td class="p-6"><span class="text-blue-600 font-black uppercase text-[9px]">Active</span></td>
-                    </tr>
-                `).join('');
-            } catch (err) {
-                list.innerHTML = `<tr><td colspan="5" class="p-6 text-red-500">Error: ${err.message}</td></tr>`;
-            }
+            const { data } = await supabase.from('rentals').select('*, vehicles(make_model), customers(full_name)');
+            list.innerHTML = data.map(r => `
+                <tr class="border-b"><td class="p-6 font-bold uppercase">${r.vehicles?.make_model}</td><td class="p-6">${r.customers?.full_name}</td><td class="p-6">${r.rental_days}</td><td class="p-6">Active</td></tr>
+            `).join('');
         }
 
         window.onload = loadVehicles;
