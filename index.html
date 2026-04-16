@@ -14,6 +14,7 @@
         body { font-family: 'Noto Sans Lao', sans-serif; }
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 50; padding: 20px; }
         .modal.active { display: flex; }
+        .view-content.hidden { display: none; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900">
@@ -21,14 +22,13 @@
     <div class="max-w-7xl mx-auto p-4 md:p-6">
         <header class="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
             <div>
-                <h1 class="text-2xl font-black text-slate-900">🚀 FLEET OS</h1>
-                <p id="db-status" class="text-xs text-slate-500 font-bold uppercase tracking-widest">System Offline</p>
+                <h1 class="text-2xl font-black text-slate-900 tracking-tighter">🚀 FLEET OS</h1>
+                <p id="db-status" class="text-[10px] text-red-500 font-black uppercase tracking-widest">System Offline</p>
             </div>
             
             <div class="flex gap-2 mt-4 md:mt-0">
-                <button onclick="switchView('dashboard')" class="px-4 py-2 rounded-xl text-sm font-bold bg-slate-100 hover:bg-slate-200 transition-all">Dashboard</button>
-                <button onclick="switchView('vehicles')" class="px-4 py-2 rounded-xl text-sm font-bold bg-slate-100 hover:bg-slate-200 transition-all">Fleet</button>
-                <button onclick="switchView('rentals')" class="px-4 py-2 rounded-xl text-sm font-bold bg-slate-100 hover:bg-slate-200 transition-all">Rentals</button>
+                <button onclick="switchView('dashboard')" class="px-5 py-2 rounded-2xl text-xs font-black bg-slate-100 hover:bg-slate-900 hover:text-white transition-all uppercase">Dashboard</button>
+                <button onclick="switchView('rentals')" class="px-5 py-2 rounded-2xl text-xs font-black bg-slate-100 hover:bg-slate-900 hover:text-white transition-all uppercase">Rentals</button>
             </div>
         </header>
 
@@ -36,32 +36,39 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 
                 <div class="lg:col-span-2">
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-xl font-black italic">CHOOSE VEHICLE</h2>
-                        <select onchange="handleFilter(this.value)" class="bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold outline-none">
-                            <option value="all">All Types</option>
-                            <option value="car">Cars</option>
-                            <option value="van">Vans</option>
-                            <option value="pick truck">Pickups</option>
+                    <div class="flex justify-between items-center mb-6 px-2">
+                        <h2 class="text-xl font-black italic uppercase">Choose Vehicle</h2>
+                        <select onchange="handleFilter(this.value)" class="bg-white border border-slate-200 rounded-2xl px-4 py-2 text-xs font-black outline-none shadow-sm">
+                            <option value="all">ALL TYPES</option>
+                            <option value="car">CARS</option>
+                            <option value="van">VANS</option>
+                            <option value="pick truck">PICKUPS</option>
                         </select>
                     </div>
                     <div id="vehicle-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        </div>
+                        <div class="p-10 text-slate-400 font-bold">Initializing system...</div>
+                    </div>
                 </div>
 
                 <div class="space-y-6">
-                    <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-xl">
-                        <h2 class="text-xl font-black mb-4 uppercase italic">Customer</h2>
+                    <div class="bg-white p-8 rounded-[40px] border border-slate-200 shadow-xl">
+                        <h2 class="text-xl font-black mb-6 uppercase italic tracking-tight text-slate-400">Customer</h2>
                         <div class="space-y-4">
-                            <input id="cust-name" type="text" placeholder="Full Name" class="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl font-bold outline-none focus:border-blue-500 transition-all">
-                            <input id="cust-phone" type="text" placeholder="Phone (20 XXXX XXXX)" class="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl font-bold outline-none focus:border-blue-500 transition-all">
-                            <button onclick="handleCreateCustomer()" id="reg-btn" class="w-full bg-slate-900 text-white font-black py-5 rounded-2xl shadow-xl hover:scale-[1.02] active:scale-95 transition-all">
-                                CREATE & SELECT
+                            <div>
+                                <label class="text-[10px] font-black uppercase text-slate-400 ml-2 mb-1 block">Full Name</label>
+                                <input id="cust-name" type="text" placeholder="Name" class="w-full bg-slate-50 border-none p-4 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-black uppercase text-slate-400 ml-2 mb-1 block">Phone Number</label>
+                                <input id="cust-phone" type="text" placeholder="20 XXXX XXXX" class="w-full bg-slate-50 border-none p-4 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                            </div>
+                            <button onclick="handleCreateCustomer()" id="reg-btn" class="w-full bg-slate-900 text-white font-black py-5 rounded-[24px] shadow-2xl hover:bg-blue-600 transition-all uppercase tracking-widest text-xs mt-2">
+                                Create & Select
                             </button>
                         </div>
-                        <div id="selected-customer-display" class="hidden mt-6 pt-6 border-t border-slate-100">
-                            <p class="text-[10px] font-black text-blue-600 uppercase">Selected Client</p>
-                            <p id="display-name" class="text-lg font-black"></p>
+                        <div id="selected-customer-display" class="hidden mt-6 pt-6 border-t border-dashed border-slate-200">
+                            <p class="text-[10px] font-black text-blue-600 uppercase mb-1">Active Client</p>
+                            <p id="display-name" class="text-lg font-black leading-tight"></p>
                             <input type="hidden" id="selected-customer-id">
                         </div>
                     </div>
@@ -71,19 +78,19 @@
         </div>
 
         <div id="view-rentals" class="view-content hidden">
-            <h2 class="text-2xl font-black mb-6 italic uppercase">Rental History</h2>
-            <div class="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
-                <table class="w-full text-left">
-                    <thead class="bg-slate-50 border-b border-slate-200 text-[10px] font-black uppercase text-slate-500">
+            <h2 class="text-2xl font-black mb-6 italic uppercase tracking-tighter">Rental History</h2>
+            <div class="bg-white rounded-[32px] border border-slate-200 overflow-hidden shadow-sm">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase text-slate-400">
                         <tr>
-                            <th class="p-4">Vehicle</th>
-                            <th class="p-4">Customer</th>
-                            <th class="p-4">Start Date</th>
-                            <th class="p-4">Days</th>
-                            <th class="p-4">Action</th>
+                            <th class="p-6">Vehicle</th>
+                            <th class="p-6">Customer</th>
+                            <th class="p-6">Start Date</th>
+                            <th class="p-6">Days</th>
+                            <th class="p-6">Action</th>
                         </tr>
                     </thead>
-                    <tbody id="rental-list">
+                    <tbody id="rental-list" class="font-bold text-sm">
                         </tbody>
                 </table>
             </div>
@@ -91,35 +98,32 @@
     </div>
 
     <div id="booking-modal" class="modal">
-        <div class="bg-white w-full max-w-md p-8 rounded-[40px] shadow-2xl">
-            <h2 class="text-3xl font-black italic mb-2 italic uppercase">Booking</h2>
-            <p id="modal-vehicle-info" class="text-blue-600 font-black mb-8"></p>
+        <div class="bg-white w-full max-w-md p-10 rounded-[48px] shadow-2xl">
+            <h2 class="text-3xl font-black italic mb-2 uppercase tracking-tighter">Confirm</h2>
+            <p id="modal-vehicle-info" class="text-blue-600 font-black mb-8 text-sm uppercase"></p>
             
             <div class="space-y-6">
                 <div>
-                    <label class="text-[10px] font-black uppercase text-slate-400 block mb-2">Duration (Days)</label>
-                    <input id="rental-days" type="number" value="1" min="1" class="w-full bg-slate-100 border-none p-5 rounded-3xl text-2xl font-black outline-none">
+                    <label class="text-[10px] font-black uppercase text-slate-300 block mb-2 ml-2">How many days?</label>
+                    <input id="rental-days" type="number" value="1" min="1" class="w-full bg-slate-100 border-none p-5 rounded-3xl text-3xl font-black outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div class="flex gap-4">
-                    <button onclick="closeModal()" class="flex-1 py-5 rounded-3xl font-black text-slate-400 bg-slate-100 uppercase">Cancel</button>
-                    <button onclick="confirmBooking()" class="flex-1 py-5 rounded-3xl font-black bg-slate-900 text-white shadow-2xl uppercase">Confirm</button>
+                    <button onclick="closeModal()" class="flex-1 py-5 rounded-3xl font-black text-slate-400 bg-slate-50 uppercase text-xs tracking-widest">Cancel</button>
+                    <button onclick="confirmBooking()" class="flex-1 py-5 rounded-3xl font-black bg-slate-900 text-white shadow-xl uppercase text-xs tracking-widest hover:bg-blue-600 transition-all">Confirm</button>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // --- 1. CONFIG & INITIALIZATION ---
-        const SUPABASE_URL = https://unaeguquzlvjmiebxsvg.supabase.co;
-        const SUPABASE_KEY = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVuYWVndXF1emx2am1pZWJ4c3ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNDk5MTAsImV4cCI6MjA5MTYyNTkxMH0.m6kCJus2-oHlzvmVxfFtbedKPbf8ricpQdIOQeB0fVg;
+        // --- 1. CONFIG & CONNECTION ---
+        const SUPABASE_URL = 'https://unaeguquzlvjmiebxsvg.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVuYWVndXF1emx2am1pZWJ4c3ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNDk5MTAsImV4cCI6MjA5MTYyNTkxMH0.m6kCJus2-oHlzvmVxfFtbedKPbf8ricpQdIOQeB0fVg';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        // PLACEHOLDER FOR YOUR LAO FONT FROM utils/laoFont.js
-        const laoFontBase64 = ''; 
 
         let activeVehicleId = null;
 
-        // --- 2. VIEW SWITCHER ---
+        // --- 2. VIEW CONTROLLER ---
         function switchView(view) {
             document.querySelectorAll('.view-content').forEach(el => el.classList.add('hidden'));
             document.getElementById('view-' + view).classList.remove('hidden');
@@ -132,32 +136,39 @@
             const status = document.getElementById('db-status');
 
             try {
-                let query = supabase.from('vehicles').select('*').order('created_at', { ascending: false });
+                let query = supabase.from('vehicles').select('*');
                 if (filter !== 'all') query = query.eq('vehicle_type', filter);
 
                 const { data, error } = await query;
                 if (error) throw error;
 
                 status.innerText = "● System Online";
-                status.className = "text-xs text-green-600 font-bold uppercase tracking-widest";
+                status.className = "text-[10px] text-green-500 font-black uppercase tracking-widest";
+
+                if (data.length === 0) {
+                    grid.innerHTML = '<div class="p-10 text-slate-400 font-bold">No vehicles found in this category.</div>';
+                    return;
+                }
 
                 grid.innerHTML = data.map(v => `
-                    <div class="bg-white p-6 rounded-[32px] border border-slate-200 shadow-sm hover:shadow-xl transition-all ${v.status !== 'available' ? 'opacity-50' : ''}">
-                        <div class="flex justify-between items-start mb-6">
-                            <span class="bg-slate-100 px-3 py-1 rounded-full text-[10px] font-black text-slate-500">${v.license_plate}</span>
-                            <span class="text-[10px] font-black uppercase ${v.status === 'available' ? 'text-green-500' : 'text-red-500'}">${v.status}</span>
+                    <div class="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm hover:shadow-2xl transition-all ${v.status !== 'available' ? 'opacity-40 grayscale-[0.5]' : ''}">
+                        <div class="flex justify-between items-start mb-8">
+                            <span class="bg-slate-50 border border-slate-100 px-3 py-1 rounded-full text-[9px] font-black text-slate-400 uppercase tracking-tighter">${v.license_plate}</span>
+                            <span class="text-[9px] font-black uppercase ${v.status === 'available' ? 'text-green-500' : 'text-red-400'}">${v.status}</span>
                         </div>
-                        <h3 class="text-xl font-black mb-6 italic uppercase leading-tight">${v.make_model}</h3>
+                        <h3 class="text-xl font-black mb-8 italic uppercase leading-none tracking-tighter">${v.make_model}</h3>
                         <button 
                             onclick="openBooking('${v.id}', '${v.make_model}')" 
                             ${v.status !== 'available' ? 'disabled' : ''}
-                            class="w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${v.status === 'available' ? 'bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-600 hover:text-white' : 'bg-slate-50 text-slate-300 cursor-not-allowed'}">
-                            ${v.status === 'available' ? 'Select for Rental' : 'Out of Stock'}
+                            class="w-full py-4 rounded-[20px] font-black text-[10px] uppercase tracking-[0.2em] transition-all ${v.status === 'available' ? 'bg-slate-900 text-white hover:bg-blue-600' : 'bg-slate-100 text-slate-300 cursor-not-allowed'}">
+                            ${v.status === 'available' ? 'Select' : 'Unavailable'}
                         </button>
                     </div>
                 `).join('');
             } catch (err) {
-                console.error(err);
+                console.error("Fetch Error:", err);
+                status.innerText = "● Error: Check Connection";
+                grid.innerHTML = `<div class="p-10 text-red-400 font-bold">Database Error: ${err.message}</div>`;
             }
         }
 
@@ -186,9 +197,9 @@
                 document.getElementById('display-name').innerText = data.name;
                 document.getElementById('selected-customer-display').classList.remove('hidden');
                 
-                alert("Customer registered and selected!");
+                alert("Customer registered!");
             } catch (err) {
-                alert(err.message);
+                alert("Error: " + err.message);
             } finally {
                 btn.disabled = false;
                 btn.innerText = "CREATE & SELECT";
@@ -226,7 +237,7 @@
                 // Update Vehicle
                 await supabase.from('vehicles').update({ status: 'rented' }).eq('id', activeVehicleId);
 
-                alert("Rental Processed Successfully!");
+                alert("Rental Processed!");
                 closeModal();
                 loadVehicles();
             } catch (err) {
@@ -234,59 +245,59 @@
             }
         }
 
-        // --- 6. RENTAL HISTORY & PDF ---
+        // --- 6. RENTALS & PDF ---
         async function fetchRentals() {
             const list = document.getElementById('rental-list');
-            const { data, error } = await supabase
-                .from('rentals')
-                .select('*, vehicles(make_model), customers(name)')
-                .order('created_at', { ascending: false });
+            try {
+                const { data, error } = await supabase
+                    .from('rentals')
+                    .select('*, vehicles(make_model), customers(name)')
+                    .order('created_at', { ascending: false });
 
-            if (!error) {
+                if (error) throw error;
+
                 list.innerHTML = data.map(r => `
-                    <tr class="border-b border-slate-100 text-sm font-bold">
-                        <td class="p-4 italic uppercase">${r.vehicles.make_model}</td>
-                        <td class="p-4">${r.customers.name}</td>
-                        <td class="p-4 text-slate-400 font-mono text-xs">${r.start_date}</td>
-                        <td class="p-4">${r.rental_days} Days</td>
-                        <td class="p-4">
-                            <button onclick='generateReceipt(${JSON.stringify(r)})' class="text-blue-600 uppercase text-[10px] font-black underline">PDF</button>
+                    <tr class="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                        <td class="p-6 italic uppercase tracking-tighter">${r.vehicles?.make_model || 'N/A'}</td>
+                        <td class="p-6">${r.customers?.name || 'Unknown'}</td>
+                        <td class="p-6 text-slate-400 font-mono text-xs">${r.start_date}</td>
+                        <td class="p-6">${r.rental_days} Days</td>
+                        <td class="p-6">
+                            <button onclick='generateReceipt(${JSON.stringify(r)})' class="text-blue-600 uppercase text-[9px] font-black underline tracking-widest">Get PDF</button>
                         </td>
                     </tr>
                 `).join('');
+            } catch (err) {
+                list.innerHTML = `<tr><td colspan="5" class="p-6 text-red-500">Error loading rentals: ${err.message}</td></tr>`;
             }
         }
 
         function generateReceipt(r) {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            
-            // Add Lao Font if Base64 is provided
-            if (laoFontBase64) {
-                doc.addFileToVFS('Lao.ttf', laoFontBase64);
-                doc.addFont('Lao.ttf', 'Lao', 'normal');
-                doc.setFont('Lao');
-            }
-
-            doc.setFontSize(20);
+            doc.setFontSize(22);
             doc.text("RENTAL RECEIPT", 10, 20);
+            doc.setFontSize(10);
+            doc.text("Fleet OS Car Rental System", 10, 30);
             
             doc.autoTable({
-                startY: 30,
-                head: [['Field', 'Description']],
+                startY: 40,
+                head: [['Field', 'Detail']],
                 body: [
-                    ['Customer', r.customers.name],
-                    ['Vehicle', r.vehicles.make_model],
+                    ['Client', r.customers?.name],
+                    ['Vehicle', r.vehicles?.make_model],
                     ['Days', r.rental_days],
-                    ['Start Date', r.start_date]
+                    ['Start Date', r.start_date],
+                    ['Status', r.status.toUpperCase()]
                 ],
-                styles: { font: laoFontBase64 ? 'Lao' : 'helvetica' }
+                theme: 'grid',
+                headStyles: { fillColor: [0, 0, 0] }
             });
 
             doc.save(`receipt-${r.id.substring(0,8)}.pdf`);
         }
 
-        // Initialize
+        // --- INITIAL START ---
         loadVehicles();
     </script>
 </body>
