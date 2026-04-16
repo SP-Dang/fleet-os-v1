@@ -353,87 +353,68 @@
         }
 
         // --- FIXED PRINT RECEIPT ---
-        function printReceipt(r) {
-            try {
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
-                
-                doc.setFontSize(22);
-                doc.setFont("helvetica", "bold");
-                doc.text("FLEET OS RENTALS", 105, 20, { align: "center" });
+        function preparePrint(rental) {
+    try {
+        // This 'cleaning' step prevents the crash that causes the popup error
+        const v = Array.isArray(rental.vehicles) ? rental.vehicles[0] : rental.vehicles;
+        const c = Array.isArray(rental.customers) ? rental.customers[0] : rental.customers;
 
-                doc.setFontSize(10);
-                doc.setFont("helvetica", "normal");
-                doc.text("123 Business Avenue, Vientiane, Laos\nContact: +856 20 5555 5555", 15, 30);
-                
-                doc.rect(160, 25, 30, 30); 
-                doc.setFontSize(8);
-                doc.text("SCAN TO VERIFY", 160, 58);
-                
-                doc.setFontSize(12);
-                doc.setFont("helvetica", "bold");
-                const invId = r.id ? r.id.toString().substring(0,8).toUpperCase() : 'N/A';
-                doc.text(`INVOICE: ${invId}`, 195, 20, { align: "right" });
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        doc.setFontSize(20);
+        doc.text("FLEET OS RECEIPT", 105, 20, { align: "center" });
 
-                doc.setLineWidth(0.5);
-                doc.line(15, 65, 195, 65);
+        doc.setFontSize(12);
+        doc.text(`Customer: ${c?.full_name || 'N/A'}`, 15, 40);
+        doc.text(`Vehicle: ${v?.make_model || 'N/A'}`, 15, 50);
 
-                // Information
-                doc.setFontSize(10);
-                doc.text("CUSTOMER INFORMATION", 15, 75);
-                doc.setFont("helvetica", "normal");
-                doc.text(`Name: ${r.customers?.full_name || 'N/A'}\nPhone: ${r.customers?.phone || 'N/A'}\nPassport: ${r.customers?.passport_number || 'N/A'}`, 15, 82);
+        doc.autoTable({
+            startY: 60,
+            head: [['Description', 'Days', 'Total']],
+            body: [[
+                v?.make_model || 'Rental Service',
+                rental.rental_days,
+                `$${parseFloat(rental.total_price).toFixed(2)}`
+            ]],
+            headStyles: { fillColor: [15, 23, 42] }
+        });
 
-                doc.setFont("helvetica", "bold");
-                doc.text("VEHICLE INFORMATION", 110, 75);
-                doc.setFont("helvetica", "normal");
-                doc.text(`Model: ${r.vehicles?.make_model || 'N/A'}\nPlate: ${r.vehicles?.license_plate || 'N/A'}\nFuel: ${r.vehicles?.fuel_type || 'N/A'}`, 110, 82);
-
-                // Table
-                doc.autoTable({
-                    startY: 105,
-                    head: [['Description', 'Start Date', 'Days', 'Amount']],
-                    body: [[
-                        `${r.vehicles?.make_model || 'Vehicle Rental'}`,
-                        `${r.start_date}`,
-                        `${r.rental_days}`,
-                        `$${(r.total_price || 0).toFixed(2)}`
-                    ]],
-                    headStyles: { fillColor: [15, 23, 42] },
-                    theme: 'grid'
-                });
-
-                const finalY = doc.lastAutoTable.finalY + 15;
-                doc.setFont("helvetica", "bold");
-                doc.text(`TOTAL PAID: $${(r.total_price || 0).toFixed(2)}`, 195, finalY, { align: "right" });
-
-                doc.save(`Receipt_${invId}.pdf`);
-            } catch (err) {
-                console.error("Print Error:", err);
-                alert("Printing failed. Ensure popups are allowed.");
-            }
-        }
-
+        const invId = (rental.id || '0000').toString().substring(0,8).toUpperCase();
+        doc.save(`Receipt_${invId}.pdf`);
+    } catch (err) {
+        console.error("PDF Crash Detail:", err);
+        alert("Print Error: Check the browser console (F12) for data issues.");
+    }
+}
         // --- EXISTING UTILITY LOGIC ---
         async function loadRentals() {
-            const { data } = await client.from('rentals').select('*, vehicles(*), customers(*)').order('created_at', { ascending: false });
-            document.getElementById('rental-list').innerHTML = (data || []).map(r => `
-                <tr>
-                    <td class="p-8">
-                        <div class="font-black italic uppercase">${r.vehicles?.make_model}</div>
-                        <div class="text-[9px] text-slate-400 font-bold">${r.start_date}</div>
-                    </td>
-                    <td class="p-8 font-bold text-slate-500">${r.customers?.full_name || 'N/A'}</td>
-                    <td class="p-8 font-black text-[10px] text-slate-400 uppercase">${r.rental_days} Days</td>
-                    <td class="p-8 font-black text-[10px] uppercase ${r.status === 'active' ? 'text-blue-600' : 'text-slate-300'}">${r.status}</td>
-                    <td class="p-8 text-right space-x-2">
-                        <button onclick='printReceipt(${JSON.stringify(r)})' class="bg-slate-900 text-white px-4 py-2 rounded-xl font-black text-[9px] uppercase">Print</button>
-                        ${r.status === 'active' ? `<button onclick="returnVehicle('${r.id}', '${r.vehicle_id}')" class="bg-emerald-500 text-white px-3 py-1 rounded-lg font-black text-[9px] uppercase">Return</button>` : ''}
-                        <button onclick="voidRental('${r.id}', '${r.vehicle_id}')" class="text-rose-400 font-black text-[9px] uppercase">Void</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
+    // We use .single() logic or mapping to ensure we don't have arrays inside our objects
+    const { data } = await client
+        .from('rentals')
+        .select(`
+            *,
+            vehicles:vehicle_id (make_model, daily_rate, license_plate, vehicle_type, fuel_type),
+            customers:customer_id (full_name, phone, passport_number)
+        `)
+        .order('created_at', { ascending: false });
+
+    document.getElementById('rental-list').innerHTML = (data || []).map(r => `
+        <tr>
+            <td class="p-8">
+                <div class="font-black italic uppercase">${r.vehicles?.make_model || 'Unknown'}</div>
+                <div class="text-[9px] text-slate-400 font-bold">${r.start_date}</div>
+            </td>
+            <td class="p-8 font-bold text-slate-500">${r.customers?.full_name || 'N/A'}</td>
+            <td class="p-8 font-black text-[10px] text-slate-400 uppercase">${r.rental_days} Days</td>
+            <td class="p-8 font-black text-[10px] uppercase ${r.status === 'active' ? 'text-blue-600' : 'text-slate-300'}">${r.status}</td>
+            <td class="p-8 text-right space-x-2">
+                <button onclick='preparePrint(${JSON.stringify(r)})' class="bg-slate-900 text-white px-4 py-2 rounded-xl font-black text-[9px] uppercase">Print</button>
+                ${r.status === 'active' ? `<button onclick="returnVehicle('${r.id}', '${r.vehicle_id}')" class="bg-emerald-500 text-white px-3 py-1 rounded-lg font-black text-[9px] uppercase">Return</button>` : ''}
+            </td>
+        </tr>
+    `).join('');
+}
 
         async function returnVehicle(rid, vid) {
             if(!confirm("Return vehicle?")) return;
