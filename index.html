@@ -9,6 +9,7 @@
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700&display=swap');
@@ -352,54 +353,135 @@
         }
 
         // --- UPDATED PRINT RECEIPT LOGIC ---
-        function preparePrint(rental) {
-            try {
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
+        async function preparePrint(rental) {
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Setup AutoTable
+        const autoTable = doc.autoTable || window.jspdf.jsPDF.API.autoTable || window.autoTable;
+        
+        // Data Safety
+        const v = Array.isArray(rental.vehicles) ? rental.vehicles[0] : rental.vehicles;
+        const c = Array.isArray(rental.customers) ? rental.customers[0] : rental.customers;
+        const invId = (rental.id || '0000').toString().substring(0, 8).toUpperCase();
 
-                // Initialization check for AutoTable plugin
-                const autoTable = doc.autoTable || window.jspdf.jsPDF.API.autoTable || window.autoTable;
-                
-                if (typeof autoTable !== 'function') {
-                    throw new Error("The PDF Table library is not responding. Please refresh the page (Ctrl+F5).");
-                }
+        // --- 1. HEADER SECTION ---
+        doc.setFontSize(24);
+        doc.setFont("helvetica", "bold");
+        doc.text("FLEET OS RENTALS", 105, 20, { align: "center" });
 
-                // Data Safety: Handle Supabase nested structures
-                const v = Array.isArray(rental.vehicles) ? rental.vehicles[0] : rental.vehicles;
-                const c = Array.isArray(rental.customers) ? rental.customers[0] : rental.customers;
+        // Company Address (Left)
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "normal");
+        const companyAddress = [
+            "123 Business Lane,",
+            "Vientiane Capital, Lao PDR",
+            "Phone: +856 20 5555 5555",
+            "Email: contact@fleetos.com"
+        ];
+        doc.text(companyAddress, 15, 30);
 
-                // PDF Header
-                doc.setFontSize(22);
-                doc.setFont("helvetica", "bold");
-                doc.text("FLEET OS RENTALS", 105, 20, { align: "center" });
+        // QR Code (Right) - We create a temporary canvas to convert QR to Image
+        const qrCanvas = document.createElement('canvas');
+        new QRCode(qrCanvas, { text: invId, width: 100, height: 100 });
+        // Wait a tiny bit for QR to render then add to PDF
+        await new Promise(resolve => setTimeout(resolve, 100));
+        doc.addImage(qrCanvas.toDataURL("image/png"), 'PNG', 165, 25, 30, 30);
+        doc.setFontSize(8);
+        doc.text(`INV: ${invId}`, 180, 58, { align: "center" });
 
-                doc.setFontSize(10);
-                doc.setFont("helvetica", "normal");
-                doc.text(`Customer: ${c?.full_name || 'N/A'}`, 15, 40);
-                doc.text(`Vehicle: ${v?.make_model || 'N/A'}`, 15, 48);
-                doc.text(`Plate: ${v?.license_plate || 'N/A'}`, 15, 56);
+        // --- 2. HORIZONTAL LINE ---
+        doc.setLineWidth(0.5);
+        doc.line(15, 65, 195, 65);
 
-                // Generate Table
-                autoTable.call(doc, {
-                    startY: 65,
-                    head: [['Description', 'Days', 'Total Price']],
-                    body: [[
-                        v?.make_model || 'Rental Service',
-                        rental.rental_days || 0,
-                        `$${parseFloat(rental.total_price || 0).toFixed(2)}`
-                    ]],
-                    headStyles: { fillColor: [15, 23, 42] },
-                    theme: 'grid'
-                });
+        // --- 3. INFO BLOCKS (Customer & Vehicle) ---
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        doc.text("CUSTOMER INFORMATION", 15, 75);
+        doc.text("VEHICLE DETAILS", 110, 75);
 
-                const invId = (rental.id || '0000').toString().substring(0,8).toUpperCase();
-                doc.save(`Receipt_${invId}.pdf`);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
 
-            } catch (err) {
-                console.error("Detailed PDF Error:", err);
-                alert("Print Error: " + err.message);
-            }
-        }
+        // All Customer Info from Supabase
+        const customerInfo = [
+            `Name: ${c?.full_name || 'N/A'}`,
+            `Phone: ${c?.phone || 'N/A'}`,
+            `Email: ${c?.email || 'N/A'}`,
+            `Passport: ${c?.passport_number || 'N/A'}`,
+            `Nationality: ${c?.nationality || 'N/A'}`,
+            `License: ${c?.license_number || 'N/A'}`
+        ];
+        doc.text(customerInfo, 15, 82);
+
+        // All Vehicle Info
+        const vehicleInfo = [
+            `Model: ${v?.make_model || 'N/A'}`,
+            `Plate: ${v?.license_plate || 'N/A'}`,
+            `Type: ${v?.vehicle_type || 'N/A'}`,
+            `Fuel: ${v?.fuel_type || 'N/A'}`,
+            `Transmission: ${v?.transmission || 'N/A'}`,
+            `Daily Rate: $${v?.daily_rate || '0'}`
+        ];
+        doc.text(vehicleInfo, 110, 82);
+
+        // --- 4. RENTAL PERIOD ---
+        // Calculate End Date
+        const startDate = new Date(rental.start_date);
+        const endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + (rental.rental_days || 0));
+        
+        const dateRange = `Rental Period: ${startDate.toLocaleDateString('en-GB')} to ${endDate.toLocaleDateString('en-GB')}`;
+        doc.setFont("helvetica", "bolditalic");
+        doc.text(dateRange, 15, 120);
+
+        // --- 5. SUMMARY TABLE ---
+        autoTable.call(doc, {
+            startY: 125,
+            head: [['Description', 'Days', 'Rate', 'Subtotal']],
+            body: [[
+                `Vehicle Rental - ${v?.make_model}`,
+                rental.rental_days,
+                `$${parseFloat(v?.daily_rate || 0).toFixed(2)}`,
+                `$${parseFloat(rental.total_price || 0).toFixed(2)}`
+            ]],
+            headStyles: { fillColor: [15, 23, 42], halign: 'center' },
+            columnStyles: { 3: { halign: 'right' } },
+            theme: 'striped'
+        });
+
+        // --- 6. GRAND TOTAL ---
+        const finalY = doc.lastAutoTable.finalY + 10;
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.text("GRAND TOTAL:", 140, finalY);
+        doc.text(`$${parseFloat(rental.total_price || 0).toFixed(2)}`, 195, finalY, { align: "right" });
+
+        // --- 7. FOOTER (Signatures) ---
+        const footerY = 260; // Positioned near bottom of A4
+        doc.setLineWidth(0.2);
+        
+        // Authorized Signature
+        doc.line(15, footerY, 80, footerY);
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "normal");
+        doc.text("Authorized Signature", 15, footerY + 5);
+        doc.text("Fleet OS Management", 15, footerY + 10);
+
+        // Customer Signature
+        doc.line(130, footerY, 195, footerY);
+        doc.text("Customer Signature", 130, footerY + 5);
+        doc.text(c?.full_name || "Guest", 130, footerY + 10);
+
+        // Download
+        doc.save(`Invoice_${invId}.pdf`);
+
+    } catch (err) {
+        console.error("PDF Error:", err);
+        alert("Print Error: " + err.message);
+    }
+}
         
         async function loadRentals() {
             const { data } = await client
