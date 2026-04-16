@@ -112,28 +112,23 @@
 
         // --- 2. LOAD VEHICLES ---
         async function loadVehicles() {
-            const grid = document.getElementById('vehicle-grid');
-            const status = document.getElementById('db-status');
-            try {
-                const { data, error } = await supabase.from('vehicles').select('*');
-                if (error) throw error;
-                status.innerText = "● System Online";
-                status.className = "text-[10px] text-green-500 font-black uppercase tracking-widest";
-                
-                grid.innerHTML = data.map(v => `
-                    <div class="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm hover:shadow-2xl transition-all">
-                        <div class="flex justify-between items-start mb-8">
-                            <span class="bg-slate-50 border border-slate-100 px-3 py-1 rounded-full text-[9px] font-black text-slate-400 uppercase">${v.license_plate}</span>
-                            <span class="text-[9px] font-black uppercase text-green-500">${v.status}</span>
-                        </div>
-                        <h3 class="text-xl font-black mb-8 italic uppercase">${v.make_model}</h3>
-                        <button onclick="openBooking('${v.id}', '${v.make_model}')" class="w-full py-4 rounded-[20px] font-black bg-slate-900 text-white text-xs uppercase hover:bg-blue-600">Select</button>
-                    </div>
-                `).join('');
-            } catch (e) {
-                status.innerText = "● Offline: " + e.message;
-            }
-        }
+    const grid = document.getElementById('vehicle-grid');
+    const status = document.getElementById('db-status');
+    try {
+        // MATCH THE CASE EXACTLY (Try 'Vehicles' if 'vehicles' fails)
+        const { data, error } = await supabase.from('Vehicles').select('*'); 
+        
+        if (error) throw error;
+        
+        status.innerText = "● System Online";
+        status.className = "text-[10px] text-green-500 font-black uppercase tracking-widest";
+        
+        // ... (rest of your mapping code)
+    } catch (e) {
+        status.innerText = "● Offline: " + e.message;
+        console.error("Database Error:", e.message);
+    }
+}
 
         // --- 3. CUSTOMER REGISTRATION (Matches CSV columns) ---
         async function handleCreateCustomer() {
