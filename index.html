@@ -372,14 +372,14 @@ async function triggerScanner() {
 let activeScannedRental = null;
 
 async function handleScannedRental(invId) {
-    // 1. Fetch via RPC as we set up before
+    // 1. Fetch via RPC
     const { data, error } = await client.rpc('search_rentals_by_prefix', { prefix_id: invId });
 
     if (data && data[0]) {
-        // 2. Fetch full details including joins
+        // 2. Fetch full details - UPDATED SELECT LINE BELOW
         const { data: fullData } = await client
             .from('rentals')
-            .select('*, vehicles:vehicle_id(*), customers:customer_id(*)')
+            .select('*, vehicles(*), customers(*)') // Clean joins without aliasing
             .eq('id', data[0].id)
             .single();
 
