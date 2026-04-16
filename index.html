@@ -11,6 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-fontbuilder/1.0.0/jspdf.fontbuilder.min.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700&display=swap');
@@ -499,15 +500,29 @@ function closeScanner() {
     try {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-        
-        // Setup AutoTable
+
+        // --- NEW: LAO FONT SUPPORT ---
+        // Fetch Noto Sans Lao and add it to the PDF
+        const fontUrl = "https://cdn.jsdelivr.net/gh/googlefonts/noto-fonts@master/hinted/ttf/NotoSansLao/NotoSansLao-Regular.ttf";
+        const fontBase64 = await fetch(fontUrl).then(res => res.arrayBuffer()).then(buffer => {
+            let binary = '';
+            const bytes = new Uint8Array(buffer);
+            for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+            return window.btoa(binary);
+        });
+
+        // Register the font with jsPDF
+        doc.addFileToVFS("NotoSansLao.ttf", fontBase64);
+        doc.addFont("NotoSansLao.ttf", "NotoSansLao", "normal");
+        // -----------------------------
+
         const autoTable = doc.autoTable || window.jspdf.jsPDF.API.autoTable || window.autoTable;
         
         // Data Safety
         const v = Array.isArray(rental.vehicles) ? rental.vehicles[0] : rental.vehicles;
         const c = Array.isArray(rental.customers) ? rental.customers[0] : rental.customers;
         const invId = (rental.id || '0000').toString().substring(0, 8).toUpperCase();
-
+        
         // --- 1. HEADER SECTION ---
         doc.setFontSize(24);
         doc.setFont("helvetica", "bold");
@@ -566,30 +581,35 @@ function closeScanner() {
         doc.text("CUSTOMER INFORMATION", 15, 75);
         doc.text("VEHICLE DETAILS", 110, 75);
 
-        doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
+        
+        // CUSTOMER NAME (Lao Support)
+        doc.setFont("helvetica", "normal");
+        doc.text("Name: ", 15, 82);
+        doc.setFont("NotoSansLao", "normal"); // Switch to Lao
+        doc.text(`${c?.full_name || 'N/A'}`, 27, 82); // Offset X slightly to make room for "Name: "
 
-        // All Customer Info from Supabase
-        const customerInfo = [
-            `Name: ${c?.full_name || 'N/A'}`,
+        // Other customer info (Back to Helvetica)
+        doc.setFont("helvetica", "normal");
+        doc.text([
             `Phone: ${c?.phone || 'N/A'}`,
             `Email: ${c?.email || 'N/A'}`,
-            `Passport: ${c?.passport_number || 'N/A'}`,
-            `Nationality: ${c?.nationality || 'N/A'}`,
-            `License: ${c?.license_number || 'N/A'}`
-        ];
-        doc.text(customerInfo, 15, 82);
+            `Passport: ${c?.passport_number || 'N/A'}`
+        ], 15, 87);
 
-        // All Vehicle Info
-        const vehicleInfo = [
+        // PLATE NUMBER (Lao Support)
+        doc.setFont("helvetica", "normal");
+        doc.text("Plate: ", 110, 82);
+        doc.setFont("NotoSansLao", "normal"); // Switch to Lao
+        doc.text(`${v?.license_plate || 'N/A'}`, 122, 82);
+
+        // Other vehicle info
+        doc.setFont("helvetica", "normal");
+        doc.text([
             `Model: ${v?.make_model || 'N/A'}`,
-            `Plate: ${v?.license_plate || 'N/A'}`,
             `Type: ${v?.vehicle_type || 'N/A'}`,
-            `Fuel: ${v?.fuel_type || 'N/A'}`,
-            `Transmission: ${v?.transmission || 'N/A'}`,
             `Daily Rate: $${v?.daily_rate || '0'}`
-        ];
-        doc.text(vehicleInfo, 110, 82);
+        ], 110, 87);
 
         // --- 4. RENTAL PERIOD ---
         const startDate = new Date(rental.start_date);
@@ -634,6 +654,8 @@ function closeScanner() {
 
         doc.line(130, footerY, 195, footerY);
         doc.text("Customer Signature", 130, footerY + 5);
+        doc.text(c?.full_name || "Guest", 130, footerY + 10);
+        doc.setFont("NotoSansLao", "normal");
         doc.text(c?.full_name || "Guest", 130, footerY + 10);
 
         // Download
