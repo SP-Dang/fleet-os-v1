@@ -513,8 +513,12 @@ function closeScanner() {
         doc.addFileToVFS("NotoSansLao.ttf", fontBase64);
         doc.addFont("NotoSansLao.ttf", "NotoSansLao", "normal");
 
+        // Helper to detect Lao text
+        const isLao = (text) => /[\u0E80-\u0EDF]/.test(text);
+
         const autoTable = doc.autoTable || window.jspdf.jsPDF.API.autoTable || window.autoTable;
         
+        // Data extraction with extra safety
         const v = Array.isArray(rental.vehicles) ? rental.vehicles[0] : rental.vehicles;
         const c = Array.isArray(rental.customers) ? rental.customers[0] : rental.customers;
         const invId = (rental.id || '0000').toString().substring(0, 8).toUpperCase();
@@ -544,20 +548,24 @@ function closeScanner() {
         doc.setLineWidth(0.5);
         doc.line(15, 65, 195, 65);
 
-        // --- 3. CUSTOMER INFORMATION (FIXED) ---
+        // --- 3. CUSTOMER INFORMATION ---
         doc.setFontSize(10);
         doc.setFont("helvetica", "bold");
         doc.text("CUSTOMER INFORMATION", 15, 75);
         
         doc.setFontSize(9);
-        // Label
         doc.setFont("helvetica", "normal");
         doc.text("Name: ", 15, 82);
-        // Value (Handles Lao or English)
-        doc.setFont("NotoSansLao", "normal"); 
-        doc.text(`${c?.full_name || 'N/A'}`, 27, 82); 
+        
+        // CUSTOMER NAME LOGIC
+        const custName = c?.full_name || 'N/A';
+        if (isLao(custName)) {
+            doc.setFont("NotoSansLao", "normal");
+        } else {
+            doc.setFont("helvetica", "normal");
+        }
+        doc.text(custName, 27, 82); 
 
-        // Rest of Customer Info
         doc.setFont("helvetica", "normal");
         doc.text([
             `Phone: ${c?.phone || 'N/A'}`,
@@ -567,19 +575,23 @@ function closeScanner() {
             `License: ${c?.license_number || 'N/A'}`
         ], 15, 87);
 
-        // --- 4. VEHICLE DETAILS (FIXED) ---
+        // --- 4. VEHICLE DETAILS ---
         doc.setFont("helvetica", "bold");
         doc.text("VEHICLE DETAILS", 110, 75);
 
         doc.setFontSize(9);
-        // Label
         doc.setFont("helvetica", "normal");
         doc.text("Plate: ", 110, 82);
-        // Value (Handles Lao or English)
-        doc.setFont("NotoSansLao", "normal");
-        doc.text(`${v?.license_plate || 'N/A'}`, 122, 82);
+        
+        // PLATE NUMBER LOGIC
+        const plateNo = v?.license_plate || 'N/A';
+        if (isLao(plateNo)) {
+            doc.setFont("NotoSansLao", "normal");
+        } else {
+            doc.setFont("helvetica", "normal");
+        }
+        doc.text(plateNo, 122, 82);
 
-        // Rest of Vehicle Info
         doc.setFont("helvetica", "normal");
         doc.text([
             `Model: ${v?.make_model || 'N/A'}`,
@@ -600,7 +612,7 @@ function closeScanner() {
         autoTable.call(doc, {
             startY: 125,
             head: [['Description', 'Days', 'Rate', 'Subtotal']],
-            body: [[`Vehicle Rental - ${v?.make_model}`, rental.rental_days, `$${parseFloat(v?.daily_rate || 0).toFixed(2)}`, `$${parseFloat(rental.total_price || 0).toFixed(2)}`]],
+            body: [[`Vehicle Rental - ${v?.make_model || 'N/A'}`, rental.rental_days || 0, `$${parseFloat(v?.daily_rate || 0).toFixed(2)}`, `$${parseFloat(rental.total_price || 0).toFixed(2)}`]],
             headStyles: { fillColor: [15, 23, 42], halign: 'center' },
             theme: 'striped'
         });
@@ -613,12 +625,19 @@ function closeScanner() {
         // --- FOOTER ---
         const footerY = 260;
         doc.line(15, footerY, 80, footerY);
+        doc.setFont("helvetica", "normal");
         doc.text("Authorized Signature", 15, footerY + 5);
         
         doc.line(130, footerY, 195, footerY);
         doc.text("Customer Signature", 130, footerY + 5);
-        doc.setFont("NotoSansLao", "normal"); // Use Lao for footer name too
-        doc.text(c?.full_name || "Guest", 130, footerY + 10);
+        
+        // FOOTER NAME LOGIC
+        if (isLao(custName)) {
+            doc.setFont("NotoSansLao", "normal");
+        } else {
+            doc.setFont("helvetica", "normal");
+        }
+        doc.text(custName, 130, footerY + 10);
 
         doc.save(`Invoice_${invId}.pdf`);
 
