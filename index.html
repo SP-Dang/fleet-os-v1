@@ -277,35 +277,40 @@ async function triggerScanner() {
 }
 
 async function handleScannedRental(invId) {
-    console.log("Searching for ID prefix:", invId);
+    console.log("Searching via RPC for prefix:", invId);
 
-    // FIX: We must search the ID using a string comparison
-    // In Supabase JS, the most reliable way to handle prefix matching 
-    // on a UUID column is using the .or() filter or casting 
-    // via a raw-like filter. 
-    
+    // Use .rpc() to call the SQL function we just created
+    // This bypasses the UUID type restriction
     const { data, error } = await client
-        .from('rentals')
-        .select(`
-            *,
-            vehicles:vehicle_id (*),
-            customers:customer_id (*)
-        `)
-        // This syntax forces the UUID to be treated as text for the search
-        .filter('id', 'ilike', `${invId}%`) 
-        .limit(1);
+        .rpc('search_rentals_by_prefix', { prefix_id: invId });
 
     if (error) {
-        console.error("Database Error:", error);
-        alert("Search failed: Your database requires an exact ID match or specific text casting.");
+        console.error("RPC Error:", error);
+        alert("Search failed. Please try manual lookup.");
         return;
     }
 
     if (data && data.length > 0) {
-        console.log("Found record:", data[0]);
-        preparePrint(data[0]); 
+        const rental = data[0];
+        
+        // Since RPC only returns the rental, we need to quickly 
+        // fetch the joined vehicle and customer data for your receipt
+        const { data: fullData } = await client
+            .from('rentals')
+            .select(`
+                *,
+                vehicles:vehicle_id (*),
+                customers:customer_id (*)
+            `)
+            .eq('id', rental.id)
+            .single();
+
+        if (fullData) {
+            console.log("Full Record Found:", fullData);
+            preparePrint(fullData); 
+        }
     } else {
-        alert(`Rental not found.\n\nScanned: ${invId}\nEnsure this is a valid rental record.`);
+        alert(`No record found for: ${invId}`);
     }
 }
         
