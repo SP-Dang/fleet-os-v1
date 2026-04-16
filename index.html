@@ -186,30 +186,82 @@
     </div>
 
     <div id="edit-modal" class="modal">
-        <div class="bg-white w-full max-w-md rounded-[48px] shadow-2xl overflow-hidden flex flex-col">
-            <div class="bg-blue-600 p-8 text-white"><h2 id="v-modal-title" class="text-2xl font-black uppercase italic tracking-tighter">Vehicle Details</h2></div>
-            <div class="p-8 space-y-4 overflow-y-auto max-h-[60vh]">
-                <input id="e-model" type="text" placeholder="Make & Model" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none">
-                <input id="e-plate" type="text" placeholder="License Plate" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none">
-                <div class="grid grid-cols-2 gap-4">
-                    <input id="e-rate" type="number" placeholder="Daily Rate ($)" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none">
-                    <input id="e-seats" type="number" placeholder="Seats" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none">
+    <div class="bg-white w-full max-w-lg rounded-[48px] shadow-2xl overflow-hidden flex flex-col border border-slate-200">
+        
+        <div class="bg-slate-900 p-8 text-white">
+            <h2 id="v-modal-title" class="text-3xl font-black uppercase italic tracking-tighter">Vehicle Details</h2>
+            <p class="text-blue-400 font-black text-[10px] uppercase tracking-widest">Fleet Management System</p>
+        </div>
+
+        <div class="p-8 space-y-5 overflow-y-auto max-h-[70vh]">
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="text-[10px] font-black uppercase text-slate-400 mb-1 block tracking-widest">Make & Model</label>
+                    <input id="e-model" type="text" placeholder="e.g. Toyota Revo" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none focus:border-blue-500 transition-all">
                 </div>
-                <select id="e-fuel" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none">
-                    <option value="Diesel">Diesel</option><option value="Gasoline">Gasoline</option><option value="Electric">Electric</option>
-                </select>
-                <select id="e-trans" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none">
-                    <option value="Manual">Manual</option><option value="Auto">Auto</option>
-                </select>
-                <input id="e-type" type="text" placeholder="Type (SUV, Truck...)" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none">
+                <div>
+                    <label class="text-[10px] font-black uppercase text-slate-400 mb-1 block tracking-widest">License Plate</label>
+                    <input id="e-plate" type="text" placeholder="ກກ 1234" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none focus:border-blue-500 transition-all">
+                </div>
             </div>
-            <div class="p-8 bg-slate-50 flex gap-3">
-                <button onclick="closeModal('edit-modal')" class="flex-1 py-4 font-black uppercase text-[10px]">Cancel</button>
-                <button id="v-save-btn" class="flex-[2] py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px]">Save Changes</button>
+
+            <div>
+                <label class="text-[10px] font-black uppercase text-slate-400 mb-1 block tracking-widest">Vehicle Category</label>
+                <div class="relative">
+                    <select id="e-type" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none appearance-none cursor-pointer focus:border-blue-500 transition-all">
+                        <option value="" disabled selected>Select Category</option>
+                        <option value="Motorcycle">Motorcycle</option>
+                        <option value="Car">Car</option>
+                        <option value="Sedan">Sedan</option>
+                        <option value="SUV">SUV</option>
+                        <option value="Pickup Truck">Pickup Truck</option>
+                        <option value="Van">Van</option>
+                        <option value="Bus">Bus</option>
+                    </select>
+                    <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="text-[10px] font-black uppercase text-slate-400 mb-1 block tracking-widest">Fuel Type</label>
+                    <select id="e-fuel" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none">
+                        <option value="Diesel">Diesel</option>
+                        <option value="Gasoline">Gasoline</option>
+                        <option value="Electric">Electric</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[10px] font-black uppercase text-slate-400 mb-1 block tracking-widest">Transmission</label>
+                    <select id="e-trans" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none">
+                        <option value="Manual">Manual</option>
+                        <option value="Auto">Auto</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="text-[10px] font-black uppercase text-slate-400 mb-1 block tracking-widest">Daily Rate ($)</label>
+                    <input id="e-rate" type="number" placeholder="0.00" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none">
+                </div>
+                <div>
+                    <label class="text-[10px] font-black uppercase text-slate-400 mb-1 block tracking-widest">Seats</label>
+                    <input id="e-seats" type="number" placeholder="4" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none">
+                </div>
             </div>
         </div>
-    </div>
 
+        <div class="p-8 bg-slate-50 flex gap-4">
+            <button onclick="closeModal('edit-modal')" class="flex-1 py-4 font-black uppercase text-[10px] text-slate-400 hover:text-slate-600 transition-colors">Cancel</button>
+            <button id="v-save-btn" class="flex-[2] py-4 bg-blue-600 text-white rounded-2xl font-black uppercase text-[10px] hover:bg-slate-900 transition-all active:scale-95 shadow-lg shadow-blue-100">
+                Save Vehicle Record
+            </button>
+        </div>
+    </div>
+</div>
+    
     <div id="repair-modal" class="modal">
         <div class="bg-white w-full max-w-md rounded-[48px] shadow-2xl overflow-hidden flex flex-col">
             <div class="bg-amber-500 p-8 text-white"><h2 class="text-2xl font-black uppercase italic">Repair Summary</h2></div>
