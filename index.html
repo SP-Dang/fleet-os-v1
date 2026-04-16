@@ -355,38 +355,41 @@
         // --- FIXED PRINT RECEIPT ---
         function preparePrint(rental) {
     try {
-        // This 'cleaning' step prevents the crash that causes the popup error
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // --- ADD THIS LINE BELOW ---
+        // This manually tells jsPDF that the AutoTable plugin is available
+        // ---------------------------
+        if (typeof doc.autoTable !== 'function') {
+            console.error("AutoTable not found on doc, checking window...");
+            // Fallback for some library versions
+            window.jspdf.jsPDF.API.autoTable = window.jspdf.jsPDF.API.autoTable || window.autoTable;
+        }
+
         const v = Array.isArray(rental.vehicles) ? rental.vehicles[0] : rental.vehicles;
         const c = Array.isArray(rental.customers) ? rental.customers[0] : rental.customers;
 
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        
-        doc.setFontSize(20);
-        doc.text("FLEET OS RECEIPT", 105, 20, { align: "center" });
-
-        doc.setFontSize(12);
-        doc.text(`Customer: ${c?.full_name || 'N/A'}`, 15, 40);
-        doc.text(`Vehicle: ${v?.make_model || 'N/A'}`, 15, 50);
+        // ... rest of your code (doc.text, etc.)
 
         doc.autoTable({
-            startY: 60,
-            head: [['Description', 'Days', 'Total']],
+            startY: 70,
+            head: [['Description', 'Days', 'Total Price']],
             body: [[
-                v?.make_model || 'Rental Service',
+                v?.make_model || 'Rental',
                 rental.rental_days,
                 `$${parseFloat(rental.total_price).toFixed(2)}`
             ]],
             headStyles: { fillColor: [15, 23, 42] }
         });
 
-        const invId = (rental.id || '0000').toString().substring(0,8).toUpperCase();
-        doc.save(`Receipt_${invId}.pdf`);
+        doc.save(`Receipt_${rental.id.substring(0,5)}.pdf`);
     } catch (err) {
         console.error("PDF Crash Detail:", err);
-        alert("Print Error: Check the browser console (F12) for data issues.");
+        alert("Print Error: Check the console for data issues.");
     }
 }
+        
         // --- EXISTING UTILITY LOGIC ---
         async function loadRentals() {
     // We use .single() logic or mapping to ensure we don't have arrays inside our objects
