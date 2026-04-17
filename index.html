@@ -62,22 +62,41 @@
             <div id="vehicle-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
         </div>
 
-        <div id="view-rentals" class="view-content hidden">
-            <div class="bg-white rounded-[40px] border border-slate-100 overflow-hidden shadow-sm">
-                <table class="w-full text-left">
-                    <thead class="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase text-slate-400">
-                        <tr>
-                            <th class="p-8">Vehicle</th>
-                            <th class="p-8">Customer</th>
-                            <th class="p-8">Duration</th>
-                            <th class="p-8">Status</th>
-                            <th class="p-8 text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="rental-list" class="divide-y divide-slate-50"></tbody>
-                </table>
+        <div id="view-rentals" class="view-content hidden p-4 md:p-12">
+    <div class="max-w-7xl mx-auto">
+        <div class="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
+            <div>
+                <h2 class="text-6xl font-black italic uppercase tracking-tighter leading-none mb-4">Rent<br><span class="text-blue-600">History</span></h2>
+                <p class="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Track and manage all vehicle transactions</p>
+            </div>
+            <div class="w-full md:w-96 relative">
+                <input type="text" id="rental-search-input" oninput="resetAndLoadRentals()" placeholder="Search Name or Plate..." 
+                    class="w-full bg-white border border-slate-100 rounded-3xl py-5 px-8 text-[10px] font-black uppercase tracking-widest shadow-sm focus:ring-2 focus:ring-blue-600 outline-none transition-all">
             </div>
         </div>
+
+        <div class="bg-white rounded-[48px] border border-slate-100 shadow-sm overflow-hidden">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-slate-50 border-b border-slate-100">
+                    <tr>
+                        <th class="p-8 text-[10px] font-black uppercase text-slate-400 italic">Vehicle</th>
+                        <th class="p-8 text-[10px] font-black uppercase text-slate-400 italic">Customer</th>
+                        <th class="p-8 text-[10px] font-black uppercase text-slate-400 italic">Duration</th>
+                        <th class="p-8 text-[10px] font-black uppercase text-slate-400 italic">Status</th>
+                        <th class="p-8 text-right text-[10px] font-black uppercase text-slate-400 italic">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="rental-list" class="divide-y divide-slate-50"></tbody>
+            </table>
+            
+            <div id="load-more-container" class="p-8 flex justify-center border-t border-slate-50 hidden">
+                <button onclick="loadMoreRentals()" class="px-12 py-5 bg-slate-50 text-slate-400 rounded-3xl font-black text-[10px] uppercase hover:bg-blue-600 hover:text-white transition-all active:scale-95">
+                    Load Older Bookings
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
         <div id="view-schedule" class="view-content hidden">
             <div class="bg-white rounded-[40px] border border-slate-100 p-8 shadow-sm">
@@ -631,18 +650,96 @@
     }
 }
     
-    async function loadRentals() {
-        const { data } = await client.from('rentals').select('*, vehicles(*), customers(*)').order('created_at', { ascending: false });
-        document.getElementById('rental-list').innerHTML = (data || []).map(r => `
-            <tr>
-                <td class="p-8"><div class="font-black italic uppercase">${r.vehicles?.make_model || 'Unknown'}</div></td>
-                <td class="p-8 font-bold">${r.customers?.full_name || 'N/A'}</td>
-                <td class="p-8">${r.rental_days} Days</td>
-                <td class="p-8 uppercase ${r.status === 'active' ? 'text-blue-600' : 'text-slate-300'}">${r.status}</td>
-                <td class="p-8 text-right"><button onclick='preparePrint(${JSON.stringify(r)})' class="bg-slate-900 text-white px-4 py-2 rounded-xl text-[9px]">Print</button></td>
-            </tr>`).join('');
+    let displayLimit = 20;
+
+// When searching, we want to reset the limit to 20 and start fresh
+function resetAndLoadRentals() {
+    displayLimit = 20;
+    loadRentals();
+}
+
+async function loadRentals() {
+    const searchTerm = document.getElementById('rental-search-input').value.toLowerCase();
+    
+    // Start building the query
+    let query = client
+        .from('rentals')
+        .select('*, vehicles(*), customers(*)')
+        .order('created_at', { ascending: false })
+        .limit(displayLimit);
+
+    // If there is a search term, apply filters
+    // Note: Supabase text search on joined tables works best like this:
+    if (searchTerm) {
+        query = query.or(`license_plate.ilike.%${searchTerm}%,make_model.ilike.%${searchTerm}%`, { foreignTable: 'vehicles' });
     }
 
+    const { data, error } = await query;
+
+    if (error) {
+        console.error("Error loading rentals:", error);
+        return;
+    }
+
+    // If search didn't find vehicle matches, we filter by customer name locally for better performance
+    let filteredData = data || [];
+    if (searchTerm) {
+        filteredData = (data || []).filter(r => 
+            r.customers?.full_name?.toLowerCase().includes(searchTerm) || 
+            r.vehicles?.license_plate?.toLowerCase().includes(searchTerm) ||
+            r.vehicles?.make_model?.toLowerCase().includes(searchTerm)
+        );
+    }
+
+    document.getElementById('rental-list').innerHTML = filteredData.map(r => {
+        const isCompleted = r.status === 'completed';
+        return `
+        <tr>
+            <td class="p-8">
+                <div class="font-black italic uppercase text-slate-900">${r.vehicles?.make_model || 'Unknown'}</div>
+                <div class="text-[9px] font-bold text-slate-400">${r.vehicles?.license_plate || 'N/A'}</div>
+            </td>
+            <td class="p-8 font-bold text-slate-600">${r.customers?.full_name || 'N/A'}</td>
+            <td class="p-8 text-slate-500 font-medium">${r.rental_days} Days</td>
+            <td class="p-8">
+                <span class="px-3 py-1 rounded-full text-[8px] font-black uppercase ${r.status === 'active' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-400'}">
+                    ● ${r.status}
+                </span>
+            </td>
+            <td class="p-8 text-right flex justify-end gap-2">
+                ${r.status === 'active' ? `
+                    <button onclick='handleManualReturn(${JSON.stringify(r)})' class="bg-emerald-50 text-emerald-600 px-4 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-emerald-600 hover:text-white transition-all">Return</button>
+                ` : ''}
+                <button onclick='preparePrint(${JSON.stringify(r)})' class="bg-slate-900 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-blue-600 transition-all">Print</button>
+            </td>
+        </tr>`;
+    }).join('');
+
+    // Handle "Load More" button visibility
+    const loadMoreBtn = document.getElementById('load-more-container');
+    if (data.length >= displayLimit) {
+        loadMoreBtn.classList.remove('hidden');
+    } else {
+        loadMoreBtn.classList.add('hidden');
+    }
+}
+
+function loadMoreRentals() {
+    displayLimit += 20;
+    loadRentals();
+}
+
+// Manual return helper to open the return modal from the table
+async function handleManualReturn(rental) {
+    activeScannedRental = rental;
+    document.getElementById('ret-vehicle-name').innerText = rental.vehicles?.make_model || "Unknown";
+    document.getElementById('ret-customer-name').innerText = `Renter: ${rental.customers?.full_name || "Guest"}`;
+    document.getElementById('ret-plate').innerText = rental.vehicles?.license_plate || "N/A";
+    document.getElementById('ret-total').innerText = `$${parseFloat(rental.total_price || 0).toLocaleString()}`;
+    document.getElementById('btn-confirm-return').onclick = () => processReturn(rental);
+    document.getElementById('return-modal').classList.add('active');
+}
+        
     async function renderScheduleGrid() {
         const { data: vList } = await client.from('vehicles').select('*');
         const { data: rList } = await client.from('rentals').select('*').eq('status', 'active');
