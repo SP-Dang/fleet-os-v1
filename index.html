@@ -595,24 +595,26 @@
         // 7. TOTAL & PAYMENT UNIT SELECTION
         const finalY = doc.lastAutoTable.finalY + 12;
         
+        // Grand Total Line
         doc.setFontSize(14);
         doc.setFont("helvetica", "bold");
-        doc.text("GRAND TOTAL:", 15, finalY);
+        doc.text("GRAND TOTAL:", 155, finalY, { align: "right" }); // Label shifted right
         
-        // Display raw number (toLocaleString handles commas for LAK/THB)
         const totalAmount = parseFloat(rental.total_price || 0).toLocaleString();
-        doc.text(totalAmount, 90, finalY, { align: "right" });
+        doc.text(totalAmount, 195, finalY, { align: "right" }); // Amount at far right
 
-        // Manual Selection Area
+        // Currency selection moved directly below the total
         doc.setFontSize(9);
-        doc.text("Currency:", 115, finalY - 4);
+        doc.setFont("helvetica", "bold");
+        doc.text("Currency:", 195, finalY + 8, { align: "right" });
+        
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(11);
-        doc.text("[  USD  ]      [  THB  ]      [  LAK  ]", 115, finalY + 5);
+        doc.setFontSize(10);
+        doc.text("[  USD  ]      [  THB  ]      [  LAK  ]", 195, finalY + 15, { align: "right" });
 
-        // 8. EXTRA HORIZONTAL LINE BELOW SUMMARY/TOTAL
+        // 8. EXTRA LINE (Adjusted Y position to make room for the stacked text)
         doc.setLineWidth(0.2);
-        doc.line(15, finalY + 12, 195, finalY + 12);
+        doc.line(15, finalY + 22, 195, finalY + 22);
 
         // 9. FOOTER SIGNATURES
         const footerY = 265;
