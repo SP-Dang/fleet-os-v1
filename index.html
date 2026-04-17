@@ -143,10 +143,45 @@
         </div>
     </div>
 
-    <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
-        <h3 class="text-xl font-black mb-6 uppercase italic text-slate-900">Financial Overview</h3>
-        <div style="height: 300px; position: relative;">
-            <canvas id="financeChart"></canvas>
+    <div id="view-summary" class="view-content hidden p-6">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
+            <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Total Income</p>
+            <h3 id="stat-income" class="text-4xl font-black italic text-slate-900">₭0</h3>
+        </div>
+        <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
+            <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Maintenance Expenses</p>
+            <h3 id="stat-expenses" class="text-4xl font-black italic text-red-500">₭0</h3>
+        </div>
+        <div class="bg-[#0F172A] p-8 rounded-[40px] shadow-xl">
+            <p class="text-[10px] font-black uppercase text-blue-400 tracking-widest mb-2">Net Profit</p>
+            <h3 id="stat-profit" class="text-4xl font-black italic text-white">₭0</h3>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+        <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
+            <h3 class="text-xl font-black mb-6 uppercase italic text-slate-900 text-center">Profit Split</h3>
+            <div style="height: 300px; position: relative;">
+                <canvas id="financeChart"></canvas>
+            </div>
+        </div>
+
+        <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 flex flex-col justify-center">
+            <h3 class="text-xl font-black mb-6 uppercase italic text-slate-900">Efficiency</h3>
+            <div class="space-y-4">
+                <div class="flex justify-between items-center p-4 bg-emerald-50 rounded-2xl">
+                    <span class="font-bold text-emerald-700 uppercase text-xs">Income Share</span>
+                    <span class="font-black text-emerald-900">100%</span>
+                </div>
+                <div class="flex justify-between items-center p-4 bg-red-50 rounded-2xl">
+                    <span class="font-bold text-red-700 uppercase text-xs">Expense Ratio</span>
+                    <span id="expense-ratio" class="font-black text-red-900">0%</span>
+                </div>
+            </div>
+            <p class="mt-6 text-[10px] text-slate-400 uppercase font-black tracking-widest text-center">
+                Last Updated: Just Now
+            </p>
         </div>
     </div>
 </div>
@@ -948,10 +983,14 @@ async function loadSummary() {
         document.getElementById('stat-expenses').innerText = `₭${expenses.toLocaleString()}`;
         document.getElementById('stat-profit').innerText = `₭${(income - expenses).toLocaleString()}`;
 
+        // --- NEW LINES START HERE ---
+        const ratio = income > 0 ? ((expenses / income) * 100).toFixed(1) : 0;
+        document.getElementById('expense-ratio').innerText = `${ratio}%`;
+        // --- NEW LINES END HERE ---
+
         // 2. Initialize or Update Chart
         const ctx = document.getElementById('financeChart').getContext('2d');
         
-        // If a chart already exists, destroy it before creating a new one
         if (myChart) { myChart.destroy(); }
 
         myChart = new Chart(ctx, {
@@ -960,7 +999,7 @@ async function loadSummary() {
                 labels: ['Income', 'Expenses'],
                 datasets: [{
                     data: [income, expenses],
-                    backgroundColor: ['#10b981', '#ef4444'], // Emerald and Red
+                    backgroundColor: ['#10b981', '#ef4444'],
                     borderWidth: 0,
                     hoverOffset: 20
                 }]
@@ -974,7 +1013,7 @@ async function loadSummary() {
                         labels: { font: { weight: 'bold' }, padding: 20 }
                     }
                 },
-                cutout: '70%' // Makes it look like a modern ring
+                cutout: '70%'
             }
         });
 
