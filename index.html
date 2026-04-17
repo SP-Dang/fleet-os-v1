@@ -501,7 +501,7 @@
         // 2. HEADER SECTION
         doc.setFontSize(24);
         doc.setFont("helvetica", "bold");
-        doc.text("FLEET OS RENTALS", 105, 20, { align: "center" });
+        doc.text("TATA SMILE TRAVEL SOLE CO.,LTD", 105, 20, { align: "center" });
 
         doc.setFontSize(9);
         doc.setFont("helvetica", "normal");
@@ -562,7 +562,18 @@
             `Transmission: ${vData.transmission || 'N/A'}`,
             `Daily Rate: ${parseFloat(vData.daily_rate || 0).toLocaleString()}`
         ], 110, 82);
-
+        
+        // --- 5. RENTAL PERIOD (NEW SECTION) ---
+        const startDate = new Date(rental.start_date);
+        const endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + (parseInt(rental.rental_days) || 0));
+        
+        const dateRange = `Rental Period: ${startDate.toLocaleDateString('en-GB')} to ${endDate.toLocaleDateString('en-GB')} (${rental.rental_days} Days)`;
+        
+        doc.setFont("helvetica", "bolditalic");
+        doc.setFontSize(10);
+        doc.text(dateRange, 15, 120);
+        
         // 6. SUMMARY TABLE (No symbols in rows)
         autoTable.call(doc, {
             startY: 125,
@@ -612,7 +623,7 @@
         doc.setFontSize(8);
         doc.setFont("helvetica", "normal");
         doc.text("Prepared by:", 15, footerY + 5);
-        doc.text("Fleet OS Management", 15, footerY + 10);
+        doc.text("TATA SMILE TRAVEL SOLE CO.,LTD", 15, footerY + 10);
 
         // Right Side: Customer Signature
         doc.line(130, footerY, 195, footerY);
