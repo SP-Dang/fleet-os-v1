@@ -489,52 +489,38 @@
     try {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-        
-        // Ensure AutoTable is available
         const autoTable = doc.autoTable || window.jspdf.jsPDF.API.autoTable || window.autoTable;
         
-        // 1. DATA EXTRACTION & SAFETY
+        // 1. DATA EXTRACTION
         const vData = (Array.isArray(rental.vehicles) ? rental.vehicles[0] : rental.vehicles) || {};
         const cData = (Array.isArray(rental.customers) ? rental.customers[0] : rental.customers) || {};
         const invId = (rental.id || '0000').toString().substring(0, 8).toUpperCase();
 
-        // 2. HEADER SECTION
-        doc.setFontSize(18);
+        // 2. HEADER
+        doc.setFontSize(24);
         doc.setFont("helvetica", "bold");
-        doc.text("TATA SMILE TRAVEL & CAR RENTAL SOLE CO.,LTD", 105, 20, { align: "center" });
+        doc.text("FLEET OS RENTALS", 105, 20, { align: "center" });
 
         doc.setFontSize(9);
         doc.setFont("helvetica", "normal");
-        const companyInfo = [
-            "Nondou Village, Pakse District"
-            "Champasack Province, Lao PDR"
-            "Phone: +856 20 9169 7543"
-            "Email: contact@fleetos.com"
-        ];
-        doc.text(companyInfo, 15, 30);
+        doc.text(["123 Business Lane,", "Vientiane Capital, Lao PDR", "Phone: +856 20 5555 5555"], 15, 30);
 
-        // 3. QR CODE GENERATION
+        // 3. QR CODE
         const qrContainer = document.createElement('div');
         qrContainer.style.display = 'none';
         document.body.appendChild(qrContainer);
         new QRCode(qrContainer, { text: invId, width: 128, height: 128 });
-        
-        // Wait for QR to render
         await new Promise(r => setTimeout(r, 150));
         const qrCanvas = qrContainer.querySelector('canvas');
-        if (qrCanvas) {
-            doc.addImage(qrCanvas.toDataURL("image/png"), 'PNG', 165, 25, 30, 30);
-        }
-        
+        if (qrCanvas) doc.addImage(qrCanvas.toDataURL("image/png"), 'PNG', 165, 25, 30, 30);
         doc.setFontSize(8);
         doc.text(`INV: ${invId}`, 180, 58, { align: "center" });
         document.body.removeChild(qrContainer);
 
-        // 4. TOP HORIZONTAL LINE
+        // 4. TOP LINE & INFO BLOCKS
         doc.setLineWidth(0.5);
         doc.line(15, 65, 195, 65);
 
-        // 5. INFO BLOCKS (Customer & Vehicle)
         doc.setFontSize(10);
         doc.setFont("helvetica", "bold");
         doc.text("CUSTOMER INFORMATION", 15, 75);
@@ -542,8 +528,6 @@
         
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
-        
-        // Customer Side
         doc.text([
             `Name: ${cData.full_name || 'N/A'}`,
             `Phone: ${cData.phone || 'N/A'}`,
@@ -553,7 +537,6 @@
             `License: ${cData.license_number || 'N/A'}`
         ], 15, 82);
 
-        // Vehicle Side
         doc.text([
             `Model: ${vData.make_model || 'N/A'}`,
             `Plate: ${vData.license_plate || 'N/A'}`,
@@ -562,19 +545,18 @@
             `Transmission: ${vData.transmission || 'N/A'}`,
             `Daily Rate: ${parseFloat(vData.daily_rate || 0).toLocaleString()}`
         ], 110, 82);
-        
-        // --- 5. RENTAL PERIOD (NEW SECTION) ---
+
+        // 5. RENTAL PERIOD
         const startDate = new Date(rental.start_date);
         const endDate = new Date(startDate);
         endDate.setDate(startDate.getDate() + (parseInt(rental.rental_days) || 0));
-        
         const dateRange = `Rental Period: ${startDate.toLocaleDateString('en-GB')} to ${endDate.toLocaleDateString('en-GB')} (${rental.rental_days} Days)`;
         
         doc.setFont("helvetica", "bolditalic");
         doc.setFontSize(10);
         doc.text(dateRange, 15, 120);
-        
-        // 6. SUMMARY TABLE (No symbols in rows)
+
+        // 6. SUMMARY TABLE (B&W High-Contrast)
         autoTable.call(doc, {
             startY: 125,
             head: [['Description', 'Days', 'Rate (Unit)', 'Subtotal']],
@@ -585,66 +567,53 @@
                 parseFloat(rental.total_price || 0).toLocaleString()
             ]],
             headStyles: { 
-                fillColor: [255, 255, 255], // White background
-                textColor: [0, 0, 0],       // Black text
-                lineColor: [0, 0, 0],       // Black border
-                lineWidth: 0.1,
+                fillColor: [255, 255, 255], 
+                textColor: [0, 0, 0], 
+                lineColor: [0, 0, 0], 
+                lineWidth: 0.2,
                 halign: 'center' 
             },
-            columnStyles: { 
-                2: { halign: 'right' }, 
-                3: { halign: 'right' } 
-            },
-            theme: 'grid', // Uses clear lines instead of stripes for better B&W printing
+            columnStyles: { 2: { halign: 'right' }, 3: { halign: 'right' } },
+            theme: 'grid', // Better for B&W printers
             styles: { fontSize: 9, textColor: [0, 0, 0] }
         });
 
-        // 7. TOTAL & PAYMENT UNIT SELECTION
+        // 7. GRAND TOTAL & CURRENCY (Right Aligned)
         const finalY = doc.lastAutoTable.finalY + 12;
-        
-        // Grand Total Line
         doc.setFontSize(14);
         doc.setFont("helvetica", "bold");
-        doc.text("GRAND TOTAL:", 155, finalY, { align: "right" }); // Label shifted right
+        doc.text("GRAND TOTAL:", 155, finalY, { align: "right" });
         
         const totalAmount = parseFloat(rental.total_price || 0).toLocaleString();
-        doc.text(totalAmount, 195, finalY, { align: "right" }); // Amount at far right
+        doc.text(totalAmount, 195, finalY, { align: "right" });
 
-        // Currency selection moved directly below the total
         doc.setFontSize(9);
         doc.setFont("helvetica", "bold");
-        doc.text("Currency:", 195, finalY + 8, { align: "right" });
+        doc.text("PAYMENT UNIT (Circle one):", 195, finalY + 8, { align: "right" });
         
         doc.setFont("helvetica", "normal");
         doc.setFontSize(10);
         doc.text("[  USD  ]      [  THB  ]      [  LAK  ]", 195, finalY + 15, { align: "right" });
 
-        // 8. EXTRA LINE (Adjusted Y position to make room for the stacked text)
+        // 8. EXTRA LINE
         doc.setLineWidth(0.2);
         doc.line(15, finalY + 22, 195, finalY + 22);
 
-        // 9. FOOTER SIGNATURES
+        // 9. FOOTER
         const footerY = 265;
-        
-        // Left Side: Prepared By
-        doc.setLineWidth(0.2);
         doc.line(15, footerY, 80, footerY);
         doc.setFontSize(8);
-        doc.setFont("helvetica", "normal");
         doc.text("Prepared by:", 15, footerY + 5);
-        doc.text("TATA SMILE TRAVEL & CAR RENTAL SOLE CO.,LTD", 15, footerY + 10);
+        doc.text("Fleet OS Management", 15, footerY + 10);
 
-        // Right Side: Customer Signature
         doc.line(130, footerY, 195, footerY);
         doc.text("Customer's Signature", 130, footerY + 5);
         doc.text(cData.full_name || "Guest", 130, footerY + 10);
 
-        // 10. THANK YOU MESSAGE
         doc.setFont("helvetica", "bolditalic");
         doc.setFontSize(10);
         doc.text("Thank you for choosing us!", 105, footerY + 20, { align: "center" });
 
-        // 11. SAVE PDF
         doc.save(`Invoice_${invId}.pdf`);
 
     } catch (err) { 
