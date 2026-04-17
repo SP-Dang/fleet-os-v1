@@ -499,16 +499,16 @@
         const invId = (rental.id || '0000').toString().substring(0, 8).toUpperCase();
 
         // 2. HEADER SECTION
-        doc.setFontSize(24);
+        doc.setFontSize(18);
         doc.setFont("helvetica", "bold");
-        doc.text("TATA SMILE TRAVEL SOLE CO.,LTD", 105, 20, { align: "center" });
+        doc.text("TATA SMILE TRAVEL & CAR RENTAL SOLE CO.,LTD", 105, 20, { align: "center" });
 
         doc.setFontSize(9);
         doc.setFont("helvetica", "normal");
         const companyInfo = [
-            "123 Business Lane,",
-            "Vientiane Capital, Lao PDR",
-            "Phone: +856 20 5555 5555",
+            "Nondou Village, Pakse District"
+            "Champasack Province, Lao PDR"
+            "Phone: +856 20 9169 7543"
             "Email: contact@fleetos.com"
         ];
         doc.text(companyInfo, 15, 30);
@@ -584,12 +584,19 @@
                 parseFloat(vData.daily_rate || 0).toLocaleString(), 
                 parseFloat(rental.total_price || 0).toLocaleString()
             ]],
-            headStyles: { fillColor: [15, 23, 42], halign: 'center' },
+            headStyles: { 
+                fillColor: [255, 255, 255], // White background
+                textColor: [0, 0, 0],       // Black text
+                lineColor: [0, 0, 0],       // Black border
+                lineWidth: 0.1,
+                halign: 'center' 
+            },
             columnStyles: { 
                 2: { halign: 'right' }, 
                 3: { halign: 'right' } 
             },
-            theme: 'striped'
+            theme: 'grid', // Uses clear lines instead of stripes for better B&W printing
+            styles: { fontSize: 9, textColor: [0, 0, 0] }
         });
 
         // 7. TOTAL & PAYMENT UNIT SELECTION
@@ -625,7 +632,7 @@
         doc.setFontSize(8);
         doc.setFont("helvetica", "normal");
         doc.text("Prepared by:", 15, footerY + 5);
-        doc.text("TATA SMILE TRAVEL SOLE CO.,LTD", 15, footerY + 10);
+        doc.text("TATA SMILE TRAVEL & CAR RENTAL SOLE CO.,LTD", 15, footerY + 10);
 
         // Right Side: Customer Signature
         doc.line(130, footerY, 195, footerY);
