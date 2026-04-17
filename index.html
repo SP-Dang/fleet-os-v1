@@ -18,7 +18,17 @@
         .modal { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.9); align-items: center; justify-content: center; z-index: 50; padding: 20px; backdrop-filter: blur(8px); }
         .modal.active { display: flex; }
         .view-content.hidden { display: none; }
-        .day-cell { min-width: 45px; height: 45px; border: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; flex-shrink: 0; }
+        .day-cell { 
+    min-width: 50px; /* Increased slightly for 21-day readability */
+    height: 50px; 
+    border: 1px solid #f1f5f9; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    font-size: 10px; 
+    font-weight: bold; 
+    flex-shrink: 0; 
+}
         .rented-cell { background: #3b82f6; color: white; border-radius: 4px; border: 2px solid #fff; }
     </style>
 </head>
@@ -532,7 +542,31 @@ async function processCheckIn(rental) {
     const days = parseInt(document.getElementById('b-days').value);
     const start = document.getElementById('b-start-date').value;
     
-    // Status is set to 'booked' (advance) instead of 'active'
+    if (!cid || !start || days < 1) return alert("Please fill all booking details.");
+
+    // Calculate requested end date
+    const reqStart = new Date(start); reqStart.setHours(0,0,0,0);
+    const reqEnd = new Date(reqStart); reqEnd.setDate(reqStart.getDate() + days);
+
+    // 1. Check for Overlaps in Supabase
+    const { data: existingRentals } = await client
+        .from('rentals')
+        .select('start_date, rental_days')
+        .eq('vehicle_id', activeV.id)
+        .in('status', ['active', 'booked']);
+
+    const isOverlapping = existingRentals.some(r => {
+        const exStart = new Date(r.start_date); exStart.setHours(0,0,0,0);
+        const exEnd = new Date(exStart); exEnd.setDate(exStart.getDate() + r.rental_days);
+        // Overlap Formula: (StartA < EndB) AND (EndA > StartB)
+        return reqStart < exEnd && reqEnd > exStart;
+    });
+
+    if (isOverlapping) {
+        return alert("Error: This vehicle is already booked for the selected dates. Please check the 14-Day Grid.");
+    }
+
+    // 2. If no overlap, proceed with booking
     const { error } = await client.from('rentals').insert([{ 
         vehicle_id: activeV.id, 
         customer_id: cid, 
@@ -543,9 +577,11 @@ async function processCheckIn(rental) {
     }]);
 
     if(!error) { 
-        // Logic: Vehicle stays 'available' until the customer actually checks in
+        alert("Booking Confirmed!");
         closeModal('booking-modal'); 
         loadVehicles(); 
+    } else {
+        alert("Error saving booking: " + error.message);
     }
 }
 
@@ -790,32 +826,61 @@ async function handleManualReturn(rental) {
     document.getElementById('return-modal').classList.add('active');
 }
         
-    async function renderScheduleGrid() {
-        const { data: vList } = await client.from('vehicles').select('*');
-        const { data: rList } = await client.from('rentals').select('*').eq('status', 'active');
-        const today = new Date(); today.setHours(0,0,0,0);
-        let html = `<div class="flex"><div class="w-40 shrink-0"></div>`;
-        for(let i=0; i<14; i++) {
-            let d = new Date(today); d.setDate(today.getDate() + i);
-            html += `<div class="day-cell text-slate-400">${d.getDate()}/${d.getMonth()+1}</div>`;
+ async function renderScheduleGrid() {
+    const { data: vList } = await client.from('vehicles').select('*');
+    // Fetch both active and booked rentals to show the full schedule
+    const { data: rList } = await client.from('rentals')
+        .select('*')
+        .in('status', ['active', 'booked']);
+    
+    const today = new Date(); 
+    today.setHours(0,0,0,0);
+    
+    // Header row with 21 days
+    let html = `<div class="flex"><div class="w-40 shrink-0"></div>`;
+    for(let i=0; i<21; i++) {
+        let d = new Date(today); 
+        d.setDate(today.getDate() + i);
+        // Added day labels (e.g., Mon, Tue) for better clarity over 3 weeks
+        const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+        html += `
+            <div class="day-cell flex-col text-slate-400 bg-white border-r border-slate-50">
+                <span class="text-[7px] uppercase font-black">${dayName}</span>
+                <span>${d.getDate()}/${d.getMonth()+1}</span>
+            </div>`;
+    }
+    html += `</div>`;
+
+    // Vehicle rows
+    vList.forEach(v => {
+        html += `<div class="flex items-center border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+            <div class="w-40 shrink-0 p-3 font-black text-[9px] uppercase text-slate-600 truncate bg-white sticky left-0 z-10 border-r border-slate-100">${v.make_model}</div>`;
+        
+        for(let i=0; i<21; i++) {
+            let checkDate = new Date(today); 
+            checkDate.setDate(today.getDate() + i);
+            
+            // Look for a rental that covers this specific day
+            let rentalFound = rList.find(r => {
+                let s = new Date(r.start_date); 
+                s.setHours(0,0,0,0);
+                let e = new Date(s); 
+                e.setDate(s.getDate() + r.rental_days);
+                return r.vehicle_id === v.id && checkDate >= s && checkDate < e;
+            });
+
+            let cellClass = "bg-slate-50/20";
+            if (rentalFound) {
+                // Blue for active rentals, Amber/Orange for advanced bookings
+                cellClass = rentalFound.status === 'active' ? 'rented-cell shadow-inner' : 'bg-amber-400 border-2 border-white rounded-md';
+            }
+            html += `<div class="day-cell border-r border-slate-50 ${cellClass}"></div>`;
         }
         html += `</div>`;
-        vList.forEach(v => {
-            html += `<div class="flex items-center"><div class="w-40 shrink-0 p-3 font-black text-[9px] uppercase">${v.make_model}</div>`;
-            for(let i=0; i<14; i++) {
-                let checkDate = new Date(today); checkDate.setDate(today.getDate() + i);
-                let isRented = rList.some(r => {
-                    let s = new Date(r.start_date); s.setHours(0,0,0,0);
-                    let e = new Date(s); e.setDate(s.getDate() + r.rental_days);
-                    return r.vehicle_id === v.id && checkDate >= s && checkDate < e;
-                });
-                html += `<div class="day-cell ${isRented ? 'rented-cell' : 'bg-slate-50/50'}"></div>`;
-            }
-            html += `</div>`;
-        });
-        document.getElementById('timeline-container').innerHTML = html;
-    }
-
+    });
+    
+    document.getElementById('timeline-container').innerHTML = html;
+}
     async function toggleMaintenance(id, cur) {
         if (cur === 'maintenance') { maintenanceVehicleId = id; document.getElementById('repair-modal').classList.add('active'); }
         else { await client.from('vehicles').update({ status: 'maintenance' }).eq('id', id); loadVehicles(); }
