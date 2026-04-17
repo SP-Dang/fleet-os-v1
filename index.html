@@ -11,6 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700&display=swap');
@@ -126,23 +127,29 @@
         </div>
     </div>
 
-    <div id="view-summary" class="view-content hidden">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
-                <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Total Income</p>
-                <h3 id="stat-income" class="text-4xl font-black italic text-slate-900">$0</h3>
-            </div>
-            <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
-                <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Maintenance Expenses</p>
-                <h3 id="stat-expenses" class="text-4xl font-black italic text-red-500">$0</h3>
-            </div>
-            <div class="bg-[#0F172A] p-8 rounded-[40px] shadow-xl">
-                <p class="text-[10px] font-black uppercase text-blue-400 tracking-widest mb-2">Net Profit</p>
-                <h3 id="stat-profit" class="text-4xl font-black italic text-white">$0</h3>
-            </div>
+ <div id="view-summary" class="view-content hidden p-6">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
+            <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Total Income</p>
+            <h3 id="stat-income" class="text-4xl font-black italic text-slate-900">₭0</h3>
+        </div>
+        <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
+            <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Maintenance Expenses</p>
+            <h3 id="stat-expenses" class="text-4xl font-black italic text-red-500">₭0</h3>
+        </div>
+        <div class="bg-[#0F172A] p-8 rounded-[40px] shadow-xl">
+            <p class="text-[10px] font-black uppercase text-blue-400 tracking-widest mb-2">Net Profit</p>
+            <h3 id="stat-profit" class="text-4xl font-black italic text-white">₭0</h3>
         </div>
     </div>
+
+    <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
+        <h3 class="text-xl font-black mb-6 uppercase italic text-slate-900">Financial Overview</h3>
+        <div style="height: 300px; position: relative;">
+            <canvas id="financeChart"></canvas>
+        </div>
     </div>
+</div>
     
 <div id="booking-modal" class="modal">
     <div class="bg-white w-full max-w-lg rounded-[48px] shadow-2xl overflow-hidden flex flex-col min-h-[600px] max-h-[90vh]">
@@ -926,30 +933,53 @@ async function handleManualReturn(rental) {
         closeModal('repair-modal'); loadVehicles();
     }
 
+let myChart = null; // Global variable to store the chart instance
+
 async function loadSummary() {
     try {
-        // 1. Fetch Income from Rentals table
-        const { data: rentals, error: rError } = await client
-            .from('rentals')
-            .select('total_price');
-        
+        const { data: rentals } = await client.from('rentals').select('total_price');
         const income = rentals ? rentals.reduce((sum, r) => sum + (Number(r.total_price) || 0), 0) : 0;
 
-        // 2. Fetch Expenses from Maintenance Logs table
-        const { data: logs, error: mError } = await client
-            .from('maintenance_logs')
-            .select('cost');
-        
+        const { data: logs } = await client.from('maintenance_logs').select('cost');
         const expenses = logs ? logs.reduce((sum, l) => sum + (Number(l.cost) || 0), 0) : 0;
 
-        // 3. Update the UI Cards with formatted numbers
+        // 1. Update text cards
         document.getElementById('stat-income').innerText = `₭${income.toLocaleString()}`;
         document.getElementById('stat-expenses').innerText = `₭${expenses.toLocaleString()}`;
         document.getElementById('stat-profit').innerText = `₭${(income - expenses).toLocaleString()}`;
+
+        // 2. Initialize or Update Chart
+        const ctx = document.getElementById('financeChart').getContext('2d');
         
-        if (rError || mError) console.error("Summary Fetch Error:", rError || mError);
+        // If a chart already exists, destroy it before creating a new one
+        if (myChart) { myChart.destroy(); }
+
+        myChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Income', 'Expenses'],
+                datasets: [{
+                    data: [income, expenses],
+                    backgroundColor: ['#10b981', '#ef4444'], // Emerald and Red
+                    borderWidth: 0,
+                    hoverOffset: 20
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { font: { weight: 'bold' }, padding: 20 }
+                    }
+                },
+                cutout: '70%' // Makes it look like a modern ring
+            }
+        });
+
     } catch (err) {
-        console.error("Summary Logic Error:", err);
+        console.error("Summary/Chart Error:", err);
     }
 }
         
