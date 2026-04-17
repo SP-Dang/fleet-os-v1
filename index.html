@@ -109,42 +109,50 @@
         </div>
     </div>
 
-    <div id="booking-modal" class="modal">
-        <div class="bg-white w-full max-w-lg rounded-[48px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div class="bg-slate-900 p-8 text-white">
-                <h2 id="b-title" class="text-3xl font-black uppercase italic tracking-tighter">Confirm Booking</h2>
-                <p id="b-subtitle" class="text-blue-400 font-black text-[10px] uppercase tracking-widest"></p>
-            </div>
-            <div class="p-8 space-y-6 overflow-y-auto">
-                <div>
-                    <label class="text-[10px] font-black uppercase text-slate-400 mb-2 block tracking-widest">1. Select Customer</label>
-                    <div class="flex gap-2">
-                        <select id="b-customer" class="flex-1 bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none"></select>
-                        <button onclick="openCustomerModal()" class="px-5 bg-blue-600 text-white rounded-2xl font-black text-xl hover:bg-slate-900 transition-all">+</button>
-                    </div>
+<div id="booking-modal" class="modal">
+    <div class="bg-white w-full max-w-lg rounded-[48px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div class="bg-slate-900 p-8 text-white">
+            <h2 id="b-title" class="text-3xl font-black uppercase italic tracking-tighter">Confirm Booking</h2>
+            <p id="b-subtitle" class="text-blue-400 font-black text-[10px] uppercase tracking-widest"></p>
+        </div>
+        
+        <div class="p-8 space-y-6 overflow-y-auto">
+            <div>
+                <label class="text-[10px] font-black uppercase text-slate-400 mb-2 block tracking-widest">1. Select Customer</label>
+                <div class="flex gap-2">
+                    <select id="b-customer" class="flex-1 bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none focus:border-blue-500 transition-all"></select>
+                    <button onclick="openCustomerModal()" class="px-5 bg-blue-600 text-white rounded-2xl font-black text-xl hover:bg-slate-900 transition-all active:scale-95">+</button>
                 </div>
+            </div>
 
+            <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="text-[10px] font-black uppercase text-slate-400 mb-2 block tracking-widest">2. Start Date</label>
-                    <input id="b-start-date" type="date" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none">
+                    <input id="b-start-date" type="date" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none focus:border-blue-500 transition-all text-sm">
                 </div>
-
                 <div>
                     <label class="text-[10px] font-black uppercase text-slate-400 mb-2 block tracking-widest">3. Duration (Days)</label>
-                    <input id="b-days" type="number" value="1" min="1" oninput="updateBookingTotal()" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none">
-                </div>
-
-                <div class="bg-slate-900 p-6 rounded-[32px] flex justify-between items-center text-white">
-                    <span class="text-[10px] font-black uppercase opacity-60">Grand Total</span>
-                    <span id="b-total" class="text-2xl font-black">$0</span>
+                    <input id="b-days" type="number" value="1" min="1" oninput="updateBookingTotal()" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none focus:border-blue-500 transition-all">
                 </div>
             </div>
-            <div class="p-8 bg-slate-50 flex gap-4">
-                <button onclick="closeModal('booking-modal')" class="flex-1 py-4 font-black uppercase text-[10px] text-slate-400">Cancel</button>
-                <button onclick="confirmRental()" class="flex-[2] py-4 bg-blue-600 text-white rounded-2xl font-black uppercase text-[10px]">Confirm Rental</button>
+
+            <div class="bg-slate-900 p-6 rounded-[32px] flex justify-between items-center text-white shadow-inner">
+                <div>
+                    <p class="text-[8px] font-black uppercase opacity-50 tracking-widest">Estimated cost</p>
+                    <span class="text-[10px] font-black uppercase">Grand Total</span>
+                </div>
+                <span id="b-total" class="text-3xl font-black italic">$0</span>
             </div>
         </div>
+
+        <div class="p-8 bg-slate-50 flex gap-4">
+            <button onclick="closeModal('booking-modal')" class="flex-1 py-4 font-black uppercase text-[10px] text-slate-400 hover:text-slate-600 transition-colors">Cancel</button>
+            <button onclick="confirmRental()" class="flex-[2] py-4 bg-blue-600 text-white rounded-2xl font-black uppercase text-[10px] shadow-lg shadow-blue-100 hover:bg-slate-900 transition-all active:scale-95">
+                Confirm Rental
+            </button>
+        </div>
     </div>
+</div>
 
     <div id="return-modal" class="modal">
     <div class="bg-white w-full max-w-lg rounded-[48px] shadow-2xl overflow-hidden flex flex-col border border-slate-200">
