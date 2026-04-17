@@ -497,13 +497,13 @@
         const invId = (rental.id || '0000').toString().substring(0, 8).toUpperCase();
 
         // 2. HEADER
-        doc.setFontSize(18);
+        doc.setFontSize(16);
         doc.setFont("helvetica", "bold");
         doc.text("TATA SMILE TRAVEL & CAR RENTAL SOLE CO.,LTD", 105, 20, { align: "center" });
 
         doc.setFontSize(9);
         doc.setFont("helvetica", "normal");
-        doc.text(["Nondou Village,", "Pakse District", "Champasack Province, Lao PDR", "Phone: +856 20 9169 7543"], 15, 30);
+        doc.text(["Nondou Village", "Pakse District", "Champasack Province, Lao PDR", "Phone: +856 20 9169 7543"], 15, 30);
 
         // 3. QR CODE
         const qrContainer = document.createElement('div');
@@ -559,7 +559,7 @@
         // 6. SUMMARY TABLE (B&W High-Contrast)
         autoTable.call(doc, {
     startY: 125,
-    head: [['Description', 'Days', 'Rate (Unit)', 'Subtotal']],
+    head: [['Description', 'Days', 'Daily Rate', 'Subtotal']],
     body: [[
         `Vehicle Rental - ${vData.make_model || 'Unit'}`, 
         rental.rental_days || 0, 
