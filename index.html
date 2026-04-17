@@ -55,11 +55,13 @@
         </div>
     </div>
     
-    <nav class="flex bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
-        <button onclick="switchView('dashboard')" class="px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all hover:bg-white">Fleet</button>
-        <button onclick="switchView('rentals')" class="px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all hover:bg-white">Rent History</button>
-        <button onclick="switchView('schedule')" class="px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all hover:bg-white">21-Day Grid</button>
-    </nav>
+  <nav class="flex bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
+    <button onclick="switchView('dashboard')" class="px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all hover:bg-white">Fleet</button>
+    <button onclick="switchView('rentals')" class="px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all hover:bg-white">Rent History</button>
+    <button onclick="switchView('schedule')" class="px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all hover:bg-white">21-Day Grid</button>
+    <button onclick="switchView('summary')" class="px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all bg-emerald-600 text-white hover:bg-emerald-700 ml-1">Summary</button>
+</nav>
+            
 </header>
         <div id="view-dashboard" class="view-content">
             <div class="flex flex-col md:flex-row gap-4 mb-10 items-center">
