@@ -558,27 +558,35 @@
 
         // 6. SUMMARY TABLE (B&W High-Contrast)
         autoTable.call(doc, {
-            startY: 125,
-            head: [['Description', 'Days', 'Rate (Unit)', 'Subtotal']],
-            body: [[
-                `Vehicle Rental - ${vData.make_model || 'Unit'}`, 
-                rental.rental_days || 0, 
-                parseFloat(vData.daily_rate || 0).toLocaleString(), 
-                parseFloat(rental.total_price || 0).toLocaleString()
-            ]],
-            headStyles: { 
-                fillColor: [255, 255, 255], 
-                textColor: [0, 0, 0], 
-                lineColor: [0, 0, 0], 
-                lineWidth: 0.2,
-                halign: 'center' 
-            },
-            columnStyles: { 2: { halign: 'right' }, 3: { halign: 'right' } },
-            theme: 'grid', // Better for B&W printers
-            styles: { fontSize: 9, textColor: [0, 0, 0] }
-            halign: 'center'
-        });
-
+    startY: 125,
+    head: [['Description', 'Days', 'Rate (Unit)', 'Subtotal']],
+    body: [[
+        `Vehicle Rental - ${vData.make_model || 'Unit'}`, 
+        rental.rental_days || 0, 
+        parseFloat(vData.daily_rate || 0).toLocaleString(), 
+        parseFloat(rental.total_price || 0).toLocaleString()
+    ]],
+    headStyles: { 
+        fillColor: [255, 255, 255], 
+        textColor: [0, 0, 0], 
+        lineColor: [0, 0, 0], 
+        lineWidth: 0.2,
+        halign: 'center' // Centers the Header text
+    },
+    // Removed the right-alignment for columns 2 and 3 to keep everything centered
+    columnStyles: {
+        0: { halign: 'center' },
+        1: { halign: 'center' },
+        2: { halign: 'center' },
+        3: { halign: 'center' }
+    },
+    theme: 'grid', 
+    styles: { 
+        fontSize: 9, 
+        textColor: [0, 0, 0],
+        halign: 'center' // This centers all data in the body rows
+    }
+});
         // 7. GRAND TOTAL & CURRENCY (Right Aligned)
         const finalY = doc.lastAutoTable.finalY + 12;
         doc.setFontSize(14);
