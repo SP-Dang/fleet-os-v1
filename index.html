@@ -486,73 +486,152 @@
 
     // FIXED PREPARE PRINT FUNCTION
     async function preparePrint(rental) {
-        try {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            const autoTable = doc.autoTable || window.jspdf.jsPDF.API.autoTable || window.autoTable;
-            
-            // Fixed extraction - no duplicate 'const'
-            const vData = (Array.isArray(rental.vehicles) ? rental.vehicles[0] : rental.vehicles) || {};
-            const cData = (Array.isArray(rental.customers) ? rental.customers[0] : rental.customers) || {};
-            const invId = (rental.id || '0000').toString().substring(0, 8).toUpperCase();
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Ensure AutoTable is available
+        const autoTable = doc.autoTable || window.jspdf.jsPDF.API.autoTable || window.autoTable;
+        
+        // 1. DATA EXTRACTION & SAFETY
+        const vData = (Array.isArray(rental.vehicles) ? rental.vehicles[0] : rental.vehicles) || {};
+        const cData = (Array.isArray(rental.customers) ? rental.customers[0] : rental.customers) || {};
+        const invId = (rental.id || '0000').toString().substring(0, 8).toUpperCase();
 
-            doc.setFontSize(24);
-            doc.setFont("helvetica", "bold");
-            doc.text("FLEET OS RENTALS", 105, 20, { align: "center" });
+        // 2. HEADER SECTION
+        doc.setFontSize(24);
+        doc.setFont("helvetica", "bold");
+        doc.text("FLEET OS RENTALS", 105, 20, { align: "center" });
 
-            doc.setFontSize(9);
-            doc.setFont("helvetica", "normal");
-            doc.text(["123 Business Lane,","Vientiane Capital, Lao PDR","Phone: +856 20 5555 5555"], 15, 30);
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "normal");
+        const companyInfo = [
+            "123 Business Lane,",
+            "Vientiane Capital, Lao PDR",
+            "Phone: +856 20 5555 5555",
+            "Email: contact@fleetos.com"
+        ];
+        doc.text(companyInfo, 15, 30);
 
-            const qrContainer = document.createElement('div');
-            qrContainer.style.display = 'none';
-            document.body.appendChild(qrContainer);
-            new QRCode(qrContainer, { text: invId, width: 128, height: 128 });
-            await new Promise(r => setTimeout(r, 150));
-            const qrCanvas = qrContainer.querySelector('canvas');
-            if (qrCanvas) doc.addImage(qrCanvas.toDataURL("image/png"), 'PNG', 165, 25, 30, 30);
-            doc.setFontSize(8);
-            doc.text(`INV: ${invId}`, 180, 58, { align: "center" });
-            document.body.removeChild(qrContainer);
+        // 3. QR CODE GENERATION
+        const qrContainer = document.createElement('div');
+        qrContainer.style.display = 'none';
+        document.body.appendChild(qrContainer);
+        new QRCode(qrContainer, { text: invId, width: 128, height: 128 });
+        
+        // Wait for QR to render
+        await new Promise(r => setTimeout(r, 150));
+        const qrCanvas = qrContainer.querySelector('canvas');
+        if (qrCanvas) {
+            doc.addImage(qrCanvas.toDataURL("image/png"), 'PNG', 165, 25, 30, 30);
+        }
+        
+        doc.setFontSize(8);
+        doc.text(`INV: ${invId}`, 180, 58, { align: "center" });
+        document.body.removeChild(qrContainer);
 
-            doc.line(15, 65, 195, 65);
+        // 4. TOP HORIZONTAL LINE
+        doc.setLineWidth(0.5);
+        doc.line(15, 65, 195, 65);
 
-            doc.setFontSize(10);
-            doc.setFont("helvetica", "bold");
-            doc.text("CUSTOMER INFORMATION", 15, 75);
-            doc.text("VEHICLE DETAILS", 110, 75);
-            
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(9);
-            doc.text([
-                `Name: ${cData.full_name || 'N/A'}`,
-                `Phone: ${cData.phone || 'N/A'}`,
-                `Email: ${cData.email || 'N/A'}`,
-                `Passport: ${cData.passport_number || 'N/A'}`,
-                `Nationality: ${cData.nationality || 'N/A'}`,
-                `License: ${cData.license_number || 'N/A'}`
-            ], 15, 82);
+        // 5. INFO BLOCKS (Customer & Vehicle)
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        doc.text("CUSTOMER INFORMATION", 15, 75);
+        doc.text("VEHICLE DETAILS", 110, 75);
+        
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        
+        // Customer Side
+        doc.text([
+            `Name: ${cData.full_name || 'N/A'}`,
+            `Phone: ${cData.phone || 'N/A'}`,
+            `Email: ${cData.email || 'N/A'}`,
+            `Passport: ${cData.passport_number || 'N/A'}`,
+            `Nationality: ${cData.nationality || 'N/A'}`,
+            `License: ${cData.license_number || 'N/A'}`
+        ], 15, 82);
 
-            doc.text([
-                `Model: ${vData.make_model || 'N/A'}`,
-                `Plate: ${vData.license_plate || 'N/A'}`,
-                `Type: ${vData.vehicle_type || 'N/A'}`,
-                `Fuel: ${vData.fuel_type || 'N/A'}`,
-                `Transmission: ${vData.transmission || 'N/A'}`,
-                `Daily Rate: $${vData.daily_rate || '0'}`
-            ], 110, 82);
+        // Vehicle Side
+        doc.text([
+            `Model: ${vData.make_model || 'N/A'}`,
+            `Plate: ${vData.license_plate || 'N/A'}`,
+            `Type: ${vData.vehicle_type || 'N/A'}`,
+            `Fuel: ${vData.fuel_type || 'N/A'}`,
+            `Transmission: ${vData.transmission || 'N/A'}`,
+            `Daily Rate: ${parseFloat(vData.daily_rate || 0).toLocaleString()}`
+        ], 110, 82);
 
-            autoTable.call(doc, {
-                startY: 125,
-                head: [['Description', 'Days', 'Rate', 'Subtotal']],
-                body: [[`Rental - ${vData.make_model || 'Unit'}`, rental.rental_days, `$${parseFloat(vData.daily_rate || 0).toFixed(2)}`, `$${parseFloat(rental.total_price || 0).toFixed(2)}`]],
-                headStyles: { fillColor: [15, 23, 42] },
-                theme: 'striped'
-            });
+        // 6. SUMMARY TABLE (No symbols in rows)
+        autoTable.call(doc, {
+            startY: 125,
+            head: [['Description', 'Days', 'Rate (Unit)', 'Subtotal']],
+            body: [[
+                `Vehicle Rental - ${vData.make_model || 'Unit'}`, 
+                rental.rental_days || 0, 
+                parseFloat(vData.daily_rate || 0).toLocaleString(), 
+                parseFloat(rental.total_price || 0).toLocaleString()
+            ]],
+            headStyles: { fillColor: [15, 23, 42], halign: 'center' },
+            columnStyles: { 
+                2: { halign: 'right' }, 
+                3: { halign: 'right' } 
+            },
+            theme: 'striped'
+        });
 
-            doc.save(`Invoice_${invId}.pdf`);
-        } catch (err) { console.error(err); }
+        // 7. TOTAL & PAYMENT UNIT SELECTION
+        const finalY = doc.lastAutoTable.finalY + 12;
+        
+        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold");
+        doc.text("GRAND TOTAL:", 15, finalY);
+        
+        // Display raw number (toLocaleString handles commas for LAK/THB)
+        const totalAmount = parseFloat(rental.total_price || 0).toLocaleString();
+        doc.text(totalAmount, 90, finalY, { align: "right" });
+
+        // Manual Selection Area
+        doc.setFontSize(9);
+        doc.text("PAYMENT UNIT (Circle one):", 115, finalY - 4);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(11);
+        doc.text("[  USD  ]      [  THB  ]      [  LAK  ]", 115, finalY + 5);
+
+        // 8. EXTRA HORIZONTAL LINE BELOW SUMMARY/TOTAL
+        doc.setLineWidth(0.2);
+        doc.line(15, finalY + 12, 195, finalY + 12);
+
+        // 9. FOOTER SIGNATURES
+        const footerY = 265;
+        
+        // Left Side: Prepared By
+        doc.setLineWidth(0.2);
+        doc.line(15, footerY, 80, footerY);
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "normal");
+        doc.text("Prepared by:", 15, footerY + 5);
+        doc.text("Fleet OS Management", 15, footerY + 10);
+
+        // Right Side: Customer Signature
+        doc.line(130, footerY, 195, footerY);
+        doc.text("Customer's Signature", 130, footerY + 5);
+        doc.text(cData.full_name || "Guest", 130, footerY + 10);
+
+        // 10. THANK YOU MESSAGE
+        doc.setFont("helvetica", "bolditalic");
+        doc.setFontSize(10);
+        doc.text("Thank you for choosing us!", 105, footerY + 20, { align: "center" });
+
+        // 11. SAVE PDF
+        doc.save(`Invoice_${invId}.pdf`);
+
+    } catch (err) { 
+        console.error("PDF Printing Error:", err); 
+        alert("Print Error: " + err.message);
     }
+}
     
     async function loadRentals() {
         const { data } = await client.from('rentals').select('*, vehicles(*), customers(*)').order('created_at', { ascending: false });
