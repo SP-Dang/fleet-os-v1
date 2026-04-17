@@ -360,13 +360,18 @@
         document.getElementById('b-start-date').valueAsDate = new Date();
     }
 
-   function switchView(v) {
+function switchView(v) {
+    // This hides all views
     document.querySelectorAll('.view-content').forEach(e => e.classList.add('hidden'));
-    document.getElementById('view-' + v).classList.remove('hidden'); // This matches 'view-summary'
     
-    if(v === 'rentals') loadRentals();
-    if(v === 'schedule') renderScheduleGrid();
-    if(v === 'summary') loadSummary(); // Add this line to trigger the money calculations
+    // This shows the one you clicked
+    const target = document.getElementById('view-' + v);
+    if (target) target.classList.remove('hidden');
+
+    // Trigger data loading based on which view is active
+    if (v === 'rentals') loadRentals();
+    if (v === 'schedule') renderScheduleGrid();
+    if (v === 'summary') loadSummary(); // <-- Add this line
 }
 
     async function loadVehicles() {
@@ -921,8 +926,36 @@ async function handleManualReturn(rental) {
         closeModal('repair-modal'); loadVehicles();
     }
 
+async function loadSummary() {
+    try {
+        // 1. Fetch Income from Rentals table
+        const { data: rentals, error: rError } = await client
+            .from('rentals')
+            .select('total_price');
+        
+        const income = rentals ? rentals.reduce((sum, r) => sum + (Number(r.total_price) || 0), 0) : 0;
+
+        // 2. Fetch Expenses from Maintenance Logs table
+        const { data: logs, error: mError } = await client
+            .from('maintenance_logs')
+            .select('cost');
+        
+        const expenses = logs ? logs.reduce((sum, l) => sum + (Number(l.cost) || 0), 0) : 0;
+
+        // 3. Update the UI Cards with formatted numbers
+        document.getElementById('stat-income').innerText = `₭${income.toLocaleString()}`;
+        document.getElementById('stat-expenses').innerText = `₭${expenses.toLocaleString()}`;
+        document.getElementById('stat-profit').innerText = `₭${(income - expenses).toLocaleString()}`;
+        
+        if (rError || mError) console.error("Summary Fetch Error:", rError || mError);
+    } catch (err) {
+        console.error("Summary Logic Error:", err);
+    }
+}
+        
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
     window.onload = init;
+        
 </script>
         
     <div id="scanner-modal" class="modal">
