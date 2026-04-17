@@ -497,13 +497,13 @@
         const invId = (rental.id || '0000').toString().substring(0, 8).toUpperCase();
 
         // 2. HEADER
-        doc.setFontSize(24);
+        doc.setFontSize(18);
         doc.setFont("helvetica", "bold");
-        doc.text("FLEET OS RENTALS", 105, 20, { align: "center" });
+        doc.text("TATA SMILE TRAVEL & CAR RENTAL SOLE CO.,LTD", 105, 20, { align: "center" });
 
         doc.setFontSize(9);
         doc.setFont("helvetica", "normal");
-        doc.text(["123 Business Lane,", "Vientiane Capital, Lao PDR", "Phone: +856 20 5555 5555"], 15, 30);
+        doc.text(["Nondou Village,", "Pakse District", "Champasack Province, Lao PDR", "Phone: +856 20 9169 7543"], 15, 30);
 
         // 3. QR CODE
         const qrContainer = document.createElement('div');
@@ -576,6 +576,7 @@
             columnStyles: { 2: { halign: 'right' }, 3: { halign: 'right' } },
             theme: 'grid', // Better for B&W printers
             styles: { fontSize: 9, textColor: [0, 0, 0] }
+            halign: 'center'
         });
 
         // 7. GRAND TOTAL & CURRENCY (Right Aligned)
@@ -589,10 +590,10 @@
 
         doc.setFontSize(9);
         doc.setFont("helvetica", "bold");
-        doc.text("PAYMENT UNIT (Circle one):", 195, finalY + 8, { align: "right" });
+        doc.text("Currency:", 195, finalY + 8, { align: "right" });
         
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(10);
+        doc.setFontSize(9);
         doc.text("[  USD  ]      [  THB  ]      [  LAK  ]", 195, finalY + 15, { align: "right" });
 
         // 8. EXTRA LINE
@@ -604,7 +605,7 @@
         doc.line(15, footerY, 80, footerY);
         doc.setFontSize(8);
         doc.text("Prepared by:", 15, footerY + 5);
-        doc.text("Fleet OS Management", 15, footerY + 10);
+        doc.text("TATA SMILE TRAVEL & CAR RENTAL CO.,LTD", 15, footerY + 10);
 
         doc.line(130, footerY, 195, footerY);
         doc.text("Customer's Signature", 130, footerY + 5);
