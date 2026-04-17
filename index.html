@@ -53,7 +53,7 @@
     <nav class="flex bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
         <button onclick="switchView('dashboard')" class="px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all hover:bg-white">Fleet</button>
         <button onclick="switchView('rentals')" class="px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all hover:bg-white">Rent History</button>
-        <button onclick="switchView('schedule')" class="px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all hover:bg-white">14-Day Grid</button>
+        <button onclick="switchView('schedule')" class="px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all hover:bg-white">21-Day Grid</button>
     </nav>
 </header>
         <div id="view-dashboard" class="view-content">
@@ -563,7 +563,7 @@ async function processCheckIn(rental) {
     });
 
     if (isOverlapping) {
-        return alert("Error: This vehicle is already booked for the selected dates. Please check the 14-Day Grid.");
+        return alert("Error: This vehicle is already booked for the selected dates. Please check the 21-Day Grid.");
     }
 
     // 2. If no overlap, proceed with booking
