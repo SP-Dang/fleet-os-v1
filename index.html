@@ -661,18 +661,11 @@ function resetAndLoadRentals() {
 async function loadRentals() {
     const searchTerm = document.getElementById('rental-search-input').value.toLowerCase();
     
-    // Start building the query
     let query = client
         .from('rentals')
         .select('*, vehicles(*), customers(*)')
         .order('created_at', { ascending: false })
         .limit(displayLimit);
-
-    // If there is a search term, apply filters
-    // Note: Supabase text search on joined tables works best like this:
-    if (searchTerm) {
-        query = query.or(`license_plate.ilike.%${searchTerm}%,make_model.ilike.%${searchTerm}%`, { foreignTable: 'vehicles' });
-    }
 
     const { data, error } = await query;
 
@@ -681,25 +674,29 @@ async function loadRentals() {
         return;
     }
 
-    // If search didn't find vehicle matches, we filter by customer name locally for better performance
-    let filteredData = data || [];
-    if (searchTerm) {
-        filteredData = (data || []).filter(r => 
-            r.customers?.full_name?.toLowerCase().includes(searchTerm) || 
-            r.vehicles?.license_plate?.toLowerCase().includes(searchTerm) ||
-            r.vehicles?.make_model?.toLowerCase().includes(searchTerm)
-        );
-    }
+    // Filter data locally for high-speed searching across all fields
+    let filteredData = (data || []).filter(r => {
+        const vehicleName = (r.vehicles?.make_model || "").toLowerCase();
+        const plate = (r.vehicles?.license_plate || "").toLowerCase();
+        const customerName = (r.customers?.full_name || "").toLowerCase();
+        
+        return vehicleName.includes(searchTerm) || 
+               plate.includes(searchTerm) || 
+               customerName.includes(searchTerm);
+    });
 
     document.getElementById('rental-list').innerHTML = filteredData.map(r => {
-        const isCompleted = r.status === 'completed';
+        // Fix: Ensure we extract vehicle data correctly even if it's returned as an array or object
+        const vehicle = Array.isArray(r.vehicles) ? r.vehicles[0] : r.vehicles;
+        const customer = Array.isArray(r.customers) ? r.customers[0] : r.customers;
+        
         return `
         <tr>
             <td class="p-8">
-                <div class="font-black italic uppercase text-slate-900">${r.vehicles?.make_model || 'Unknown'}</div>
-                <div class="text-[9px] font-bold text-slate-400">${r.vehicles?.license_plate || 'N/A'}</div>
+                <div class="font-black italic uppercase text-slate-900">${vehicle?.make_model || 'Unknown Vehicle'}</div>
+                <div class="text-[9px] font-bold text-slate-400">${vehicle?.license_plate || 'N/A'}</div>
             </td>
-            <td class="p-8 font-bold text-slate-600">${r.customers?.full_name || 'N/A'}</td>
+            <td class="p-8 font-bold text-slate-600">${customer?.full_name || 'N/A'}</td>
             <td class="p-8 text-slate-500 font-medium">${r.rental_days} Days</td>
             <td class="p-8">
                 <span class="px-3 py-1 rounded-full text-[8px] font-black uppercase ${r.status === 'active' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-400'}">
@@ -723,7 +720,7 @@ async function loadRentals() {
         loadMoreBtn.classList.add('hidden');
     }
 }
-
+        
 function loadMoreRentals() {
     displayLimit += 20;
     loadRentals();
