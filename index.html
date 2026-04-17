@@ -181,9 +181,9 @@
             </div>
             <p class="mt-6 text-[10px] text-slate-400 uppercase font-black tracking-widest text-center">
                 Last Updated: Just Now
-            </p>
+     </p>
         </div>
-    </div>
+    </div> </div> ```
     
 <div id="booking-modal" class="modal">
     <div class="bg-white w-full max-w-lg rounded-[48px] shadow-2xl overflow-hidden flex flex-col min-h-[600px] max-h-[90vh]">
@@ -402,17 +402,13 @@
     }
 
 function switchView(v) {
-    // This hides all views
     document.querySelectorAll('.view-content').forEach(e => e.classList.add('hidden'));
-    
-    // This shows the one you clicked
     const target = document.getElementById('view-' + v);
     if (target) target.classList.remove('hidden');
 
-    // Trigger data loading based on which view is active
     if (v === 'rentals') loadRentals();
     if (v === 'schedule') renderScheduleGrid();
-    if (v === 'summary') loadSummary(); // <-- Add this line
+    if (v === 'summary') loadSummary(); // Added () here to make it run
 }
 
     async function loadVehicles() {
