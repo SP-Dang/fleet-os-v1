@@ -413,6 +413,7 @@
     </div>
 
     <script>
+    let chartInstance = null;
     const client = window.supabase.createClient('https://unaeguquzlvjmiebxsvg.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVuYWVndXF1emx2am1pZWJ4c3ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNDk5MTAsImV4cCI6MjA5MTYyNTkxMH0.m6kCJus2-oHlzvmVxfFtbedKPbf8ricpQdIOQeB0fVg');
 
     let allVehicles = [];
@@ -993,14 +994,14 @@ let myChart = null; // Global variable to store the chart instance
 
 async function loadSummary() {
     try {
-        // UPDATED: Select vehicle_name so we can group the data
+        // Fetch data including vehicle names
         const { data: rentals } = await client.from('rentals').select('total_price, vehicle_name');
         const income = rentals ? rentals.reduce((sum, r) => sum + (Number(r.total_price) || 0), 0) : 0;
 
         const { data: logs } = await client.from('maintenance_logs').select('cost, vehicle_name');
         const expenses = logs ? logs.reduce((sum, l) => sum + (Number(l.cost) || 0), 0) : 0;
 
-        // 1. Update main text cards
+        // 1. Update text cards
         document.getElementById('stat-income').innerText = `₭${income.toLocaleString()}`;
         document.getElementById('stat-expenses').innerText = `₭${expenses.toLocaleString()}`;
         document.getElementById('stat-profit').innerText = `₭${(income - expenses).toLocaleString()}`;
@@ -1008,17 +1009,15 @@ async function loadSummary() {
         const ratio = income > 0 ? ((expenses / income) * 100).toFixed(1) : 0;
         document.getElementById('expense-ratio').innerText = `${ratio}%`;
 
-        // --- TOP 5 EARNERS CALCULATION ---
+        // 2. Top 5 Earners
         const earnerMap = {};
         if (rentals) {
             rentals.forEach(r => {
-                earnerMap[r.vehicle_name] = (earnerMap[r.vehicle_name] || 0) + (Number(r.total_price) || 0);
+                const name = r.vehicle_name || 'Unknown';
+                earnerMap[name] = (earnerMap[name] || 0) + (Number(r.total_price) || 0);
             });
         }
-        const sortedEarners = Object.entries(earnerMap)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 5);
-
+        const sortedEarners = Object.entries(earnerMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
         document.getElementById('top-earners-body').innerHTML = sortedEarners.map(([name, val]) => `
             <tr class="border-b border-slate-50">
                 <td class="py-4 font-bold text-slate-700">${name}</td>
@@ -1026,17 +1025,15 @@ async function loadSummary() {
             </tr>
         `).join('');
 
-        // --- TOP 5 EXPENSES CALCULATION ---
+        // 3. Top 5 Maintenance
         const expenseMap = {};
         if (logs) {
             logs.forEach(l => {
-                expenseMap[l.vehicle_name] = (expenseMap[l.vehicle_name] || 0) + (Number(l.cost) || 0);
+                const name = l.vehicle_name || 'Unknown';
+                expenseMap[name] = (expenseMap[name] || 0) + (Number(l.cost) || 0);
             });
         }
-        const sortedExpenses = Object.entries(expenseMap)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 5);
-
+        const sortedExpenses = Object.entries(expenseMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
         document.getElementById('top-expenses-body').innerHTML = sortedExpenses.map(([name, val]) => `
             <tr class="border-b border-slate-50">
                 <td class="py-4 font-bold text-slate-700">${name}</td>
@@ -1044,12 +1041,15 @@ async function loadSummary() {
             </tr>
         `).join('');
 
+        // 4. Update Chart
+        const canvas = document.getElementById('financeChart');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        
+        // Use chartInstance here instead of myChart
+        if (chartInstance) { chartInstance.destroy(); }
 
-        // 2. Initialize or Update Chart
-        const ctx = document.getElementById('financeChart').getContext('2d');
-        if (myChart) { myChart.destroy(); }
-
-        myChart = new Chart(ctx, {
+        chartInstance = new Chart(ctx, {
             type: 'doughnut',
             data: {
                 labels: ['Income', 'Expenses'],
@@ -1063,18 +1063,12 @@ async function loadSummary() {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: { font: { weight: 'bold' }, padding: 20 }
-                    }
-                },
+                plugins: { legend: { position: 'bottom' } },
                 cutout: '70%'
             }
         });
-
     } catch (err) {
-        console.error("Summary/Chart Error:", err);
+        console.error("Summary Logic Error:", err);
     }
 }
         
