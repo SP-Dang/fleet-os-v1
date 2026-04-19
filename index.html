@@ -11,8 +11,6 @@
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700&display=swap');
@@ -120,97 +118,32 @@
     </div>
 </div>
 
-<div id="view-schedule" class="view-content hidden">
+        <div id="view-schedule" class="view-content hidden">
             <div class="bg-white rounded-[40px] border border-slate-100 p-8 shadow-sm">
                 <h2 class="text-xl font-black mb-6 uppercase italic">Availability Timeline</h2>
                 <div id="timeline-container" class="overflow-x-auto pb-4"></div>
             </div>
         </div>
+    </div>
 
-        <div id="view-summary" class="view-content hidden p-6">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
-                    <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Total Income</p>
-                    <h3 id="stat-income" class="text-4xl font-black italic text-slate-900">₭0</h3>
-                </div>
-                <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
-                    <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Maintenance Expenses</p>
-                    <h3 id="stat-expenses" class="text-4xl font-black italic text-red-500">₭0</h3>
-                </div>
-                <div class="bg-[#0F172A] p-8 rounded-[40px] shadow-xl">
-                    <p class="text-[10px] font-black uppercase text-blue-400 tracking-widest mb-2">Net Profit</p>
-                    <h3 id="stat-profit" class="text-4xl font-black italic text-white">₭0</h3>
-                </div>
+    <div id="view-summary" class="view-content hidden">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
+                <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Total Income</p>
+                <h3 id="stat-income" class="text-4xl font-black italic text-slate-900">$0</h3>
             </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-                <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
-                    <h3 class="text-xl font-black mb-6 uppercase italic text-slate-900 text-center">Profit Split</h3>
-                    <div style="height: 300px; position: relative;">
-                        <canvas id="financeChart"></canvas>
-                    </div>
-                </div>
-
-                <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 flex flex-col justify-center">
-                    <h3 class="text-xl font-black mb-6 uppercase italic text-slate-900">Efficiency</h3>
-                    <div class="space-y-4">
-                        <div class="flex justify-between items-center p-4 bg-emerald-50 rounded-2xl">
-                            <span class="font-bold text-emerald-700 uppercase text-xs">Income Share</span>
-                            <span class="font-black text-emerald-900">100%</span>
-                        </div>
-                        <div class="flex justify-between items-center p-4 bg-red-50 rounded-2xl">
-                            <span class="font-bold text-red-700 uppercase text-xs">Expense Ratio</span>
-                            <span id="expense-ratio" class="font-black text-red-900">0%</span>
-                        </div>
-                    </div>
-                    <p class="mt-6 text-[10px] text-slate-400 uppercase font-black tracking-widest text-center">
-                        Last Updated: Just Now
-                    </p>
-                </div> </div> <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-                <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
-                    <h3 class="text-xl font-black mb-6 uppercase italic text-slate-900">Top 5 Earners</h3>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead>
-                                <tr class="text-[10px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-50">
-                                    <th class="pb-4">Vehicle</th>
-                                    <th class="pb-4 text-right">Total Income</th>
-                                </tr>
-                            </thead>
-                            <tbody id="top-earners-body" class="text-sm">
-                                </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
-                    <h3 class="text-xl font-black mb-6 uppercase italic text-red-600">Highest Maintenance</h3>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead>
-                                <tr class="text-[10px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-50">
-                                    <th class="pb-4">Vehicle</th>
-                                    <th class="pb-4 text-right">Total Cost</th>
-                                </tr>
-                            </thead>
-                            <tbody id="top-expenses-body" class="text-sm">
-                                </tbody>
-                        </table>
-                    </div>
-                </div>
+            <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
+                <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Maintenance Expenses</p>
+                <h3 id="stat-expenses" class="text-4xl font-black italic text-red-500">$0</h3>
             </div>
-
-            <div class="mt-8 flex justify-end">
-                <button onclick="exportToExcel()" class="bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black uppercase italic tracking-widest hover:bg-emerald-700 shadow-lg flex items-center gap-2 transition-all active:scale-95">
-                    <span>Export to Excel</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                </button>
+            <div class="bg-[#0F172A] p-8 rounded-[40px] shadow-xl">
+                <p class="text-[10px] font-black uppercase text-blue-400 tracking-widest mb-2">Net Profit</p>
+                <h3 id="stat-profit" class="text-4xl font-black italic text-white">$0</h3>
             </div>
-
-        </div> ```
-        
+        </div>
+    </div>
+    </div>
+    
 <div id="booking-modal" class="modal">
     <div class="bg-white w-full max-w-lg rounded-[48px] shadow-2xl overflow-hidden flex flex-col min-h-[600px] max-h-[90vh]">
         
@@ -413,9 +346,6 @@
     </div>
 
     <script>
-    let chartInstance = null;
-    let myChart = null;
-    const { createClient } = supabase;
     const client = window.supabase.createClient('https://unaeguquzlvjmiebxsvg.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVuYWVndXF1emx2am1pZWJ4c3ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNDk5MTAsImV4cCI6MjA5MTYyNTkxMH0.m6kCJus2-oHlzvmVxfFtbedKPbf8ricpQdIOQeB0fVg');
 
     let allVehicles = [];
@@ -431,13 +361,17 @@
     }
 
 function switchView(v) {
+    // This hides all views
     document.querySelectorAll('.view-content').forEach(e => e.classList.add('hidden'));
+    
+    // This shows the one you clicked
     const target = document.getElementById('view-' + v);
     if (target) target.classList.remove('hidden');
 
+    // Trigger data loading based on which view is active
     if (v === 'rentals') loadRentals();
     if (v === 'schedule') renderScheduleGrid();
-    if (v === 'summary') loadSummary(); // Added () here to make it run
+    if (v === 'summary') loadSummary(); // <-- Add this line
 }
 
     async function loadVehicles() {
@@ -992,116 +926,35 @@ async function handleManualReturn(rental) {
         closeModal('repair-modal'); loadVehicles();
     }
 
-let myChart = null; // Global variable to store the chart instance
-
 async function loadSummary() {
     try {
-        // Fetch data
-        const { data: rentals } = await client.from('rentals').select('total_price, vehicle_name');
+        // 1. Fetch Income from Rentals table
+        const { data: rentals, error: rError } = await client
+            .from('rentals')
+            .select('total_price');
+        
         const income = rentals ? rentals.reduce((sum, r) => sum + (Number(r.total_price) || 0), 0) : 0;
 
-        const { data: logs } = await client.from('maintenance_logs').select('cost, vehicle_name');
+        // 2. Fetch Expenses from Maintenance Logs table
+        const { data: logs, error: mError } = await client
+            .from('maintenance_logs')
+            .select('cost');
+        
         const expenses = logs ? logs.reduce((sum, l) => sum + (Number(l.cost) || 0), 0) : 0;
 
-        // Update Text Cards
+        // 3. Update the UI Cards with formatted numbers
         document.getElementById('stat-income').innerText = `₭${income.toLocaleString()}`;
         document.getElementById('stat-expenses').innerText = `₭${expenses.toLocaleString()}`;
         document.getElementById('stat-profit').innerText = `₭${(income - expenses).toLocaleString()}`;
-
-        const ratio = income > 0 ? ((expenses / income) * 100).toFixed(1) : 0;
-        document.getElementById('expense-ratio').innerText = `${ratio}%`;
-
-        // Calculate Top 5 Earners
-        const earnerMap = {};
-        if (rentals) {
-            rentals.forEach(r => {
-                const name = r.vehicle_name || 'Unknown';
-                earnerMap[name] = (earnerMap[name] || 0) + (Number(r.total_price) || 0);
-            });
-        }
-        const sortedEarners = Object.entries(earnerMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
-        document.getElementById('top-earners-body').innerHTML = sortedEarners.map(([name, val]) => `
-            <tr class="border-b border-slate-50">
-                <td class="py-4 font-bold text-slate-700">${name}</td>
-                <td class="py-4 text-right font-black">₭${val.toLocaleString()}</td>
-            </tr>
-        `).join('');
-
-        // Calculate Top 5 Maintenance
-        const expenseMap = {};
-        if (logs) {
-            logs.forEach(l => {
-                const name = l.vehicle_name || 'Unknown';
-                expenseMap[name] = (expenseMap[name] || 0) + (Number(l.cost) || 0);
-            });
-        }
-        const sortedExpenses = Object.entries(expenseMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
-        document.getElementById('top-expenses-body').innerHTML = sortedExpenses.map(([name, val]) => `
-            <tr class="border-b border-slate-50">
-                <td class="py-4 font-bold text-slate-700">${name}</td>
-                <td class="py-4 text-right font-black text-red-500">₭${val.toLocaleString()}</td>
-            </tr>
-        `).join('');
-
-        // Update Chart
-        const ctx = document.getElementById('financeChart').getContext('2d');
-        if (myChart) { myChart.destroy(); }
-
-        myChart = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Income', 'Expenses'],
-                datasets: [{
-                    data: [income, expenses],
-                    backgroundColor: ['#10b981', '#ef4444'],
-                    borderWidth: 0,
-                    hoverOffset: 20
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom' } },
-                cutout: '70%'
-            }
-        });
+        
+        if (rError || mError) console.error("Summary Fetch Error:", rError || mError);
     } catch (err) {
         console.error("Summary Logic Error:", err);
     }
-}        
+}
+        
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
     window.onload = init;
-
-function exportToExcel() {
-    // Collect the data
-    const income = document.getElementById('stat-income').innerText;
-    const expenses = document.getElementById('stat-expenses').innerText;
-    const profit = document.getElementById('stat-profit').innerText;
-
-    // Create a simple array for the spreadsheet
-    const data = [
-        ["Financial Summary Report"],
-        ["Date", new Date().toLocaleDateString()],
-        [],
-        ["Metric", "Value"],
-        ["Total Income", income],
-        ["Total Expenses", expenses],
-        ["Net Profit", profit],
-        [],
-        ["Top 5 Vehicles by Income"],
-        ...Array.from(document.querySelectorAll('#top-earners-body tr')).map(tr => [
-            tr.cells[0].innerText, tr.cells[1].innerText
-        ])
-    ];
-
-    // Create Excel Workbook
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Financial Summary");
-
-    // Download the file
-    XLSX.writeFile(wb, "Fleet_Financial_Report.xlsx");
-}
         
 </script>
         
