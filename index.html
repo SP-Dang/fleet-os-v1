@@ -977,7 +977,7 @@ async function loadSummary() {
     try {
         const { data: rentals } = await client.from('rentals').select('*');
         const { data: logs } = await client.from('maintenance_logs').select('*');
-        const { data: vehiclesData } = await client.from('vehicles').select('id, name'); // CHANGED TO vehicles
+        const { data: vehicles } = await client.from('vehicles').select('id, name'); // Use 'vehicles' table
 
         // 1. Update text cards
         document.getElementById('stat-income').innerText = `₭${income.toLocaleString()}`;
@@ -1018,22 +1018,22 @@ async function loadSummary() {
             }
         });
 
-        updateTopEarners(rentals, vehiclesData); 
-        updateHighestMaintenance(logs, vehiclesData);
+        updateTopEarners(rentals, vehicles); 
+        updateHighestMaintenance(logs, vehicles);
 
     } catch (err) {
         console.error("Summary/Chart Error:", err);
     }
 }
         
-function updateTopEarners(rentals, vehiclesData) {
+function updateTopEarners(rentals, vehicles) {
     try {
         const earnerMap = {};
         if (rentals && rentals.length > 0) {
             rentals.forEach(r => {
-                // Find the name by matching the ID in the vehicles table
-                const vehicle = vehiclesData ? vehiclesData.find(v => v.id === r.vehicle_id) : null;
-                const name = vehicle ? vehicle.name : 'Unknown Vehicle';
+                // Find the name by matching the vehicle_id from rentals to the id in vehicles
+                const car = vehicles ? vehicles.find(v => v.id === r.vehicle_id) : null;
+                const name = car ? car.name : 'Unknown Vehicle';
                 
                 earnerMap[name] = (earnerMap[name] || 0) + (Number(r.total_price) || 0);
             });
@@ -1052,14 +1052,14 @@ function updateTopEarners(rentals, vehiclesData) {
     } catch (e) { console.error("Earners Error:", e); }
 }
 
-function updateHighestMaintenance(logs, vehiclesData) {
+function updateHighestMaintenance(logs, vehicles) {
     try {
         const expenseMap = {};
         if (logs && logs.length > 0) {
             logs.forEach(l => {
-                // Find the name by matching the ID in the vehicles table
-                const vehicle = vehiclesData ? vehiclesData.find(v => v.id === l.vehicle_id) : null;
-                const name = vehicle ? vehicle.name : 'Unknown Vehicle';
+                // Find the name by matching the vehicle_id from logs to the id in vehicles
+                const car = vehicles ? vehicles.find(v => v.id === l.vehicle_id) : null;
+                const name = car ? car.name : 'Unknown Vehicle';
                 
                 expenseMap[name] = (expenseMap[name] || 0) + (Number(l.cost) || 0);
             });
