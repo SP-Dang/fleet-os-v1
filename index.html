@@ -12,6 +12,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700&display=swap');
@@ -1081,6 +1082,37 @@ async function loadSummary() {
         
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
     window.onload = init;
+
+function exportToExcel() {
+    // Collect the data
+    const income = document.getElementById('stat-income').innerText;
+    const expenses = document.getElementById('stat-expenses').innerText;
+    const profit = document.getElementById('stat-profit').innerText;
+
+    // Create a simple array for the spreadsheet
+    const data = [
+        ["Financial Summary Report"],
+        ["Date", new Date().toLocaleDateString()],
+        [],
+        ["Metric", "Value"],
+        ["Total Income", income],
+        ["Total Expenses", expenses],
+        ["Net Profit", profit],
+        [],
+        ["Top 5 Vehicles by Income"],
+        ...Array.from(document.querySelectorAll('#top-earners-body tr')).map(tr => [
+            tr.cells[0].innerText, tr.cells[1].innerText
+        ])
+    ];
+
+    // Create Excel Workbook
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Financial Summary");
+
+    // Download the file
+    XLSX.writeFile(wb, "Fleet_Financial_Report.xlsx");
+}
         
 </script>
         
