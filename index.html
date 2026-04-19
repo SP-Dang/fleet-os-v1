@@ -975,21 +975,22 @@ let myChart = null; // Global variable to store the chart instance
 
 async function loadSummary() {
     try {
-        // 1. Fetch the data. We fetch 'vehicles' to resolve the "Referencing record"
+        // Fetch data using your original variable names
         const { data: rentals } = await client.from('rentals').select('*');
         const { data: logs } = await client.from('maintenance_logs').select('*');
+        // Fetch the vehicles table to get the 'make_model' names
         const { data: vehicleList } = await client.from('vehicles').select('id, make_model');
 
-        // 2. Calculate Totals (These variables must match your HTML IDs)
+        // Calculate Totals using your original math
         const income = rentals ? rentals.reduce((sum, r) => sum + (Number(r.total_price) || 0), 0) : 0;
         const expenses = logs ? logs.reduce((sum, l) => sum + (Number(l.cost) || 0), 0) : 0;
 
-        // Update your summary numbers on the screen
+        // Update your UI elements
         document.getElementById('total-income').innerText = `₭${income.toLocaleString()}`;
         document.getElementById('total-expenses').innerText = `₭${expenses.toLocaleString()}`;
         document.getElementById('net-profit').innerText = `₭${(income - expenses).toLocaleString()}`;
 
-        // 3. Profit Split Chart Logic
+        // Profit Split Chart Logic
         const ctx = document.getElementById('financeChart');
         if (ctx) {
             if (window.myChart) window.myChart.destroy();
@@ -1013,7 +1014,7 @@ async function loadSummary() {
             });
         }
 
-        // 4. Fill the cards. We pass 'vehicleList' so the code can follow the "Reference"
+        // Fill the Top Earner and Maintenance cards using the lookup list
         updateTopEarners(rentals, vehicleList);
         updateHighestMaintenance(logs, vehicleList);
 
@@ -1027,9 +1028,9 @@ function updateTopEarners(rentals, vehicleList) {
         const earnerMap = {};
         if (rentals && rentals.length > 0) {
             rentals.forEach(r => {
-                // Find the vehicle name (make_model) by matching the ID
+                // Find name by matching vehicle_id to ID in vehicles table
                 const car = vehicleList ? vehicleList.find(v => v.id === r.vehicle_id) : null;
-                const name = car ? car.make_model : 'Unknown';
+                const name = car ? car.make_model : 'Unknown Vehicle';
                 earnerMap[name] = (earnerMap[name] || 0) + (Number(r.total_price) || 0);
             });
             const sorted = Object.entries(earnerMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
@@ -1051,9 +1052,9 @@ function updateHighestMaintenance(logs, vehicleList) {
         const expenseMap = {};
         if (logs && logs.length > 0) {
             logs.forEach(l => {
-                // Find the vehicle name (make_model) by matching the ID
+                // Find name by matching vehicle_id to ID in vehicles table
                 const car = vehicleList ? vehicleList.find(v => v.id === l.vehicle_id) : null;
-                const name = car ? car.make_model : 'Unknown';
+                const name = car ? car.make_model : 'Unknown Vehicle';
                 expenseMap[name] = (expenseMap[name] || 0) + (Number(l.cost) || 0);
             });
             const sorted = Object.entries(expenseMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
