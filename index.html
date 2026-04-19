@@ -162,29 +162,12 @@
                             <span id="expense-ratio" class="font-black text-red-900">0%</span>
                         </div>
                     </div>
-            <p class="mt-6 text-[10px] text-slate-400 uppercase font-black tracking-widest text-center">
-                    Last Updated: Just Now
-                </p>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
-            <div class="bg-slate-50 p-6 rounded-[32px] border border-slate-100 text-center">
-                <p class="text-[10px] font-black uppercase text-slate-400 mb-1">Daily Average</p>
-                <p id="stat-daily" class="text-xl font-black text-slate-900 font-lao">₭0</p>
-            </div>
-            <div class="bg-slate-50 p-6 rounded-[32px] border border-slate-100 text-center">
-                <p class="text-[10px] font-black uppercase text-slate-400 mb-1">Burn Rate</p>
-                <p id="stat-burn" class="text-xl font-black text-red-500 font-lao">0%</p>
-            </div>
-            <div class="bg-slate-50 p-6 rounded-[32px] border border-slate-100 text-center">
-                <p class="text-[10px] font-black uppercase text-slate-400 mb-1">Rentals Tracked</p>
-                <p id="stat-count" class="text-xl font-black text-blue-600 font-lao">0</p>
-            </div>
-        </div>
-
-    </div> ```
-                    
+                    <p class="mt-6 text-[10px] text-slate-400 uppercase font-black tracking-widest text-center">
+                        Last Updated: Just Now
+                    </p>
+                </div>
+            </div> 
+        </div> ```
         
 <div id="booking-modal" class="modal">
     <div class="bg-white w-full max-w-lg rounded-[48px] shadow-2xl overflow-hidden flex flex-col min-h-[600px] max-h-[90vh]">
@@ -975,10 +958,9 @@ async function loadSummary() {
         const expenses = logs ? logs.reduce((sum, l) => sum + (Number(l.cost) || 0), 0) : 0;
 
         // 1. Update text cards
-        document.getElementById('stat-daily').innerText = `₭${Math.round(income / 30).toLocaleString()}`;
-        const burnRate = income > 0 ? ((expenses / income) * 100).toFixed(1) : 0;
-        document.getElementById('stat-burn').innerText = `${burnRate}%`;
-        document.getElementById('stat-count').innerText = rentals ? rentals.length : 0;
+        document.getElementById('stat-income').innerText = `₭${income.toLocaleString()}`;
+        document.getElementById('stat-expenses').innerText = `₭${expenses.toLocaleString()}`;
+        document.getElementById('stat-profit').innerText = `₭${(income - expenses).toLocaleString()}`;
 
         // --- NEW LINES START HERE ---
         const ratio = income > 0 ? ((expenses / income) * 100).toFixed(1) : 0;
