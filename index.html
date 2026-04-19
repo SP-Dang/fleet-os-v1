@@ -977,7 +977,7 @@ async function loadSummary() {
     try {
         const { data: rentals } = await client.from('rentals').select('*');
         const { data: logs } = await client.from('maintenance_logs').select('*');
-        const { data: vehicles } = await client.from('vehicles').select('id, name'); // Use 'vehicles' table
+        const { data: vehiclesData } = await client.from('vehicles').select('id, name');
 
         // 1. Update text cards
         document.getElementById('stat-income').innerText = `₭${income.toLocaleString()}`;
