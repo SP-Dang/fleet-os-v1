@@ -975,11 +975,10 @@ let myChart = null; // Global variable to store the chart instance
 
 async function loadSummary() {
     try {
-        const { data: rentals } = await client.from('rentals').select('total_price');
-        const income = rentals ? rentals.reduce((sum, r) => sum + (Number(r.total_price) || 0), 0) : 0;
-
-        const { data: logs } = await client.from('maintenance_logs').select('cost');
-        const expenses = logs ? logs.reduce((sum, l) => sum + (Number(l.cost) || 0), 0) : 0;
+       const { data: rentals } = await client.from('rentals').select('*');
+        const { data: logs } = await client.from('maintenance_logs').select('*');
+        // Fetch the vehicles table to get the 'make_model' names
+        const { data: vehicleList } = await client.from('vehicles').select('id, make_model');
 
         // 1. Update text cards
         document.getElementById('stat-income').innerText = `₭${income.toLocaleString()}`;
@@ -1020,22 +1019,26 @@ async function loadSummary() {
             }
         });
 
-        updateTopEarners(rentals); 
-        updateHighestMaintenance(logs);
+       updateTopEarners(rentals, vehicleList);
+        updateHighestMaintenance(logs, vehicleList);
 
     } catch (err) {
         console.error("Summary/Chart Error:", err);
     }
 }
         
-function updateTopEarners(rentals) {
+function updateTopEarners(rentals, vehicleList) {
     try {
         const earnerMap = {};
         if (rentals && rentals.length > 0) {
             rentals.forEach(r => {
-                const name = r.vehicle_name || 'No Name';
+                // Link vehicle_id to make_model
+                const vehicle = vehicleList ? vehicleList.find(v => v.id === r.vehicle_id) : null;
+                const name = vehicle ? vehicle.make_model : 'Unknown Vehicle';
+                
                 earnerMap[name] = (earnerMap[name] || 0) + (Number(r.total_price) || 0);
             });
+            
             const sorted = Object.entries(earnerMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
             const body = document.getElementById('top-earners-body');
             if (body) {
@@ -1047,17 +1050,21 @@ function updateTopEarners(rentals) {
                 `).join('');
             }
         }
-    } catch (e) { console.error("Earners Logic Error:", e); }
+    } catch (e) { console.error("Earners Error:", e); }
 }
 
-function updateHighestMaintenance(logs) {
+function updateHighestMaintenance(logs, vehicleList) {
     try {
         const expenseMap = {};
         if (logs && logs.length > 0) {
             logs.forEach(l => {
-                const name = l.vehicle_name || 'No Name';
+                // Link vehicle_id to make_model
+                const vehicle = vehicleList ? vehicleList.find(v => v.id === l.vehicle_id) : null;
+                const name = vehicle ? vehicle.make_model : 'Unknown Vehicle';
+                
                 expenseMap[name] = (expenseMap[name] || 0) + (Number(l.cost) || 0);
             });
+            
             const sorted = Object.entries(expenseMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
             const body = document.getElementById('top-expenses-body');
             if (body) {
@@ -1069,7 +1076,7 @@ function updateHighestMaintenance(logs) {
                 `).join('');
             }
         }
-    } catch (e) { console.error("Maintenance Logic Error:", e); }
+    } catch (e) { console.error("Maintenance Error:", e); }
 }
         
         
