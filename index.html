@@ -975,21 +975,21 @@ let myChart = null; // Global variable to store the chart instance
 
 async function loadSummary() {
     try {
-        // Fetch data from your tables
+        // 1. Fetch the data. We fetch 'vehicles' to resolve the "Referencing record"
         const { data: rentals } = await client.from('rentals').select('*');
         const { data: logs } = await client.from('maintenance_logs').select('*');
         const { data: vehicleList } = await client.from('vehicles').select('id, make_model');
 
-        // Calculate Totals for your stat cards
+        // 2. Calculate Totals (These variables must match your HTML IDs)
         const income = rentals ? rentals.reduce((sum, r) => sum + (Number(r.total_price) || 0), 0) : 0;
         const expenses = logs ? logs.reduce((sum, l) => sum + (Number(l.cost) || 0), 0) : 0;
 
-        // Update the numbers on the screen
+        // Update your summary numbers on the screen
         document.getElementById('total-income').innerText = `₭${income.toLocaleString()}`;
         document.getElementById('total-expenses').innerText = `₭${expenses.toLocaleString()}`;
         document.getElementById('net-profit').innerText = `₭${(income - expenses).toLocaleString()}`;
 
-        // Profit Split Chart Logic
+        // 3. Profit Split Chart Logic
         const ctx = document.getElementById('financeChart');
         if (ctx) {
             if (window.myChart) window.myChart.destroy();
@@ -1012,8 +1012,8 @@ async function loadSummary() {
                 }
             });
         }
-        // Fill the Top Earner and Maintenance cards
-        // We pass vehicleList so the code can find the 'make_model'
+
+        // 4. Fill the cards. We pass 'vehicleList' so the code can follow the "Reference"
         updateTopEarners(rentals, vehicleList);
         updateHighestMaintenance(logs, vehicleList);
 
