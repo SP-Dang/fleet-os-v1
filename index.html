@@ -1020,8 +1020,8 @@ async function loadSummary() {
             }
         });
 
-        updateTopEarners();
-        updateHighestMaintenance();
+        updateTopEarners(rentals); 
+        updateHighestMaintenance(logs);
 
     } catch (err) {
         console.error("Summary/Chart Error:", err);
