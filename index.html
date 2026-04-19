@@ -975,22 +975,21 @@ let myChart = null; // Global variable to store the chart instance
 
 async function loadSummary() {
     try {
-        // Fetch data using your original variable names
+        // Fetch all columns so we have both prices and vehicle IDs
         const { data: rentals } = await client.from('rentals').select('*');
         const { data: logs } = await client.from('maintenance_logs').select('*');
-        // Fetch the vehicles table to get the 'make_model' names
         const { data: vehicleList } = await client.from('vehicles').select('id, make_model');
 
-        // Calculate Totals using your original math
+        // Check if data exists, otherwise default to 0
         const income = rentals ? rentals.reduce((sum, r) => sum + (Number(r.total_price) || 0), 0) : 0;
         const expenses = logs ? logs.reduce((sum, l) => sum + (Number(l.cost) || 0), 0) : 0;
 
-        // Update your UI elements
+        // Update the Stat Cards
         document.getElementById('total-income').innerText = `₭${income.toLocaleString()}`;
         document.getElementById('total-expenses').innerText = `₭${expenses.toLocaleString()}`;
         document.getElementById('net-profit').innerText = `₭${(income - expenses).toLocaleString()}`;
 
-        // Profit Split Chart Logic
+        // Update the Doughnut Chart
         const ctx = document.getElementById('financeChart');
         if (ctx) {
             if (window.myChart) window.myChart.destroy();
@@ -1014,7 +1013,7 @@ async function loadSummary() {
             });
         }
 
-        // Fill the Top Earner and Maintenance cards using the lookup list
+        // Fill the Top 5 Cards
         updateTopEarners(rentals, vehicleList);
         updateHighestMaintenance(logs, vehicleList);
 
@@ -1023,14 +1022,15 @@ async function loadSummary() {
     }
 }
         
-function updateTopEarners(rentals, vehicleList) {
+
+    function updateTopEarners(rentals, vehicleList) {
     try {
         const earnerMap = {};
         if (rentals && rentals.length > 0) {
             rentals.forEach(r => {
-                // Find name by matching vehicle_id to ID in vehicles table
-                const car = vehicleList ? vehicleList.find(v => v.id === r.vehicle_id) : null;
-                const name = car ? car.make_model : 'Unknown Vehicle';
+                // Link vehicle_id to the make_model name
+                const vehicle = vehicleList ? vehicleList.find(v => v.id === r.vehicle_id) : null;
+                const name = vehicle ? vehicle.make_model : 'Unknown';
                 earnerMap[name] = (earnerMap[name] || 0) + (Number(r.total_price) || 0);
             });
             const sorted = Object.entries(earnerMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
@@ -1052,9 +1052,9 @@ function updateHighestMaintenance(logs, vehicleList) {
         const expenseMap = {};
         if (logs && logs.length > 0) {
             logs.forEach(l => {
-                // Find name by matching vehicle_id to ID in vehicles table
-                const car = vehicleList ? vehicleList.find(v => v.id === l.vehicle_id) : null;
-                const name = car ? car.make_model : 'Unknown Vehicle';
+                // Link vehicle_id to the make_model name
+                const vehicle = vehicleList ? vehicleList.find(v => v.id === l.vehicle_id) : null;
+                const name = vehicle ? vehicle.make_model : 'Unknown';
                 expenseMap[name] = (expenseMap[name] || 0) + (Number(l.cost) || 0);
             });
             const sorted = Object.entries(expenseMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
@@ -1069,7 +1069,7 @@ function updateHighestMaintenance(logs, vehicleList) {
             }
         }
     } catch (e) { console.error("Maintenance Error:", e); }
-}        
+}     
         
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
     window.onload = init;
