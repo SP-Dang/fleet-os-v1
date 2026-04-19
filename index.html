@@ -975,21 +975,21 @@ let myChart = null; // Global variable to store the chart instance
 
 async function loadSummary() {
     try {
-        // 1. Fetch data from your actual Supabase tables
-        const { data: rentalsData } = await client.from('rentals').select('*');
-        const { data: maintenanceData } = await client.from('maintenance_logs').select('*');
+        // Fetch data from your tables
+        const { data: rentals } = await client.from('rentals').select('*');
+        const { data: logs } = await client.from('maintenance_logs').select('*');
         const { data: vehicleList } = await client.from('vehicles').select('id, make_model');
 
-        // 2. Calculate Totals for the Stat Cards
-        const income = rentalsData ? rentalsData.reduce((sum, r) => sum + (Number(r.total_price) || 0), 0) : 0;
-        const expenses = maintenanceData ? maintenanceData.reduce((sum, l) => sum + (Number(l.cost) || 0), 0) : 0;
+        // Calculate Totals for your stat cards
+        const income = rentals ? rentals.reduce((sum, r) => sum + (Number(r.total_price) || 0), 0) : 0;
+        const expenses = logs ? logs.reduce((sum, l) => sum + (Number(l.cost) || 0), 0) : 0;
 
-        // Update the HTML text for Totals
+        // Update the numbers on the screen
         document.getElementById('total-income').innerText = `₭${income.toLocaleString()}`;
         document.getElementById('total-expenses').innerText = `₭${expenses.toLocaleString()}`;
         document.getElementById('net-profit').innerText = `₭${(income - expenses).toLocaleString()}`;
 
-        // 3. Complete Chart Logic (Profit Split)
+        // Profit Split Chart Logic
         const ctx = document.getElementById('financeChart');
         if (ctx) {
             if (window.myChart) window.myChart.destroy();
@@ -1013,10 +1013,10 @@ async function loadSummary() {
             });
         }
 
-        // 4. Update the New "Top 5" Cards
-        // We pass vehicleList so the functions can find the 'make_model' names
-        updateTopEarners(rentalsData, vehicleList);
-        updateHighestMaintenance(maintenanceData, vehicleList);
+        // Fill the Top Earner and Maintenance cards
+        // We pass vehicleList so the code can find the 'make_model'
+        updateTopEarners(rentals, vehicleList);
+        updateHighestMaintenance(logs, vehicleList);
 
     } catch (err) {
         console.error("Summary Load Error:", err);
@@ -1028,13 +1028,11 @@ function updateTopEarners(rentals, vehicleList) {
         const earnerMap = {};
         if (rentals && rentals.length > 0) {
             rentals.forEach(r => {
-                // Link vehicle_id to make_model
-                const vehicle = vehicleList ? vehicleList.find(v => v.id === r.vehicle_id) : null;
-                const name = vehicle ? vehicle.make_model : 'Unknown Vehicle';
-                
+                // Find the vehicle name (make_model) by matching the ID
+                const car = vehicleList ? vehicleList.find(v => v.id === r.vehicle_id) : null;
+                const name = car ? car.make_model : 'Unknown';
                 earnerMap[name] = (earnerMap[name] || 0) + (Number(r.total_price) || 0);
             });
-            
             const sorted = Object.entries(earnerMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
             const body = document.getElementById('top-earners-body');
             if (body) {
@@ -1054,13 +1052,11 @@ function updateHighestMaintenance(logs, vehicleList) {
         const expenseMap = {};
         if (logs && logs.length > 0) {
             logs.forEach(l => {
-                // Link vehicle_id to make_model
-                const vehicle = vehicleList ? vehicleList.find(v => v.id === l.vehicle_id) : null;
-                const name = vehicle ? vehicle.make_model : 'Unknown Vehicle';
-                
+                // Find the vehicle name (make_model) by matching the ID
+                const car = vehicleList ? vehicleList.find(v => v.id === l.vehicle_id) : null;
+                const name = car ? car.make_model : 'Unknown';
                 expenseMap[name] = (expenseMap[name] || 0) + (Number(l.cost) || 0);
             });
-            
             const sorted = Object.entries(expenseMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
             const body = document.getElementById('top-expenses-body');
             if (body) {
@@ -1073,8 +1069,7 @@ function updateHighestMaintenance(logs, vehicleList) {
             }
         }
     } catch (e) { console.error("Maintenance Error:", e); }
-}
-        
+}        
         
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
     window.onload = init;
