@@ -1028,50 +1028,48 @@ async function loadSummary() {
     }
 }
         
-async function updateTopEarners() {
+function updateTopEarners(rentals) {
     try {
-        const { data: rentals } = await client.from('rentals').select('total_price, vehicle_name');
         const earnerMap = {};
-        if (rentals) {
+        if (rentals && rentals.length > 0) {
             rentals.forEach(r => {
-                const name = r.vehicle_name || 'Unknown';
+                const name = r.vehicle_name || 'No Name';
                 earnerMap[name] = (earnerMap[name] || 0) + (Number(r.total_price) || 0);
             });
+            const sorted = Object.entries(earnerMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            const body = document.getElementById('top-earners-body');
+            if (body) {
+                body.innerHTML = sorted.map(([name, val]) => `
+                    <tr class="border-b border-slate-50 text-sm">
+                        <td class="py-4 font-bold text-slate-700 font-lao">${name}</td>
+                        <td class="py-4 text-right font-black italic">₭${val.toLocaleString()}</td>
+                    </tr>
+                `).join('');
+            }
         }
-        const sorted = Object.entries(earnerMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
-        const body = document.getElementById('top-earners-body');
-        if (body) {
-            body.innerHTML = sorted.map(([name, val]) => `
-                <tr class="border-b border-slate-50 text-sm">
-                    <td class="py-4 font-bold text-slate-700">${name}</td>
-                    <td class="py-4 text-right font-black italic">₭${val.toLocaleString()}</td>
-                </tr>
-            `).join('');
-        }
-    } catch (e) { console.error("Earners Error:", e); }
+    } catch (e) { console.error("Earners Logic Error:", e); }
 }
 
-async function updateHighestMaintenance() {
+function updateHighestMaintenance(logs) {
     try {
-        const { data: logs } = await client.from('maintenance_logs').select('cost, vehicle_name');
         const expenseMap = {};
-        if (logs) {
+        if (logs && logs.length > 0) {
             logs.forEach(l => {
-                const name = l.vehicle_name || 'Unknown';
+                const name = l.vehicle_name || 'No Name';
                 expenseMap[name] = (expenseMap[name] || 0) + (Number(l.cost) || 0);
             });
+            const sorted = Object.entries(expenseMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            const body = document.getElementById('top-expenses-body');
+            if (body) {
+                body.innerHTML = sorted.map(([name, val]) => `
+                    <tr class="border-b border-slate-50 text-sm">
+                        <td class="py-4 font-bold text-slate-700 font-lao">${name}</td>
+                        <td class="py-4 text-right font-black text-red-500 italic">₭${val.toLocaleString()}</td>
+                    </tr>
+                `).join('');
+            }
         }
-        const sorted = Object.entries(expenseMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
-        const body = document.getElementById('top-expenses-body');
-        if (body) {
-            body.innerHTML = sorted.map(([name, val]) => `
-                <tr class="border-b border-slate-50 text-sm">
-                    <td class="py-4 font-bold text-slate-700">${name}</td>
-                    <td class="py-4 text-right font-black text-red-500 italic">₭${val.toLocaleString()}</td>
-                </tr>
-            `).join('');
-        }
-    } catch (e) { console.error("Maintenance Error:", e); }
+    } catch (e) { console.error("Maintenance Logic Error:", e); }
 }
         
         
