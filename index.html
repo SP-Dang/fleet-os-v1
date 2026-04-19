@@ -985,9 +985,10 @@ async function loadSummary() {
         const expenses = logs ? logs.reduce((sum, l) => sum + (Number(l.cost) || 0), 0) : 0;
 
         // Update the Stat Cards
-        document.getElementById('total-income').innerText = `₭${income.toLocaleString()}`;
-        document.getElementById('total-expenses').innerText = `₭${expenses.toLocaleString()}`;
-        document.getElementById('net-profit').innerText = `₭${(income - expenses).toLocaleString()}`;
+       document.getElementById('stat-income').innerText = `₭${income.toLocaleString()}`;
+        document.getElementById('stat-expenses').innerText = `₭${expenses.toLocaleString()}`;
+        document.getElementById('stat-profit').innerText = `₭${(income - expenses).toLocaleString()}`;
+
 
         // Update the Doughnut Chart
         const ctx = document.getElementById('financeChart');
