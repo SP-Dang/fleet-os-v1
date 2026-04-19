@@ -166,8 +166,42 @@
                         Last Updated: Just Now
                     </p>
                 </div>
-            </div> 
-        </div> ```
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+                <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
+                    <h3 class="text-xl font-black mb-6 uppercase italic text-slate-900">Top 5 Earners</h3>
+                    <table class="w-full">
+                        <thead>
+                            <tr class="text-[10px] font-black uppercase text-slate-400 tracking-widest border-b">
+                                <th class="pb-4 text-left">Vehicle</th>
+                                <th class="pb-4 text-right">Income</th>
+                            </tr>
+                        </thead>
+                        <tbody id="top-earners-body"></tbody>
+                    </table>
+                </div>
+
+                <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
+                    <h3 class="text-xl font-black mb-6 uppercase italic text-red-600">Highest Maintenance</h3>
+                    <table class="w-full">
+                        <thead>
+                            <tr class="text-[10px] font-black uppercase text-slate-400 tracking-widest border-b">
+                                <th class="pb-4 text-left">Vehicle</th>
+                                <th class="pb-4 text-right">Cost</th>
+                            </tr>
+                        </thead>
+                        <tbody id="top-expenses-body"></tbody>
+                    </table>
+                </div>
+            </div>
+            </div> ```
+
+### Why this is the correct spot:
+1.  **Tab System:** It ensures the tables are part of the `view-summary` ID. This means they will disappear when you click "Fleet" or "Schedule" and only show up when you click "Summary."
+2.  **Grid Alignment:** By placing it after the existing 2-column grid (Profit Split and Efficiency), it starts a new row perfectly aligned with the rest of your dashboard design.
+
+**Next Step:** After you paste this, don't forget to add `let myChart = null;` at the very top of your script (around line 241) to make sure the data actually loads into these new tables.
         
 <div id="booking-modal" class="modal">
     <div class="bg-white w-full max-w-lg rounded-[48px] shadow-2xl overflow-hidden flex flex-col min-h-[600px] max-h-[90vh]">
@@ -954,19 +988,18 @@ let myChart = null; // Global variable to store the chart instance
 
 async function loadSummary() {
     try {
-        // Fetch data exactly like your backup
         const { data: rentals } = await client.from('rentals').select('total_price, vehicle_name');
         const income = rentals ? rentals.reduce((sum, r) => sum + (Number(r.total_price) || 0), 0) : 0;
 
         const { data: logs } = await client.from('maintenance_logs').select('cost, vehicle_name');
         const expenses = logs ? logs.reduce((sum, l) => sum + (Number(l.cost) || 0), 0) : 0;
 
-        // 1. Update existing stats
+        // Update Totals
         document.getElementById('stat-income').innerText = `₭${income.toLocaleString()}`;
         document.getElementById('stat-expenses').innerText = `₭${expenses.toLocaleString()}`;
         document.getElementById('stat-profit').innerText = `₭${(income - expenses).toLocaleString()}`;
 
-        // 2. NEW: Calculate Top 5 Earners
+        // Top 5 Earners Logic
         const earnerMap = {};
         if (rentals) {
             rentals.forEach(r => {
@@ -975,17 +1008,11 @@ async function loadSummary() {
             });
         }
         const sortedEarners = Object.entries(earnerMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
-        const earnersBody = document.getElementById('top-earners-body');
-        if (earnersBody) {
-            earnersBody.innerHTML = sortedEarners.map(([name, val]) => `
-                <tr class="border-b border-slate-50">
-                    <td class="py-4 font-bold text-slate-700">${name}</td>
-                    <td class="py-4 text-right font-black">₭${val.toLocaleString()}</td>
-                </tr>
-            `).join('');
-        }
+        document.getElementById('top-earners-body').innerHTML = sortedEarners.map(([name, val]) => `
+            <tr class="border-b border-slate-50"><td class="py-4 font-bold">${name}</td><td class="py-4 text-right font-black">₭${val.toLocaleString()}</td></tr>
+        `).join('');
 
-        // 3. NEW: Calculate Top 5 Maintenance
+        // Highest Maintenance Logic
         const expenseMap = {};
         if (logs) {
             logs.forEach(l => {
@@ -994,41 +1021,23 @@ async function loadSummary() {
             });
         }
         const sortedExpenses = Object.entries(expenseMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
-        const expensesBody = document.getElementById('top-expenses-body');
-        if (expensesBody) {
-            expensesBody.innerHTML = sortedExpenses.map(([name, val]) => `
-                <tr class="border-b border-slate-50">
-                    <td class="py-4 font-bold text-slate-700">${name}</td>
-                    <td class="py-4 text-right font-black text-red-500">₭${val.toLocaleString()}</td>
-                </tr>
-            `).join('');
-        }
+        document.getElementById('top-expenses-body').innerHTML = sortedExpenses.map(([name, val]) => `
+            <tr class="border-b border-slate-50"><td class="py-4 font-bold">${name}</td><td class="py-4 text-right font-black text-red-500">₭${val.toLocaleString()}</td></tr>
+        `).join('');
 
-        // 4. Update Chart (Fixed logic to prevent crashing)
+        // Chart Logic
         const ctx = document.getElementById('financeChart').getContext('2d');
         if (myChart) { myChart.destroy(); }
-
         myChart = new Chart(ctx, {
             type: 'doughnut',
             data: {
                 labels: ['Net Profit', 'Expenses'],
-                datasets: [{
-                    data: [income - expenses, expenses],
-                    backgroundColor: ['#3b82f6', '#ef4444'],
-                    borderWidth: 0,
-                    hoverOffset: 20
-                }]
+                datasets: [{ data: [income - expenses, expenses], backgroundColor: ['#3b82f6', '#ef4444'], borderWidth: 0 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom' } },
-                cutout: '70%'
-            }
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, cutout: '70%' }
         });
-
     } catch (err) {
-        console.error("Summary/Chart Error:", err);
+        console.error("Error:", err);
     }
 }
         
