@@ -415,6 +415,7 @@
     <script>
     let chartInstance = null;
     let myChart = null;
+    const { createClient } = supabase;
     const client = window.supabase.createClient('https://unaeguquzlvjmiebxsvg.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVuYWVndXF1emx2am1pZWJ4c3ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNDk5MTAsImV4cCI6MjA5MTYyNTkxMH0.m6kCJus2-oHlzvmVxfFtbedKPbf8ricpQdIOQeB0fVg');
 
     let allVehicles = [];
@@ -995,23 +996,22 @@ let myChart = null; // Global variable to store the chart instance
 
 async function loadSummary() {
     try {
-        // Fetch data including vehicle names
+        // Fetch data
         const { data: rentals } = await client.from('rentals').select('total_price, vehicle_name');
         const income = rentals ? rentals.reduce((sum, r) => sum + (Number(r.total_price) || 0), 0) : 0;
 
         const { data: logs } = await client.from('maintenance_logs').select('cost, vehicle_name');
         const expenses = logs ? logs.reduce((sum, l) => sum + (Number(l.cost) || 0), 0) : 0;
 
-        // 1. Update text cards
+        // Update Text Cards
         document.getElementById('stat-income').innerText = `₭${income.toLocaleString()}`;
         document.getElementById('stat-expenses').innerText = `₭${expenses.toLocaleString()}`;
         document.getElementById('stat-profit').innerText = `₭${(income - expenses).toLocaleString()}`;
 
         const ratio = income > 0 ? ((expenses / income) * 100).toFixed(1) : 0;
-        const ratioEl = document.getElementById('expense-ratio');
-        if (ratioEl) ratioEl.innerText = `${ratio}%`;
+        document.getElementById('expense-ratio').innerText = `${ratio}%`;
 
-        // 2. Top 5 Earners
+        // Calculate Top 5 Earners
         const earnerMap = {};
         if (rentals) {
             rentals.forEach(r => {
@@ -1020,17 +1020,14 @@ async function loadSummary() {
             });
         }
         const sortedEarners = Object.entries(earnerMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
-        const earnersBody = document.getElementById('top-earners-body');
-        if (earnersBody) {
-            earnersBody.innerHTML = sortedEarners.map(([name, val]) => `
-                <tr class="border-b border-slate-50">
-                    <td class="py-4 font-bold text-slate-700">${name}</td>
-                    <td class="py-4 text-right font-black">₭${val.toLocaleString()}</td>
-                </tr>
-            `).join('');
-        }
+        document.getElementById('top-earners-body').innerHTML = sortedEarners.map(([name, val]) => `
+            <tr class="border-b border-slate-50">
+                <td class="py-4 font-bold text-slate-700">${name}</td>
+                <td class="py-4 text-right font-black">₭${val.toLocaleString()}</td>
+            </tr>
+        `).join('');
 
-        // 3. Top 5 Maintenance
+        // Calculate Top 5 Maintenance
         const expenseMap = {};
         if (logs) {
             logs.forEach(l => {
@@ -1039,46 +1036,39 @@ async function loadSummary() {
             });
         }
         const sortedExpenses = Object.entries(expenseMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
-        const expensesBody = document.getElementById('top-expenses-body');
-        if (expensesBody) {
-            expensesBody.innerHTML = sortedExpenses.map(([name, val]) => `
-                <tr class="border-b border-slate-50">
-                    <td class="py-4 font-bold text-slate-700">${name}</td>
-                    <td class="py-4 text-right font-black text-red-500">₭${val.toLocaleString()}</td>
-                </tr>
-            `).join('');
-        }
+        document.getElementById('top-expenses-body').innerHTML = sortedExpenses.map(([name, val]) => `
+            <tr class="border-b border-slate-50">
+                <td class="py-4 font-bold text-slate-700">${name}</td>
+                <td class="py-4 text-right font-black text-red-500">₭${val.toLocaleString()}</td>
+            </tr>
+        `).join('');
 
-        // 4. Update Chart
-        const canvas = document.getElementById('financeChart');
-        if (canvas) {
-            const ctx = canvas.getContext('2d');
-            if (myChart) { myChart.destroy(); } 
+        // Update Chart
+        const ctx = document.getElementById('financeChart').getContext('2d');
+        if (myChart) { myChart.destroy(); }
 
-            myChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Net Profit', 'Expenses'],
-                    datasets: [{
-                        data: [income - expenses, expenses],
-                        backgroundColor: ['#10b981', '#ef4444'],
-                        borderWidth: 0,
-                        hoverOffset: 20
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom' } },
-                    cutout: '70%'
-                }
-            });
-        }
+        myChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Income', 'Expenses'],
+                datasets: [{
+                    data: [income, expenses],
+                    backgroundColor: ['#10b981', '#ef4444'],
+                    borderWidth: 0,
+                    hoverOffset: 20
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } },
+                cutout: '70%'
+            }
+        });
     } catch (err) {
         console.error("Summary Logic Error:", err);
     }
-}
-        
+}        
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
     window.onload = init;
 
