@@ -975,55 +975,51 @@ let myChart = null; // Global variable to store the chart instance
 
 async function loadSummary() {
     try {
-       const { data: rentals } = await client.from('rentals').select('*');
-        const { data: logs } = await client.from('maintenance_logs').select('*');
-        // Fetch the vehicles table to get the 'make_model' names
+        // 1. Fetch data from your actual Supabase tables
+        const { data: rentalsData } = await client.from('rentals').select('*');
+        const { data: maintenanceData } = await client.from('maintenance_logs').select('*');
         const { data: vehicleList } = await client.from('vehicles').select('id, make_model');
 
-        // 1. Update text cards
-        document.getElementById('stat-income').innerText = `₭${income.toLocaleString()}`;
-        document.getElementById('stat-expenses').innerText = `₭${expenses.toLocaleString()}`;
-        document.getElementById('stat-profit').innerText = `₭${(income - expenses).toLocaleString()}`;
+        // 2. Calculate Totals for the Stat Cards
+        const income = rentalsData ? rentalsData.reduce((sum, r) => sum + (Number(r.total_price) || 0), 0) : 0;
+        const expenses = maintenanceData ? maintenanceData.reduce((sum, l) => sum + (Number(l.cost) || 0), 0) : 0;
 
-        // --- NEW LINES START HERE ---
-        const ratio = income > 0 ? ((expenses / income) * 100).toFixed(1) : 0;
-        document.getElementById('expense-ratio').innerText = `${ratio}%`;
-        // --- NEW LINES END HERE ---
+        // Update the HTML text for Totals
+        document.getElementById('total-income').innerText = `₭${income.toLocaleString()}`;
+        document.getElementById('total-expenses').innerText = `₭${expenses.toLocaleString()}`;
+        document.getElementById('net-profit').innerText = `₭${(income - expenses).toLocaleString()}`;
 
-        // 2. Initialize or Update Chart
-        const ctx = document.getElementById('financeChart').getContext('2d');
-        
-        if (myChart) { myChart.destroy(); }
-
-        myChart = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Income', 'Expenses'],
-                datasets: [{
-                    data: [income, expenses],
-                    backgroundColor: ['#10b981', '#ef4444'],
-                    borderWidth: 0,
-                    hoverOffset: 20
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: { font: { weight: 'bold' }, padding: 20 }
-                    }
+        // 3. Complete Chart Logic (Profit Split)
+        const ctx = document.getElementById('financeChart');
+        if (ctx) {
+            if (window.myChart) window.myChart.destroy();
+            window.myChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Income', 'Expenses'],
+                    datasets: [{
+                        data: [income, expenses],
+                        backgroundColor: ['#0f172a', '#ef4444'],
+                        borderWidth: 0,
+                        hoverOffset: 20
+                    }]
                 },
-                cutout: '70%'
-            }
-        });
+                options: {
+                    plugins: { legend: { display: false } },
+                    cutout: '80%',
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
 
-       updateTopEarners(rentals, vehicleList);
-        updateHighestMaintenance(logs, vehicleList);
+        // 4. Update the New "Top 5" Cards
+        // We pass vehicleList so the functions can find the 'make_model' names
+        updateTopEarners(rentalsData, vehicleList);
+        updateHighestMaintenance(maintenanceData, vehicleList);
 
     } catch (err) {
-        console.error("Summary/Chart Error:", err);
+        console.error("Summary Load Error:", err);
     }
 }
         
