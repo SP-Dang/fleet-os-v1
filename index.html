@@ -1057,6 +1057,30 @@ async function loadSummary() {
         const safeLogs = logs || [];
         const safeVehicles = vehicleList || [];
 
+        // ✅ TODAY DATE
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        // ✅ AUTO ACTIVATE BOOKINGS (FIXED POSITION)
+        for (const r of safeRentals) {
+            if (r.status === 'booked') {
+                const start = new Date(r.start_date);
+                start.setHours(0,0,0,0);
+
+                if (today >= start) {
+                    await client
+                        .from('rentals')
+                        .update({ status: 'active' })
+                        .eq('id', r.id);
+
+                    await client
+                        .from('vehicles')
+                        .update({ status: 'rented' })
+                        .eq('id', r.vehicle_id);
+                }
+            }
+        }
+
         // ✅ CALCULATIONS
     const income = safeRentals.reduce((sum, r) => sum + (Number(r.total_price) || 0), 0);
     const expenses = safeLogs.reduce((sum, l) => sum + (Number(l.cost) || 0), 0);
