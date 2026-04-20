@@ -275,6 +275,29 @@
 
     </div>
 
+<!-- 🚨 Overdue Rentals Panel -->
+<div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 mt-8">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3">
+            <div class="w-2 h-8 bg-red-500 rounded-full"></div>
+            <h3 class="text-xl font-black uppercase italic text-red-600">
+                Overdue Rentals
+            </h3>
+        </div>
+        <span class="text-xs font-black text-slate-400 uppercase tracking-widest">
+            Action Required
+        </span>
+    </div>
+
+    <!-- Table -->
+    <table class="w-full text-sm">
+        <tbody id="overdue-body"></tbody>
+    </table>
+
+</div>
+        
 </div> <!-- ✅ NOW close view-summary correctly -->
 
         
@@ -1231,6 +1254,8 @@ async function loadSummary() {
         updateTopEarners(safeRentals, safeVehicles);
         updateHighestMaintenance(safeLogs, safeVehicles);
         updateUpcomingBookings(safeRentals, safeVehicles);
+        updateOverdueList(safeRentals, safeVehicles);
+
 
     } catch (err) {
         console.error("Summary Load Error:", err);
@@ -1539,6 +1564,84 @@ function updateUpcomingBookings(rentals, vehicleList) {
     }
 }
 
+
+function updateOverdueList(rentals, vehicleList) {
+    try {
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        const overdue = rentals.filter(r => {
+            if (r.status !== 'active') return false;
+
+            const start = new Date(r.start_date);
+            start.setHours(0,0,0,0);
+
+            const end = new Date(start);
+            end.setDate(start.getDate() + Number(r.rental_days || 0));
+
+            return today > end;
+        });
+
+        const body = document.getElementById('overdue-body');
+        if (!body) return;
+
+        // ✅ EMPTY STATE
+        if (overdue.length === 0) {
+            body.innerHTML = `
+                <tr>
+                    <td class="py-6 text-center text-slate-400">
+                        No overdue rentals 🎉
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        body.innerHTML = overdue.map(r => {
+            const vehicle = vehicleList.find(v =>
+                String(v.id) === String(r.vehicle_id)
+            );
+
+            const start = new Date(r.start_date);
+            const end = new Date(start);
+            end.setDate(start.getDate() + Number(r.rental_days || 0));
+
+            const lateDays = Math.floor((today - end) / (1000 * 60 * 60 * 24));
+
+            return `
+                <tr class="border-b border-slate-50 hover:bg-red-50 transition">
+
+                    <!-- Vehicle -->
+                    <td class="py-4 font-bold text-slate-800">
+                        ${vehicle?.make_model || 'Unknown'}
+                    </td>
+
+                    <!-- End Date -->
+                    <td class="py-4 text-slate-500">
+                        ${end.toLocaleDateString()}
+                    </td>
+
+                    <!-- Late Days -->
+                    <td class="py-4 text-center font-black text-red-600">
+                        ${lateDays}d late
+                    </td>
+
+                    <!-- Status -->
+                    <td class="py-4 text-right">
+                        <span class="text-xs px-2 py-1 rounded-full bg-red-100 text-red-700">
+                            OVERDUE
+                        </span>
+                    </td>
+
+                </tr>
+            `;
+        }).join('');
+
+    } catch (err) {
+        console.error("Overdue List Error:", err);
+    }
+}
+        
         
         
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
