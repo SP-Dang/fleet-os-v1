@@ -1277,7 +1277,7 @@ function getVehicleName(id) {
                 maintenanceRows.push([
                     getVehicleName(l.vehicle_id),
                     Number(l.cost || 0),
-                    formatDate(l.created_at)
+                    formatDate(l.service_date)
                 ]);
             });
         }
@@ -1311,10 +1311,20 @@ function getVehicleName(id) {
         });
 
         logs.forEach(l => {
-            const month = new Date(l.created_at).toLocaleString('default', { month: 'short', year: 'numeric' });
-            monthlyMap[month] = monthlyMap[month] || { income: 0, expense: 0 };
-            monthlyMap[month].expense += Number(l.cost || 0);
-        });
+    if (!l.service_date) return;
+
+    const d = new Date(l.service_date);
+    if (isNaN(d)) return;
+
+    const month = d.toLocaleString('default', {
+        month: 'short',
+        year: 'numeric'
+    });
+
+    monthlyMap[month] = monthlyMap[month] || { income: 0, expense: 0 };
+    monthlyMap[month].expense += Number(l.cost || 0);
+});
+
 
         const monthlyRows = [["Month", "Income", "Expenses", "Profit"]];
 
