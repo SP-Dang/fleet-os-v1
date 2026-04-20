@@ -1089,6 +1089,7 @@ async function loadSummary() {
         const safeVehicles = vehicleList || [];
         window.safeRentals = safeRentals;
         window.safeLogs = safeLogs;
+        window.safeVehicles = safeVehicles;
 
         // ✅ TODAY DATE
         const today = new Date();
@@ -1194,6 +1195,12 @@ const utilization = safeVehicles.length > 0
     }
 }
 
+function getVehicleName(id) {
+    const v = window.safeVehicles?.find(v =>
+        String(v.id) === String(id)
+    );
+    return v ? v.make_model : 'Unknown';
+}
         
     function exportSummary() {
     try {
@@ -1215,7 +1222,7 @@ const utilization = safeVehicles.length > 0
 
         window.safeRentals?.forEach(r => {
             rentalRows.push([
-                r.vehicle_id,
+                getVehicleName(r.vehicle_id),
                 r.start_date,
                 r.rental_days,
                 r.total_price,
@@ -1230,7 +1237,7 @@ const utilization = safeVehicles.length > 0
 
         window.safeLogs?.forEach(l => {
             maintenanceRows.push([
-                l.vehicle_id,
+                getVehicleName(l.vehicle_id),
                 l.cost,
                 l.created_at
             ]);
