@@ -1045,14 +1045,22 @@ const availableVehicles = safeVehicles.filter(v =>
 
         const today = new Date();
 
-    const activeRentalsList = safeRentals.filter(r => {
+const today = new Date();
+
+const activeRentalsList = safeRentals.filter(r => {
+    if (!r.start_date || !r.rental_days) return false;
+
     const start = new Date(r.start_date);
-    const end = new Date(r.end_date);
+
+    // ✅ calculate end date from rental_days
+    const end = new Date(start);
+    end.setDate(start.getDate() + Number(r.rental_days));
 
     return today >= start && today <= end;
 });
 
-    const activeRentals = activeRentalsList.length;
+const activeRentals = activeRentalsList.length;
+
 
 
         const utilization = safeVehicles.length > 0
