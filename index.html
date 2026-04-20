@@ -1199,62 +1199,144 @@ function getVehicleName(id) {
     const v = window.safeVehicles?.find(v =>
         String(v.id) === String(id)
     );
-    return v ? v.make_model : 'Unknown';
+
+    return v
+        ? `${v.make_model}${v.license_plate ? ' (' + v.license_plate + ')' : ''}`
+        : 'Unknown';
 }
+
+        
+    function formatDate(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    return isNaN(d) ? '' : d.toLocaleDateString();
+}
+
         
     function exportSummary() {
     try {
-        // ✅ Prepare Summary Data
+        // ✅ SAFE FALLBACKS (VERY IMPORTANT)
+        const rentals = window.safeRentals || [];
+        const logs = window.safeLogs || [];
+        const vehicles = window.safeVehicles || [];
+
+        // ✅ HELPER: VEHICLE NAME
+        function getVehicleName(id) {
+            const v = vehicles.find(v => String(v.id) === String(id));
+            return v
+                ? `${v.make_model}${v.license_plate ? ' (' + v.license_plate + ')' : ''}`
+                : 'Unknown';
+        }
+
+        // ✅ HELPER: DATE FORMAT
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const d = new Date(dateStr);
+            return isNaN(d) ? '' : d.toLocaleDateString();
+        }
+
+        // ✅ SUMMARY DATA
         const summaryData = [
             ["Metric", "Value"],
-            ["Total Income", document.getElementById('stat-income').innerText],
-            ["Total Expenses", document.getElementById('stat-expenses').innerText],
-            ["Net Profit", document.getElementById('stat-profit').innerText],
-            ["Fleet Utilization", document.getElementById('stat-utilization').innerText],
-            ["Active Rentals", document.getElementById('stat-active').innerText],
-            ["Available Vehicles", document.getElementById('stat-available').innerText],
+            ["Total Income", document.getElementById('stat-income')?.innerText || 0],
+            ["Total Expenses", document.getElementById('stat-expenses')?.innerText || 0],
+            ["Net Profit", document.getElementById('stat-profit')?.innerText || 0],
+            ["Fleet Utilization", document.getElementById('stat-utilization')?.innerText || 0],
+            ["Active Rentals", document.getElementById('stat-active')?.innerText || 0],
+            ["Available Vehicles", document.getElementById('stat-available')?.innerText || 0],
         ];
 
-        // ✅ Rentals Table
+        // ✅ RENTALS TABLE
         const rentalRows = [
-            ["Vehicle ID", "Start Date", "Days", "Total Price", "Status"]
+            ["Vehicle", "Start Date", "Days", "Total Price", "Status"]
         ];
 
-        window.safeRentals?.forEach(r => {
-            rentalRows.push([
-                getVehicleName(r.vehicle_id),
-                r.start_date,
-                r.rental_days,
-                r.total_price,
-                r.status
-            ]);
-        });
+        if (rentals.length === 0) {
+            rentalRows.push(["No data", "", "", "", ""]);
+        } else {
+            rentals.forEach(r => {
+                rentalRows.push([
+                    getVehicleName(r.vehicle_id),
+                    formatDate(r.start_date),
+                    r.rental_days || 0,
+                    Number(r.total_price || 0),
+                    r.status || ''
+                ]);
+            });
+        }
 
-        // ✅ Maintenance Table
+        // ✅ MAINTENANCE TABLE
         const maintenanceRows = [
-            ["Vehicle ID", "Cost", "Date"]
+            ["Vehicle", "Cost", "Date"]
         ];
 
-        window.safeLogs?.forEach(l => {
-            maintenanceRows.push([
-                getVehicleName(l.vehicle_id),
-                l.cost,
-                l.created_at
+        if (logs.length === 0) {
+            maintenanceRows.push(["No data", "", ""]);
+        } else {
+            logs.forEach(l => {
+                maintenanceRows.push([
+                    getVehicleName(l.vehicle_id),
+                    Number(l.cost || 0),
+                    formatDate(l.created_at)
+                ]);
+            });
+        }
+
+        // ✅ PROFIT PER VEHICLE
+        const profitMap = {};
+
+        rentals.forEach(r => {
+            const name = getVehicleName(r.vehicle_id);
+            profitMap[name] = (profitMap[name] || 0) + Number(r.total_price || 0);
+        });
+
+        logs.forEach(l => {
+            const name = getVehicleName(l.vehicle_id);
+            profitMap[name] = (profitMap[name] || 0) - Number(l.cost || 0);
+        });
+
+        const profitRows = [["Vehicle", "Net Profit"]];
+
+        Object.entries(profitMap).forEach(([name, profit]) => {
+            profitRows.push([name, profit]);
+        });
+
+        // ✅ MONTHLY REPORT
+        const monthlyMap = {};
+
+        rentals.forEach(r => {
+            const month = new Date(r.start_date).toLocaleString('default', { month: 'short', year: 'numeric' });
+            monthlyMap[month] = monthlyMap[month] || { income: 0, expense: 0 };
+            monthlyMap[month].income += Number(r.total_price || 0);
+        });
+
+        logs.forEach(l => {
+            const month = new Date(l.created_at).toLocaleString('default', { month: 'short', year: 'numeric' });
+            monthlyMap[month] = monthlyMap[month] || { income: 0, expense: 0 };
+            monthlyMap[month].expense += Number(l.cost || 0);
+        });
+
+        const monthlyRows = [["Month", "Income", "Expenses", "Profit"]];
+
+        Object.entries(monthlyMap).forEach(([month, val]) => {
+            monthlyRows.push([
+                month,
+                val.income,
+                val.expense,
+                val.income - val.expense
             ]);
         });
 
-        // ✅ Create Workbook
+        // ✅ CREATE WORKBOOK
         const wb = XLSX.utils.book_new();
 
-        const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
-        const rentalSheet = XLSX.utils.aoa_to_sheet(rentalRows);
-        const maintenanceSheet = XLSX.utils.aoa_to_sheet(maintenanceRows);
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryData), "Summary");
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rentalRows), "Rentals");
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(maintenanceRows), "Maintenance");
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(profitRows), "Profit by Vehicle");
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(monthlyRows), "Monthly Report");
 
-        XLSX.utils.book_append_sheet(wb, summarySheet, "Summary");
-        XLSX.utils.book_append_sheet(wb, rentalSheet, "Rentals");
-        XLSX.utils.book_append_sheet(wb, maintenanceSheet, "Maintenance");
-
-        // ✅ Download
+        // ✅ DOWNLOAD
         XLSX.writeFile(wb, "Fleet_Report.xlsx");
 
     } catch (err) {
@@ -1262,6 +1344,7 @@ function getVehicleName(id) {
         alert("Export failed");
     }
 }
+
 
         
 
