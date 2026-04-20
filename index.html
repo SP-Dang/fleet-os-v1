@@ -1087,6 +1087,8 @@ async function loadSummary() {
         const safeRentals = rentals || [];
         const safeLogs = logs || [];
         const safeVehicles = vehicleList || [];
+        console.log("Logs:", safeLogs);
+        
         window.safeVehicles = safeVehicles;
         window.safeRentals = safeRentals;
         window.safeLogs = safeLogs;
@@ -1247,17 +1249,24 @@ const utilization = safeVehicles.length > 0
         // =============================
         // ✅ 3. MAINTENANCE
         // =============================
-        const maintenanceRows = [
-            ["Vehicle", "Cost", "Date"]
-        ];
+      const logs = window.safeLogs || [];
 
-        logs.forEach(l => {
-            maintenanceRows.push([
-                getVehicleName(l.vehicle_id),
-                l.cost,
-                formatDate(l.created_at)
-            ]);
-        });
+const maintenanceRows = [
+    ["Vehicle", "Cost", "Date"]
+];
+
+if (logs.length === 0) {
+    maintenanceRows.push(["No data", "", ""]);
+} else {
+    logs.forEach(l => {
+        maintenanceRows.push([
+            getVehicleName(l.vehicle_id),
+            Number(l.cost || l.amount || 0),
+            formatDate(l.created_at || l.date)
+        ]);
+    });
+}
+
 
         // =============================
         // ✅ 4. PROFIT PER VEHICLE
