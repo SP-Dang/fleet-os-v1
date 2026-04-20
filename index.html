@@ -1087,17 +1087,20 @@ async function loadSummary() {
         const safeRentals = rentals || [];
         const safeLogs = logs || [];
         const safeVehicles = vehicleList || [];
-        console.log("Logs:", safeLogs);
-        
-        window.safeVehicles = safeVehicles;
+
+        // ✅ SAVE GLOBALLY (FOR EXPORT)
         window.safeRentals = safeRentals;
         window.safeLogs = safeLogs;
+        window.safeVehicles = safeVehicles;
 
-        // ✅ TODAY DATE
+        // ✅ DEBUG (OPTIONAL)
+        console.log("Logs:", safeLogs);
+
+        // ✅ TODAY DATE (ONLY ONCE)
         const today = new Date();
         today.setHours(0,0,0,0);
 
-        // ✅ AUTO ACTIVATE BOOKINGS (FIXED POSITION)
+        // ✅ AUTO ACTIVATE BOOKINGS
         for (const r of safeRentals) {
             if (r.status === 'booked') {
                 const start = new Date(r.start_date);
@@ -1118,76 +1121,84 @@ async function loadSummary() {
         }
 
         // ✅ CALCULATIONS
-    const income = safeRentals.reduce((sum, r) => sum + (Number(r.total_price) || 0), 0);
-    const expenses = safeLogs.reduce((sum, l) => sum + (Number(l.cost) || 0), 0);
-    const expenseRatio = income > 0 ? (expenses / income) * 100 : 0;
+        const income = safeRentals.reduce((sum, r) => sum + (Number(r.total_price) || 0), 0);
+        const expenses = safeLogs.reduce((sum, l) => sum + (Number(l.cost) || 0), 0);
+        const expenseRatio = income > 0 ? (expenses / income) * 100 : 0;
 
-        
+        // ✅ ACTIVE RENTALS (STATUS BASED)
+        const activeRentalsList = safeRentals.filter(r => r.status === 'active');
+        const activeRentals = activeRentalsList.length;
 
-// ✅ ACTIVE RENTALS (status-based)
-const activeRentalsList = safeRentals.filter(r => r.status === 'active');
-const activeRentals = activeRentalsList.length;
+        // ✅ UNIQUE VEHICLES
+        const activeVehicleIds = [...new Set(
+            activeRentalsList.map(r => String(r.vehicle_id))
+        )];
 
-// ✅ UNIQUE VEHICLE COUNT (IMPORTANT)
-const activeVehicleIds = [...new Set(
-    activeRentalsList.map(r => String(r.vehicle_id))
-)];
+        // ✅ AVAILABLE VEHICLES
+        const availableVehicles = safeVehicles.filter(v =>
+            v.id && !activeVehicleIds.includes(String(v.id))
+        ).length;
 
-// ✅ AVAILABLE VEHICLES
-const availableVehicles = safeVehicles.filter(v =>
-    v.id && !activeVehicleIds.includes(String(v.id))
-).length;
+        // ✅ UTILIZATION
+        const utilization = safeVehicles.length > 0
+            ? (activeRentals / safeVehicles.length) * 100
+            : 0;
 
-// ✅ UTILIZATION
-const utilization = safeVehicles.length > 0
-    ? (activeRentals / safeVehicles.length) * 100
-    : 0;
-
-        // ✅ UPDATE UI (FINANCIAL)
+        // ✅ UPDATE UI (ONLY ONCE — CLEAN)
         document.getElementById('stat-income').innerText = `₭${income.toLocaleString()}`;
         document.getElementById('stat-expenses').innerText = `₭${expenses.toLocaleString()}`;
         document.getElementById('stat-profit').innerText = `₭${(income - expenses).toLocaleString()}`;
-        // ✅ 👉 ADD YOUR NEW LINES HERE (RIGHT BELOW)
+
         document.getElementById('stat-active').innerText = activeRentals;
         document.getElementById('stat-available').innerText = availableVehicles;
         document.getElementById('stat-utilization').innerText = utilization.toFixed(1) + '%';
 
-        // ✅ UPDATE UI (OPERATIONAL)
-        document.getElementById('stat-utilization').innerText = utilization.toFixed(1) + '%';
-        document.getElementById('stat-active').innerText = activeRentals;
-        document.getElementById('stat-available').innerText = availableVehicles;
-
-        // ✅ EFFICIENCY
         document.getElementById('expense-ratio').innerText =
-    expenseRatio.toFixed(1) + '%';
+            expenseRatio.toFixed(1) + '%';
 
-
-        // ✅ CHART
+        // ✅ CHART (SAFE)
         const ctx = document.getElementById('financeChart')?.getContext('2d');
 
         if (ctx) {
-    if (window.myChart) window.myChart.destroy();
+            if (window.myChart) window.myChart.destroy();
 
-    window.myChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Income', 'Expenses'],
-            datasets: [{
-                data: [income, expenses],
-                backgroundColor: ['#22c55e', '#ef4444'],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            plugins: { legend: { display: false } },
-            cutout: '80%',
-            responsive: true,
-            maintainAspectRatio: false
+            window.myChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Income', 'Expenses'],
+                    datasets: [{
+                        data: [income, expenses],
+                        backgroundColor: ['#22c55e', '#ef4444'],
+                        borderWidth: 0,
+                        hoverOffset: 20
+                    }]
+                },
+                options: {
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const data = context.dataset.data;
+                                    const total = data.reduce((sum, val) => sum + val, 0);
+                                    const value = context.raw;
+                                    const percentage = total > 0
+                                        ? ((value / total) * 100).toFixed(1)
+                                        : 0;
+
+                                    return `${context.label}: ₭${value.toLocaleString()} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    },
+                    cutout: '80%',
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
         }
-    });
-}
 
-        // ✅ TABLES (FIX ID TYPE MISMATCH)
+        // ✅ TABLES
         updateTopEarners(safeRentals, safeVehicles);
         updateHighestMaintenance(safeLogs, safeVehicles);
         updateUpcomingBookings(safeRentals, safeVehicles);
