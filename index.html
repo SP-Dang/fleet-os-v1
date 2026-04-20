@@ -1021,53 +1021,45 @@ async function loadSummary() {
         const safeLogs = logs || [];
         const safeVehicles = vehicleList || [];
 
-        // ✅ CALCULATIONS
+        // ✅ CALCULATIONS (FINANCIAL)
         const income = safeRentals.reduce((sum, r) => sum + (Number(r.total_price) || 0), 0);
         const expenses = safeLogs.reduce((sum, l) => sum + (Number(l.cost) || 0), 0);
+        const expenseRatio = income > 0 ? (expenses / income) * 100 : 0;
 
+        // ✅ DATE (declare ONCE)
         const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
-const activeRentalsList = safeRentals.filter(r => {
-    const start = new Date(r.start_date);
-    const end = new Date(r.end_date);
+        // ✅ ACTIVE RENTALS (SAFE VERSION)
+        const activeRentalsList = safeRentals.filter(r => {
+            try {
+                if (!r.start_date || !r.rental_days || !r.vehicle_id) return false;
 
-    return today >= start && today <= end;
-});
+                const start = new Date(r.start_date);
+                if (isNaN(start)) return false;
 
-const activeRentals = activeRentalsList.length;
+                const end = new Date(start);
+                end.setDate(start.getDate() + Number(r.rental_days || 0));
 
+                return today >= start && today <= end;
+            } catch {
+                return false;
+            }
+        });
+
+        const activeRentals = activeRentalsList.length;
+
+        // ✅ AVAILABLE VEHICLES
         const activeVehicleIds = activeRentalsList.map(r => r.vehicle_id);
 
-const availableVehicles = safeVehicles.filter(v => 
-    !activeVehicleIds.includes(v.id)
-).length;
+        const availableVehicles = safeVehicles.filter(v =>
+            v.id && !activeVehicleIds.includes(v.id)
+        ).length;
 
-
-        const today = new Date();
-
-const today = new Date();
-
-const activeRentalsList = safeRentals.filter(r => {
-    if (!r.start_date || !r.rental_days) return false;
-
-    const start = new Date(r.start_date);
-
-    // ✅ calculate end date from rental_days
-    const end = new Date(start);
-    end.setDate(start.getDate() + Number(r.rental_days));
-
-    return today >= start && today <= end;
-});
-
-const activeRentals = activeRentalsList.length;
-
-
-
+        // ✅ UTILIZATION (REAL-TIME)
         const utilization = safeVehicles.length > 0
-            ? ((totalDays / (safeVehicles.length * 30)) * 100)
+            ? (activeRentals / safeVehicles.length) * 100
             : 0;
-
-        const expenseRatio = income > 0 ? (expenses / income) * 100 : 0;
 
         // ✅ UPDATE UI (FINANCIAL)
         document.getElementById('stat-income').innerText = `₭${income.toLocaleString()}`;
@@ -1090,7 +1082,6 @@ const activeRentals = activeRentalsList.length;
 
             const canvas = ctx.getContext('2d');
 
-            // 🎨 GRADIENTS
             const gradientGreen = canvas.createLinearGradient(0, 0, 0, 300);
             gradientGreen.addColorStop(0, '#4ade80');
             gradientGreen.addColorStop(1, '#16a34a');
@@ -1113,7 +1104,6 @@ const activeRentals = activeRentalsList.length;
                 options: {
                     plugins: {
                         legend: { display: false },
-
                         tooltip: {
                             backgroundColor: '#0f172a',
                             titleColor: '#fff',
@@ -1143,7 +1133,7 @@ const activeRentals = activeRentalsList.length;
             });
         }
 
-        // ✅ TABLES
+        // ✅ TABLES (FIX ID TYPE MISMATCH)
         updateTopEarners(safeRentals, safeVehicles);
         updateHighestMaintenance(safeLogs, safeVehicles);
 
@@ -1159,7 +1149,10 @@ const activeRentals = activeRentalsList.length;
         if (rentals && rentals.length > 0) {
             rentals.forEach(r => {
                 // Link vehicle_id to the make_model name
-                const vehicle = vehicleList ? vehicleList.find(v => v.id === r.vehicle_id) : null;
+                const vehicle = vehicleList 
+    ? vehicleList.find(v => String(v.id) === String(r.vehicle_id)) 
+    : null;
+
                 const name = vehicle ? vehicle.make_model : 'Unknown';
                 earnerMap[name] = (earnerMap[name] || 0) + (Number(r.total_price) || 0);
             });
@@ -1183,7 +1176,10 @@ function updateHighestMaintenance(logs, vehicleList) {
         if (logs && logs.length > 0) {
             logs.forEach(l => {
                 // Link vehicle_id to the make_model name
-                const vehicle = vehicleList ? vehicleList.find(v => v.id === l.vehicle_id) : null;
+                const vehicle = vehicleList 
+    ? vehicleList.find(v => String(v.id) === String(l.vehicle_id)) 
+    : null;
+
                 const name = vehicle ? vehicle.make_model : 'Unknown';
                 expenseMap[name] = (expenseMap[name] || 0) + (Number(l.cost) || 0);
             });
