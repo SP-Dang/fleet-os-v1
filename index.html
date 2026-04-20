@@ -1057,50 +1057,37 @@ async function loadSummary() {
         const safeLogs = logs || [];
         const safeVehicles = vehicleList || [];
 
-        // ✅ CALCULATIONS (FINANCIAL)
-        const income = safeRentals.reduce((sum, r) => sum + (Number(r.total_price) || 0), 0);
-        const expenses = safeLogs.reduce((sum, l) => sum + (Number(l.cost) || 0), 0);
-        const expenseRatio = income > 0 ? (expenses / income) * 100 : 0;
+        // ✅ CALCULATIONS
+const income = safeRentals.reduce((sum, r) => sum + (Number(r.total_price) || 0), 0);
+const expenses = safeLogs.reduce((sum, l) => sum + (Number(l.cost) || 0), 0);
 
-        // ✅ DATE (declare ONCE)
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+// ✅ ACTIVE RENTALS (status-based)
+const activeRentalsList = safeRentals.filter(r => r.status === 'active');
+const activeRentals = activeRentalsList.length;
 
-        // ✅ ACTIVE RENTALS (SAFE VERSION)
-        const activeRentalsList = safeRentals.filter(r => {
-            try {
-                if (!r.start_date || !r.rental_days || !r.vehicle_id) return false;
+// ✅ UNIQUE VEHICLE COUNT (IMPORTANT)
+const activeVehicleIds = [...new Set(
+    activeRentalsList.map(r => String(r.vehicle_id))
+)];
 
-                const start = new Date(r.start_date);
-                if (isNaN(start)) return false;
+// ✅ AVAILABLE VEHICLES
+const availableVehicles = safeVehicles.filter(v =>
+    v.id && !activeVehicleIds.includes(String(v.id))
+).length;
 
-                const end = new Date(start);
-                end.setDate(start.getDate() + Number(r.rental_days || 0));
-
-                return today >= start && today <= end;
-            } catch {
-                return false;
-            }
-        });
-
-        const activeRentals = activeRentalsList.length;
-
-        // ✅ AVAILABLE VEHICLES
-        const activeVehicleIds = activeRentalsList.map(r => r.vehicle_id);
-
-        const availableVehicles = safeVehicles.filter(v =>
-            v.id && !activeVehicleIds.includes(v.id)
-        ).length;
-
-        // ✅ UTILIZATION (REAL-TIME)
-        const utilization = safeVehicles.length > 0
-            ? (activeRentals / safeVehicles.length) * 100
-            : 0;
+// ✅ UTILIZATION
+const utilization = safeVehicles.length > 0
+    ? (activeRentals / safeVehicles.length) * 100
+    : 0;
 
         // ✅ UPDATE UI (FINANCIAL)
         document.getElementById('stat-income').innerText = `₭${income.toLocaleString()}`;
         document.getElementById('stat-expenses').innerText = `₭${expenses.toLocaleString()}`;
         document.getElementById('stat-profit').innerText = `₭${(income - expenses).toLocaleString()}`;
+        // ✅ 👉 ADD YOUR NEW LINES HERE (RIGHT BELOW)
+        document.getElementById('stat-active').innerText = activeRentals;
+        document.getElementById('stat-available').innerText = availableVehicles;
+        document.getElementById('stat-utilization').innerText = utilization.toFixed(1) + '%';
 
         // ✅ UPDATE UI (OPERATIONAL)
         document.getElementById('stat-utilization').innerText = utilization.toFixed(1) + '%';
