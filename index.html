@@ -1025,11 +1025,35 @@ async function loadSummary() {
         const income = safeRentals.reduce((sum, r) => sum + (Number(r.total_price) || 0), 0);
         const expenses = safeLogs.reduce((sum, l) => sum + (Number(l.cost) || 0), 0);
 
-        const activeRentals = safeRentals.length;
+        const today = new Date();
 
-        const availableVehicles = Math.max(safeVehicles.length - activeRentals, 0);
+const activeRentalsList = safeRentals.filter(r => {
+    const start = new Date(r.start_date);
+    const end = new Date(r.end_date);
 
-        const totalDays = safeRentals.reduce((sum, r) => sum + (Number(r.rental_days) || 0), 0);
+    return today >= start && today <= end;
+});
+
+const activeRentals = activeRentalsList.length;
+
+        const activeVehicleIds = activeRentalsList.map(r => r.vehicle_id);
+
+const availableVehicles = safeVehicles.filter(v => 
+    !activeVehicleIds.includes(v.id)
+).length;
+
+
+        const today = new Date();
+
+    const activeRentalsList = safeRentals.filter(r => {
+    const start = new Date(r.start_date);
+    const end = new Date(r.end_date);
+
+    return today >= start && today <= end;
+});
+
+    const activeRentals = activeRentalsList.length;
+
 
         const utilization = safeVehicles.length > 0
             ? ((totalDays / (safeVehicles.length * 30)) * 100)
