@@ -127,71 +127,107 @@
             </div>
         </div>
 
-        <div id="view-summary" class="view-content hidden p-6">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
-                    <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Total Income</p>
-                    <h3 id="stat-income" class="text-4xl font-black italic text-slate-900">₭0</h3>
+    <div id="view-summary" class="view-content hidden p-6">
+
+    <!-- 🔹 TOP: FINANCIAL CARDS -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
+            <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Total Income</p>
+            <h3 id="stat-income" class="text-4xl font-black italic text-slate-900">₭0</h3>
+        </div>
+
+        <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
+            <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Maintenance Expenses</p>
+            <h3 id="stat-expenses" class="text-4xl font-black italic text-red-500">₭0</h3>
+        </div>
+
+        <div class="bg-[#0F172A] p-8 rounded-[40px] shadow-xl">
+            <p class="text-[10px] font-black uppercase text-blue-400 tracking-widest mb-2">Net Profit</p>
+            <h3 id="stat-profit" class="text-4xl font-black italic text-white">₭0</h3>
+        </div>
+    </div>
+
+    <!-- 🔥 NEW: OPERATIONAL CARDS -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+
+        <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
+            <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Fleet Utilization</p>
+            <h3 id="stat-utilization" class="text-3xl font-black italic text-emerald-600">0%</h3>
+        </div>
+
+        <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
+            <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Active Rentals</p>
+            <h3 id="stat-active" class="text-3xl font-black italic text-blue-600">0</h3>
+        </div>
+
+        <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
+            <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Available Vehicles</p>
+            <h3 id="stat-available" class="text-3xl font-black italic text-slate-900">0</h3>
+        </div>
+
+    </div>
+
+    <!-- 🔹 CHART + EFFICIENCY -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+
+        <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
+            <h3 class="text-xl font-black mb-6 uppercase italic text-slate-900 text-center">Profit Split</h3>
+            <div style="height: 300px; position: relative;">
+                <canvas id="financeChart"></canvas>
+            </div>
+        </div>
+
+        <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 flex flex-col justify-center">
+            <h3 class="text-xl font-black mb-6 uppercase italic text-slate-900">Efficiency</h3>
+            <div class="space-y-4">
+
+                <div class="flex justify-between items-center p-4 bg-emerald-50 rounded-2xl">
+                    <span class="font-bold text-emerald-700 uppercase text-xs">Income Share</span>
+                    <span class="font-black text-emerald-900">100%</span>
                 </div>
-                <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
-                    <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Maintenance Expenses</p>
-                    <h3 id="stat-expenses" class="text-4xl font-black italic text-red-500">₭0</h3>
+
+                <div class="flex justify-between items-center p-4 bg-red-50 rounded-2xl">
+                    <span class="font-bold text-red-700 uppercase text-xs">Expense Ratio</span>
+                    <span id="expense-ratio" class="font-black text-red-900">0%</span>
                 </div>
-                <div class="bg-[#0F172A] p-8 rounded-[40px] shadow-xl">
-                    <p class="text-[10px] font-black uppercase text-blue-400 tracking-widest mb-2">Net Profit</p>
-                    <h3 id="stat-profit" class="text-4xl font-black italic text-white">₭0</h3>
-                </div>
+
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-                <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
-                    <h3 class="text-xl font-black mb-6 uppercase italic text-slate-900 text-center">Profit Split</h3>
-                    <div style="height: 300px; position: relative;">
-                        <canvas id="financeChart"></canvas>
-                    </div>
-                </div>
+            <p class="mt-6 text-[10px] text-slate-400 uppercase font-black tracking-widest text-center">
+                Last Updated: Just Now
+            </p>
+        </div>
 
-                <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 flex flex-col justify-center">
-                    <h3 class="text-xl font-black mb-6 uppercase italic text-slate-900">Efficiency</h3>
-                    <div class="space-y-4">
-                        <div class="flex justify-between items-center p-4 bg-emerald-50 rounded-2xl">
-                            <span class="font-bold text-emerald-700 uppercase text-xs">Income Share</span>
-                            <span class="font-black text-emerald-900">100%</span>
-                        </div>
-                        <div class="flex justify-between items-center p-4 bg-red-50 rounded-2xl">
-                            <span class="font-bold text-red-700 uppercase text-xs">Expense Ratio</span>
-                            <span id="expense-ratio" class="font-black text-red-900">0%</span>
-                        </div>
-                    </div>
-                    <p class="mt-6 text-[10px] text-slate-400 uppercase font-black tracking-widest text-center">
-                        Last Updated: Just Now
-                    </p>
-                </div>
+    </div>
+
+    <!-- 🔹 TABLES -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+
+        <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-2 h-8 bg-emerald-500 rounded-full"></div>
+                <h3 class="text-xl font-black uppercase italic text-slate-900">Top 5 Earners</h3>
             </div>
+            <table class="w-full">
+                <tbody id="top-earners-body"></tbody>
+            </table>
+        </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-                <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
-                    <div class="flex items-center gap-3 mb-6">
-                        <div class="w-2 h-8 bg-emerald-500 rounded-full"></div>
-                        <h3 class="text-xl font-black uppercase italic text-slate-900">Top 5 Earners</h3>
-                    </div>
-                    <table class="w-full">
-                        <tbody id="top-earners-body"></tbody>
-                    </table>
-                </div>
-
-                <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
-                    <div class="flex items-center gap-3 mb-6">
-                        <div class="w-2 h-8 bg-red-500 rounded-full"></div>
-                        <h3 class="text-xl font-black uppercase italic text-red-600">Highest Maintenance</h3>
-                    </div>
-                    <table class="w-full">
-                        <tbody id="top-expenses-body"></tbody>
-                    </table>
-                </div>
+        <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-2 h-8 bg-red-500 rounded-full"></div>
+                <h3 class="text-xl font-black uppercase italic text-red-600">Highest Maintenance</h3>
             </div>
+            <table class="w-full">
+                <tbody id="top-expenses-body"></tbody>
+            </table>
+        </div>
 
-        </div> ```
+    </div>
+
+</div>
+
+        
         
 <div id="booking-modal" class="modal">
     <div class="bg-white w-full max-w-lg rounded-[48px] shadow-2xl overflow-hidden flex flex-col min-h-[600px] max-h-[90vh]">
@@ -988,6 +1024,10 @@ async function loadSummary() {
        document.getElementById('stat-income').innerText = `₭${income.toLocaleString()}`;
         document.getElementById('stat-expenses').innerText = `₭${expenses.toLocaleString()}`;
         document.getElementById('stat-profit').innerText = `₭${(income - expenses).toLocaleString()}`;
+        document.getElementById('stat-utilization').innerText = utilization.toFixed(1) + '%';
+        document.getElementById('stat-active').innerText = activeRentals;
+        document.getElementById('stat-available').innerText = availableVehicles;
+
 
 
         // Update the Doughnut Chart
