@@ -156,24 +156,36 @@
     </div>
 
     <!-- 🔥 NEW: OPERATIONAL CARDS -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
 
-        <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
-            <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Fleet Utilization</p>
-            <h3 id="stat-utilization" class="text-3xl font-black italic text-emerald-600">0%</h3>
-        </div>
-
-        <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
-            <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Active Rentals</p>
-            <h3 id="stat-active" class="text-3xl font-black italic text-blue-600">0</h3>
-        </div>
-
-        <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
-            <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Available Vehicles</p>
-            <h3 id="stat-available" class="text-3xl font-black italic text-slate-900">0</h3>
-        </div>
-
+    <!-- Fleet Utilization -->
+    <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
+        <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Fleet Utilization</p>
+        <h3 id="stat-utilization" class="text-3xl font-black italic text-emerald-600">0%</h3>
     </div>
+
+    <!-- Active Rentals -->
+    <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
+        <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Active Rentals</p>
+        <h3 id="stat-active" class="text-3xl font-black italic text-blue-600">0</h3>
+    </div>
+
+    <!-- Available Vehicles -->
+    <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
+        <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Available Vehicles</p>
+        <h3 id="stat-available" class="text-3xl font-black italic text-slate-900">0</h3>
+    </div>
+
+    <!-- 🚨 Overdue Rentals -->
+    <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
+        <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">
+            Overdue Rentals
+        </p>
+        <h3 id="stat-overdue" class="text-3xl font-black italic text-red-600">0</h3>
+    </div>
+
+</div>
+
 
     <!-- 🔹 CHART + EFFICIENCY -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
@@ -1081,12 +1093,16 @@ async function loadSummary() {
         // ✅ FETCH DATA
         const { data: rentals } = await client.from('rentals').select('*');
         const { data: logs } = await client.from('maintenance_logs').select('*');
-        const { data: vehicleList } = await client.from('vehicles').select('id, make_model, license_plate');
+        const { data: vehicleList } = await client
+            .from('vehicles')
+            .select('id, make_model, license_plate');
 
         // ✅ SAFE FALLBACKS
         const safeRentals = rentals || [];
         const safeLogs = logs || [];
         const safeVehicles = vehicleList || [];
+
+        // ✅ GLOBAL ACCESS (FOR EXPORT)
         window.safeRentals = safeRentals;
         window.safeLogs = safeLogs;
         window.safeVehicles = safeVehicles;
@@ -1095,7 +1111,7 @@ async function loadSummary() {
         const today = new Date();
         today.setHours(0,0,0,0);
 
-        // ✅ AUTO ACTIVATE BOOKINGS (FIXED POSITION)
+        // ✅ AUTO ACTIVATE BOOKINGS
         for (const r of safeRentals) {
             if (r.status === 'booked') {
                 const start = new Date(r.start_date);
@@ -1116,76 +1132,95 @@ async function loadSummary() {
         }
 
         // ✅ CALCULATIONS
-    const income = safeRentals.reduce((sum, r) => sum + (Number(r.total_price) || 0), 0);
-    const expenses = safeLogs.reduce((sum, l) => sum + (Number(l.cost) || 0), 0);
-    const expenseRatio = income > 0 ? (expenses / income) * 100 : 0;
+        const income = safeRentals.reduce((sum, r) => sum + (Number(r.total_price) || 0), 0);
+        const expenses = safeLogs.reduce((sum, l) => sum + (Number(l.cost) || 0), 0);
+        const expenseRatio = income > 0 ? (expenses / income) * 100 : 0;
 
-        
+        // ✅ ACTIVE RENTALS
+        const activeRentalsList = safeRentals.filter(r => r.status === 'active');
+        const activeRentals = activeRentalsList.length;
 
-// ✅ ACTIVE RENTALS (status-based)
-const activeRentalsList = safeRentals.filter(r => r.status === 'active');
-const activeRentals = activeRentalsList.length;
+        // ✅ UNIQUE VEHICLE COUNT
+        const activeVehicleIds = [...new Set(
+            activeRentalsList.map(r => String(r.vehicle_id))
+        )];
 
-// ✅ UNIQUE VEHICLE COUNT (IMPORTANT)
-const activeVehicleIds = [...new Set(
-    activeRentalsList.map(r => String(r.vehicle_id))
-)];
+        // ✅ AVAILABLE VEHICLES
+        const availableVehicles = safeVehicles.filter(v =>
+            v.id && !activeVehicleIds.includes(String(v.id))
+        ).length;
 
-// ✅ AVAILABLE VEHICLES
-const availableVehicles = safeVehicles.filter(v =>
-    v.id && !activeVehicleIds.includes(String(v.id))
-).length;
+        // ✅ UTILIZATION
+        const utilization = safeVehicles.length > 0
+            ? (activeRentals / safeVehicles.length) * 100
+            : 0;
 
-// ✅ UTILIZATION
-const utilization = safeVehicles.length > 0
-    ? (activeRentals / safeVehicles.length) * 100
-    : 0;
+        // ✅ OVERDUE DETECTION (NEW 🔥)
+        const overdueRentals = safeRentals.filter(r => {
+            if (r.status !== 'active') return false;
 
-        // ✅ UPDATE UI (FINANCIAL)
-        document.getElementById('stat-income').innerText = `₭${income.toLocaleString()}`;
-        document.getElementById('stat-expenses').innerText = `₭${expenses.toLocaleString()}`;
-        document.getElementById('stat-profit').innerText = `₭${(income - expenses).toLocaleString()}`;
-        // ✅ 👉 ADD YOUR NEW LINES HERE (RIGHT BELOW)
-        document.getElementById('stat-active').innerText = activeRentals;
-        document.getElementById('stat-available').innerText = availableVehicles;
-        document.getElementById('stat-utilization').innerText = utilization.toFixed(1) + '%';
+            const start = new Date(r.start_date);
+            start.setHours(0,0,0,0);
 
-        // ✅ UPDATE UI (OPERATIONAL)
-        document.getElementById('stat-utilization').innerText = utilization.toFixed(1) + '%';
-        document.getElementById('stat-active').innerText = activeRentals;
-        document.getElementById('stat-available').innerText = availableVehicles;
+            const end = new Date(start);
+            end.setDate(start.getDate() + Number(r.rental_days || 0));
 
-        // ✅ EFFICIENCY
-        document.getElementById('expense-ratio').innerText =
-    expenseRatio.toFixed(1) + '%';
+            return today > end;
+        });
 
+        const overdueCount = overdueRentals.length;
+
+        // ✅ UPDATE UI (SAFE CHECK)
+        if (document.getElementById('stat-income'))
+            document.getElementById('stat-income').innerText = `₭${income.toLocaleString()}`;
+
+        if (document.getElementById('stat-expenses'))
+            document.getElementById('stat-expenses').innerText = `₭${expenses.toLocaleString()}`;
+
+        if (document.getElementById('stat-profit'))
+            document.getElementById('stat-profit').innerText = `₭${(income - expenses).toLocaleString()}`;
+
+        if (document.getElementById('stat-active'))
+            document.getElementById('stat-active').innerText = activeRentals;
+
+        if (document.getElementById('stat-available'))
+            document.getElementById('stat-available').innerText = availableVehicles;
+
+        if (document.getElementById('stat-utilization'))
+            document.getElementById('stat-utilization').innerText = utilization.toFixed(1) + '%';
+
+        if (document.getElementById('expense-ratio'))
+            document.getElementById('expense-ratio').innerText = expenseRatio.toFixed(1) + '%';
+
+        if (document.getElementById('stat-overdue'))
+            document.getElementById('stat-overdue').innerText = overdueCount;
 
         // ✅ CHART
         const ctx = document.getElementById('financeChart')?.getContext('2d');
 
         if (ctx) {
-    if (window.myChart) window.myChart.destroy();
+            if (window.myChart) window.myChart.destroy();
 
-    window.myChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Income', 'Expenses'],
-            datasets: [{
-                data: [income, expenses],
-                backgroundColor: ['#22c55e', '#ef4444'],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            plugins: { legend: { display: false } },
-            cutout: '80%',
-            responsive: true,
-            maintainAspectRatio: false
+            window.myChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Income', 'Expenses'],
+                    datasets: [{
+                        data: [income, expenses],
+                        backgroundColor: ['#22c55e', '#ef4444'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    plugins: { legend: { display: false } },
+                    cutout: '80%',
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
         }
-    });
-}
 
-        // ✅ TABLES (FIX ID TYPE MISMATCH)
+        // ✅ TABLES
         updateTopEarners(safeRentals, safeVehicles);
         updateHighestMaintenance(safeLogs, safeVehicles);
         updateUpcomingBookings(safeRentals, safeVehicles);
@@ -1195,6 +1230,7 @@ const utilization = safeVehicles.length > 0
     }
 }
 
+        
 function getVehicleName(id) {
     const v = window.safeVehicles?.find(v =>
         String(v.id) === String(id)
