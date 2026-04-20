@@ -1058,8 +1058,11 @@ async function loadSummary() {
         const safeVehicles = vehicleList || [];
 
         // ✅ CALCULATIONS
-const income = safeRentals.reduce((sum, r) => sum + (Number(r.total_price) || 0), 0);
-const expenses = safeLogs.reduce((sum, l) => sum + (Number(l.cost) || 0), 0);
+    const income = safeRentals.reduce((sum, r) => sum + (Number(r.total_price) || 0), 0);
+    const expenses = safeLogs.reduce((sum, l) => sum + (Number(l.cost) || 0), 0);
+    const expenseRatio = income > 0 ? (expenses / income) * 100 : 0;
+
+        
 
 // ✅ ACTIVE RENTALS (status-based)
 const activeRentalsList = safeRentals.filter(r => r.status === 'active');
@@ -1095,66 +1098,34 @@ const utilization = safeVehicles.length > 0
         document.getElementById('stat-available').innerText = availableVehicles;
 
         // ✅ EFFICIENCY
-        document.getElementById('expense-ratio').innerText = expenseRatio.toFixed(1) + '%';
+        document.getElementById('expense-ratio').innerText =
+    expenseRatio.toFixed(1) + '%';
+
 
         // ✅ CHART
-        const ctx = document.getElementById('financeChart');
+        const ctx = document.getElementById('financeChart')?.getContext('2d');
 
         if (ctx) {
-            if (window.myChart) window.myChart.destroy();
+    if (window.myChart) window.myChart.destroy();
 
-            const canvas = ctx.getContext('2d');
-
-            const gradientGreen = canvas.createLinearGradient(0, 0, 0, 300);
-            gradientGreen.addColorStop(0, '#4ade80');
-            gradientGreen.addColorStop(1, '#16a34a');
-
-            const gradientRed = canvas.createLinearGradient(0, 0, 0, 300);
-            gradientRed.addColorStop(0, '#f87171');
-            gradientRed.addColorStop(1, '#dc2626');
-
-            window.myChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Income', 'Expenses'],
-                    datasets: [{
-                        data: [income, expenses],
-                        backgroundColor: [gradientGreen, gradientRed],
-                        borderWidth: 0,
-                        hoverOffset: 25
-                    }]
-                },
-                options: {
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            backgroundColor: '#0f172a',
-                            titleColor: '#fff',
-                            bodyColor: '#fff',
-                            padding: 12,
-                            cornerRadius: 12,
-                            displayColors: false,
-                            callbacks: {
-                                label: function(context) {
-                                    const data = context.dataset.data;
-                                    const total = data.reduce((sum, val) => sum + val, 0);
-                                    const value = context.raw;
-
-                                    const percentage = total > 0
-                                        ? ((value / total) * 100).toFixed(1)
-                                        : 0;
-
-                                    return `${context.label}: ₭${value.toLocaleString()} (${percentage}%)`;
-                                }
-                            }
-                        }
-                    },
-                    cutout: '80%',
-                    responsive: true,
-                    maintainAspectRatio: false
-                }
-            });
+    window.myChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Income', 'Expenses'],
+            datasets: [{
+                data: [income, expenses],
+                backgroundColor: ['#22c55e', '#ef4444'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            plugins: { legend: { display: false } },
+            cutout: '80%',
+            responsive: true,
+            maintainAspectRatio: false
         }
+    });
+}
 
         // ✅ TABLES (FIX ID TYPE MISMATCH)
         updateTopEarners(safeRentals, safeVehicles);
