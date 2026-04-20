@@ -188,37 +188,44 @@
 
 
     <!-- 🔹 CHART + EFFICIENCY -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
 
-        <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
-            <h3 class="text-xl font-black mb-6 uppercase italic text-slate-900 text-center">Profit Split</h3>
-            <div style="height: 300px; position: relative;">
-                <canvas id="financeChart"></canvas>
-            </div>
+    <!-- 📊 CHART -->
+    <div class="bg-white p-6 rounded-[40px] shadow-sm border border-slate-100">
+        <h3 class="text-lg font-black mb-4 uppercase italic text-slate-900 text-center">
+            Profit Split
+        </h3>
+        <div style="height: 200px; position: relative;">
+            <canvas id="financeChart"></canvas>
         </div>
-
-        <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 flex flex-col justify-center">
-            <h3 class="text-xl font-black mb-6 uppercase italic text-slate-900">Efficiency</h3>
-            <div class="space-y-4">
-
-                <div class="flex justify-between items-center p-4 bg-emerald-50 rounded-2xl">
-                    <span class="font-bold text-emerald-700 uppercase text-xs">Income Share</span>
-                    <span class="font-black text-emerald-900">100%</span>
-                </div>
-
-                <div class="flex justify-between items-center p-4 bg-red-50 rounded-2xl">
-                    <span class="font-bold text-red-700 uppercase text-xs">Expense Ratio</span>
-                    <span id="expense-ratio" class="font-black text-red-900">0%</span>
-                </div>
-
-            </div>
-
-            <p class="mt-6 text-[10px] text-slate-400 uppercase font-black tracking-widest text-center">
-                Last Updated: Just Now
-            </p>
-        </div>
-
     </div>
+
+    <!-- ⚙️ EFFICIENCY -->
+    <div class="bg-white p-6 rounded-[40px] shadow-sm border border-slate-100 flex flex-col justify-center">
+        <h3 class="text-lg font-black mb-4 uppercase italic text-slate-900">
+            Efficiency
+        </h3>
+
+        <div class="space-y-3">
+
+            <div class="flex justify-between items-center p-3 bg-emerald-50 rounded-2xl">
+                <span class="font-bold text-emerald-700 uppercase text-xs">Income Share</span>
+                <span class="font-black text-emerald-900">100%</span>
+            </div>
+
+            <div class="flex justify-between items-center p-3 bg-red-50 rounded-2xl">
+                <span class="font-bold text-red-700 uppercase text-xs">Expense Ratio</span>
+                <span id="expense-ratio" class="font-black text-red-900">0%</span>
+            </div>
+
+        </div>
+
+        <p class="mt-4 text-[10px] text-slate-400 uppercase font-black tracking-widest text-center">
+            Last Updated: Just Now
+        </p>
+    </div>
+
+</div>
 
     <!-- 🔹 TABLES -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
@@ -1213,7 +1220,7 @@ async function loadSummary() {
                 },
                 options: {
                     plugins: { legend: { display: false } },
-                    cutout: '80%',
+                    cutout: '85%',
                     responsive: true,
                     maintainAspectRatio: false
                 }
