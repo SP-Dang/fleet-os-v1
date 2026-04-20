@@ -12,6 +12,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
    
 
     <style>
@@ -128,6 +129,13 @@
         </div>
 
     <div id="view-summary" class="view-content hidden p-6">
+          <!-- ✅ EXPORT BUTTON (ADD HERE) -->
+    <div class="flex justify-end mb-4">
+        <button onclick="exportSummary()"
+            class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-2xl font-black text-sm shadow-md">
+            Export to Excel
+        </button>
+    </div>
 
     <!-- 🔹 TOP: FINANCIAL CARDS -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -1079,6 +1087,8 @@ async function loadSummary() {
         const safeRentals = rentals || [];
         const safeLogs = logs || [];
         const safeVehicles = vehicleList || [];
+        window.safeRentals = safeRentals;
+        window.safeLogs = safeLogs;
 
         // ✅ TODAY DATE
         const today = new Date();
@@ -1183,6 +1193,69 @@ const utilization = safeVehicles.length > 0
         console.error("Summary Load Error:", err);
     }
 }
+
+        
+    function exportSummary() {
+    try {
+        // ✅ Prepare Summary Data
+        const summaryData = [
+            ["Metric", "Value"],
+            ["Total Income", document.getElementById('stat-income').innerText],
+            ["Total Expenses", document.getElementById('stat-expenses').innerText],
+            ["Net Profit", document.getElementById('stat-profit').innerText],
+            ["Fleet Utilization", document.getElementById('stat-utilization').innerText],
+            ["Active Rentals", document.getElementById('stat-active').innerText],
+            ["Available Vehicles", document.getElementById('stat-available').innerText],
+        ];
+
+        // ✅ Rentals Table
+        const rentalRows = [
+            ["Vehicle ID", "Start Date", "Days", "Total Price", "Status"]
+        ];
+
+        window.safeRentals?.forEach(r => {
+            rentalRows.push([
+                r.vehicle_id,
+                r.start_date,
+                r.rental_days,
+                r.total_price,
+                r.status
+            ]);
+        });
+
+        // ✅ Maintenance Table
+        const maintenanceRows = [
+            ["Vehicle ID", "Cost", "Date"]
+        ];
+
+        window.safeLogs?.forEach(l => {
+            maintenanceRows.push([
+                l.vehicle_id,
+                l.cost,
+                l.created_at
+            ]);
+        });
+
+        // ✅ Create Workbook
+        const wb = XLSX.utils.book_new();
+
+        const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+        const rentalSheet = XLSX.utils.aoa_to_sheet(rentalRows);
+        const maintenanceSheet = XLSX.utils.aoa_to_sheet(maintenanceRows);
+
+        XLSX.utils.book_append_sheet(wb, summarySheet, "Summary");
+        XLSX.utils.book_append_sheet(wb, rentalSheet, "Rentals");
+        XLSX.utils.book_append_sheet(wb, maintenanceSheet, "Maintenance");
+
+        // ✅ Download
+        XLSX.writeFile(wb, "Fleet_Report.xlsx");
+
+    } catch (err) {
+        console.error("Export Error:", err);
+        alert("Export failed");
+    }
+}
+
         
 
     function updateTopEarners(rentals, vehicleList) {
