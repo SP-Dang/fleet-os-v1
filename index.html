@@ -1011,79 +1011,109 @@ let myChart = null; // Global variable to store the chart instance
 
 async function loadSummary() {
     try {
-        // Fetch all columns so we have both prices and vehicle IDs
+        // ✅ FETCH DATA
         const { data: rentals } = await client.from('rentals').select('*');
         const { data: logs } = await client.from('maintenance_logs').select('*');
         const { data: vehicleList } = await client.from('vehicles').select('id, make_model');
 
-        // Check if data exists, otherwise default to 0
-        const income = rentals ? rentals.reduce((sum, r) => sum + (Number(r.total_price) || 0), 0) : 0;
-        const expenses = logs ? logs.reduce((sum, l) => sum + (Number(l.cost) || 0), 0) : 0;
+        // ✅ SAFE FALLBACKS
+        const safeRentals = rentals || [];
+        const safeLogs = logs || [];
+        const safeVehicles = vehicleList || [];
 
-        // Update the Stat Cards
-       document.getElementById('stat-income').innerText = `₭${income.toLocaleString()}`;
+        // ✅ CALCULATIONS
+        const income = safeRentals.reduce((sum, r) => sum + (Number(r.total_price) || 0), 0);
+        const expenses = safeLogs.reduce((sum, l) => sum + (Number(l.cost) || 0), 0);
+
+        const activeRentals = safeRentals.length;
+
+        const availableVehicles = Math.max(safeVehicles.length - activeRentals, 0);
+
+        const totalDays = safeRentals.reduce((sum, r) => sum + (Number(r.rental_days) || 0), 0);
+
+        const utilization = safeVehicles.length > 0
+            ? ((totalDays / (safeVehicles.length * 30)) * 100)
+            : 0;
+
+        const expenseRatio = income > 0 ? (expenses / income) * 100 : 0;
+
+        // ✅ UPDATE UI (FINANCIAL)
+        document.getElementById('stat-income').innerText = `₭${income.toLocaleString()}`;
         document.getElementById('stat-expenses').innerText = `₭${expenses.toLocaleString()}`;
         document.getElementById('stat-profit').innerText = `₭${(income - expenses).toLocaleString()}`;
+
+        // ✅ UPDATE UI (OPERATIONAL)
         document.getElementById('stat-utilization').innerText = utilization.toFixed(1) + '%';
         document.getElementById('stat-active').innerText = activeRentals;
         document.getElementById('stat-available').innerText = availableVehicles;
 
+        // ✅ EFFICIENCY
+        document.getElementById('expense-ratio').innerText = expenseRatio.toFixed(1) + '%';
 
-
-        // Update the Doughnut Chart
+        // ✅ CHART
         const ctx = document.getElementById('financeChart');
+
         if (ctx) {
             if (window.myChart) window.myChart.destroy();
+
+            const canvas = ctx.getContext('2d');
+
+            // 🎨 GRADIENTS
+            const gradientGreen = canvas.createLinearGradient(0, 0, 0, 300);
+            gradientGreen.addColorStop(0, '#4ade80');
+            gradientGreen.addColorStop(1, '#16a34a');
+
+            const gradientRed = canvas.createLinearGradient(0, 0, 0, 300);
+            gradientRed.addColorStop(0, '#f87171');
+            gradientRed.addColorStop(1, '#dc2626');
+
             window.myChart = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
                     labels: ['Income', 'Expenses'],
                     datasets: [{
                         data: [income, expenses],
-                        backgroundColor: ['#22c55e', '#ef4444'],
+                        backgroundColor: [gradientGreen, gradientRed],
                         borderWidth: 0,
-                        hoverOffset: 20
+                        hoverOffset: 25
                     }]
                 },
                 options: {
-    plugins: { 
-        legend: { display: false },
+                    plugins: {
+                        legend: { display: false },
 
-        tooltip: {
-            backgroundColor: '#0f172a',
-            titleColor: '#fff',
-            bodyColor: '#fff',
-            padding: 12,
-            cornerRadius: 12,
-            displayColors: false,
-            callbacks: {
-                label: function(context) {
-                    const data = context.dataset.data;
-                    const total = data.reduce((sum, val) => sum + val, 0);
-                    const value = context.raw;
+                        tooltip: {
+                            backgroundColor: '#0f172a',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            padding: 12,
+                            cornerRadius: 12,
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) {
+                                    const data = context.dataset.data;
+                                    const total = data.reduce((sum, val) => sum + val, 0);
+                                    const value = context.raw;
 
-                    const percentage = total > 0 
-                        ? ((value / total) * 100).toFixed(1) 
-                        : 0;
+                                    const percentage = total > 0
+                                        ? ((value / total) * 100).toFixed(1)
+                                        : 0;
 
-                    return `${context.label}: ₭${value.toLocaleString()} (${percentage}%)`;
+                                    return `${context.label}: ₭${value.toLocaleString()} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    },
+                    cutout: '80%',
+                    responsive: true,
+                    maintainAspectRatio: false
                 }
-            }
-        }
-    },
-
-    cutout: '80%',
-    responsive: true,
-    maintainAspectRatio: false
-}
-
-                
             });
         }
 
-        // Fill the Top 5 Cards
-        updateTopEarners(rentals, vehicleList);
-        updateHighestMaintenance(logs, vehicleList);
+        // ✅ TABLES
+        updateTopEarners(safeRentals, safeVehicles);
+        updateHighestMaintenance(safeLogs, safeVehicles);
 
     } catch (err) {
         console.error("Summary Load Error:", err);
