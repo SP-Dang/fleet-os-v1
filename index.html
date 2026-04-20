@@ -1006,11 +1006,38 @@ async function loadSummary() {
                     }]
                 },
                 options: {
-                    plugins: { legend: { display: false } },
-                    cutout: '80%',
-                    responsive: true,
-                    maintainAspectRatio: false
+    plugins: { 
+        legend: { display: false },
+
+        tooltip: {
+            backgroundColor: '#0f172a',
+            titleColor: '#fff',
+            bodyColor: '#fff',
+            padding: 12,
+            cornerRadius: 12,
+            displayColors: false,
+            callbacks: {
+                label: function(context) {
+                    const data = context.dataset.data;
+                    const total = data.reduce((sum, val) => sum + val, 0);
+                    const value = context.raw;
+
+                    const percentage = total > 0 
+                        ? ((value / total) * 100).toFixed(1) 
+                        : 0;
+
+                    return `${context.label}: ₭${value.toLocaleString()} (${percentage}%)`;
                 }
+            }
+        }
+    },
+
+    cutout: '80%',
+    responsive: true,
+    maintainAspectRatio: false
+}
+
+                
             });
         }
 
