@@ -1087,6 +1087,9 @@ async function loadSummary() {
         const safeRentals = rentals || [];
         const safeLogs = logs || [];
         const safeVehicles = vehicleList || [];
+        console.log("Logs:", safeLogs);
+        
+        window.safeVehicles = safeVehicles;
         window.safeRentals = safeRentals;
         window.safeLogs = safeLogs;
 
@@ -1197,7 +1200,25 @@ const utilization = safeVehicles.length > 0
         
     function exportSummary() {
     try {
-        // ✅ Prepare Summary Data
+        const rentals = window.safeRentals || [];
+        const logs = window.safeLogs || [];
+        const vehicles = window.safeVehicles || [];
+
+        // ✅ Helper: get vehicle name
+        const getVehicleName = (id) => {
+            const v = vehicles.find(v => String(v.id) === String(id));
+            return v ? v.make_model : 'Unknown';
+        };
+
+        // ✅ Helper: format date
+        const formatDate = (d) => {
+            if (!d) return '';
+            return new Date(d).toLocaleDateString();
+        };
+
+        // =============================
+        // ✅ 1. SUMMARY
+        // =============================
         const summaryData = [
             ["Metric", "Value"],
             ["Total Income", document.getElementById('stat-income').innerText],
@@ -1208,47 +1229,125 @@ const utilization = safeVehicles.length > 0
             ["Available Vehicles", document.getElementById('stat-available').innerText],
         ];
 
-        // ✅ Rentals Table
+        // =============================
+        // ✅ 2. RENTALS (WITH NAMES + DATE FORMAT)
+        // =============================
         const rentalRows = [
-            ["Vehicle ID", "Start Date", "Days", "Total Price", "Status"]
+            ["Vehicle", "Start Date", "Days", "Total Price", "Status"]
         ];
 
-        window.safeRentals?.forEach(r => {
+        rentals.forEach(r => {
             rentalRows.push([
-                r.vehicle_id,
-                r.start_date,
+                getVehicleName(r.vehicle_id),
+                formatDate(r.start_date),
                 r.rental_days,
                 r.total_price,
                 r.status
             ]);
         });
 
-        // ✅ Maintenance Table
-        const maintenanceRows = [
-            ["Vehicle ID", "Cost", "Date"]
+        // =============================
+        // ✅ 3. MAINTENANCE
+        // =============================
+      const logs = window.safeLogs || [];
+
+const maintenanceRows = [
+    ["Vehicle", "Cost", "Date"]
+];
+
+if (logs.length === 0) {
+    maintenanceRows.push(["No data", "", ""]);
+} else {
+    logs.forEach(l => {
+        maintenanceRows.push([
+            getVehicleName(l.vehicle_id),
+            Number(l.cost || l.amount || 0),
+            formatDate(l.created_at || l.date)
+        ]);
+    });
+}
+
+
+        // =============================
+        // ✅ 4. PROFIT PER VEHICLE
+        // =============================
+        const profitMap = {};
+
+        rentals.forEach(r => {
+            const name = getVehicleName(r.vehicle_id);
+            profitMap[name] = profitMap[name] || { income: 0, expense: 0 };
+            profitMap[name].income += Number(r.total_price) || 0;
+        });
+
+        logs.forEach(l => {
+            const name = getVehicleName(l.vehicle_id);
+            profitMap[name] = profitMap[name] || { income: 0, expense: 0 };
+            profitMap[name].expense += Number(l.cost) || 0;
+        });
+
+        const profitRows = [
+            ["Vehicle", "Income", "Expense", "Net Profit"]
         ];
 
-        window.safeLogs?.forEach(l => {
-            maintenanceRows.push([
-                l.vehicle_id,
-                l.cost,
-                l.created_at
+        Object.entries(profitMap).forEach(([name, val]) => {
+            profitRows.push([
+                name,
+                val.income,
+                val.expense,
+                val.income - val.expense
             ]);
         });
 
-        // ✅ Create Workbook
+        // =============================
+        // ✅ 5. MONTHLY BREAKDOWN
+        // =============================
+        const monthMap = {};
+
+        rentals.forEach(r => {
+            if (!r.start_date) return;
+
+            const date = new Date(r.start_date);
+            const key = `${date.getFullYear()}-${date.getMonth() + 1}`;
+
+            monthMap[key] = monthMap[key] || { income: 0, expense: 0 };
+            monthMap[key].income += Number(r.total_price) || 0;
+        });
+
+        logs.forEach(l => {
+            if (!l.created_at) return;
+
+            const date = new Date(l.created_at);
+            const key = `${date.getFullYear()}-${date.getMonth() + 1}`;
+
+            monthMap[key] = monthMap[key] || { income: 0, expense: 0 };
+            monthMap[key].expense += Number(l.cost) || 0;
+        });
+
+        const monthRows = [
+            ["Month", "Income", "Expense", "Profit"]
+        ];
+
+        Object.entries(monthMap).forEach(([month, val]) => {
+            monthRows.push([
+                month,
+                val.income,
+                val.expense,
+                val.income - val.expense
+            ]);
+        });
+
+        // =============================
+        // ✅ CREATE EXCEL
+        // =============================
         const wb = XLSX.utils.book_new();
 
-        const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
-        const rentalSheet = XLSX.utils.aoa_to_sheet(rentalRows);
-        const maintenanceSheet = XLSX.utils.aoa_to_sheet(maintenanceRows);
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryData), "Summary");
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rentalRows), "Rentals");
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(maintenanceRows), "Maintenance");
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(profitRows), "Profit by Vehicle");
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(monthRows), "Monthly");
 
-        XLSX.utils.book_append_sheet(wb, summarySheet, "Summary");
-        XLSX.utils.book_append_sheet(wb, rentalSheet, "Rentals");
-        XLSX.utils.book_append_sheet(wb, maintenanceSheet, "Maintenance");
-
-        // ✅ Download
-        XLSX.writeFile(wb, "Fleet_Report.xlsx");
+        XLSX.writeFile(wb, "Fleet_Pro_Report.xlsx");
 
     } catch (err) {
         console.error("Export Error:", err);
