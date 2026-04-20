@@ -1081,7 +1081,7 @@ async function loadSummary() {
         // ✅ FETCH DATA
         const { data: rentals } = await client.from('rentals').select('*');
         const { data: logs } = await client.from('maintenance_logs').select('*');
-        const { data: vehicleList } = await client.from('vehicles').select('id, make_model');
+        const { data: vehicleList } = await client.from('vehicles').select('id, make_model, license_plate');
 
         // ✅ SAFE FALLBACKS
         const safeRentals = rentals || [];
