@@ -225,7 +225,30 @@
 
     </div>
 
-</div>
+    <!-- ✅ Upcoming Bookings Panel (ADD HERE INSIDE view-summary) -->
+    <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 mt-8 h-[320px] overflow-y-auto">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-3">
+                <div class="w-2 h-8 bg-blue-500 rounded-full"></div>
+                <h3 class="text-xl font-black uppercase italic text-slate-900">
+                    Upcoming Bookings
+                </h3>
+            </div>
+            <span class="text-xs font-black text-slate-400 uppercase tracking-widest">
+                Next Rentals
+            </span>
+        </div>
+
+        <!-- Table -->
+        <table class="w-full text-sm">
+            <tbody id="upcoming-bookings-body"></tbody>
+        </table>
+
+    </div>
+
+</div> <!-- ✅ NOW close view-summary correctly -->
 
         
         
@@ -1154,6 +1177,7 @@ const utilization = safeVehicles.length > 0
         // ✅ TABLES (FIX ID TYPE MISMATCH)
         updateTopEarners(safeRentals, safeVehicles);
         updateHighestMaintenance(safeLogs, safeVehicles);
+        updateUpcomingBookings(safeRentals, safeVehicles);
 
     } catch (err) {
         console.error("Summary Load Error:", err);
@@ -1214,6 +1238,92 @@ function updateHighestMaintenance(logs, vehicleList) {
         }
     } catch (e) { console.error("Maintenance Error:", e); }
 }     
+
+
+function updateUpcomingBookings(rentals, vehicleList) {
+    try {
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        const upcoming = rentals
+            .filter(r => {
+                if (r.status !== 'booked') return false;
+
+                const start = new Date(r.start_date);
+                return start >= today;
+            })
+            .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
+            .slice(0, 10); // show max 10
+
+        const body = document.getElementById('upcoming-bookings-body');
+        if (!body) return;
+
+        // ✅ EMPTY STATE
+        if (upcoming.length === 0) {
+            body.innerHTML = `
+                <tr>
+                    <td class="py-6 text-center text-slate-400">
+                        No upcoming bookings
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        body.innerHTML = upcoming.map(r => {
+            const vehicle = vehicleList.find(v =>
+                String(v.id) === String(r.vehicle_id)
+            );
+
+            const start = new Date(r.start_date);
+            const todayStr = today.toDateString();
+            const startStr = start.toDateString();
+
+            // ✅ LABEL (Today / Tomorrow / Future)
+            let badge = `<span class="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-600">Upcoming</span>`;
+
+            const tomorrow = new Date(today);
+            tomorrow.setDate(today.getDate() + 1);
+
+            if (startStr === todayStr) {
+                badge = `<span class="text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">Today</span>`;
+            } else if (start.toDateString() === tomorrow.toDateString()) {
+                badge = `<span class="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700">Tomorrow</span>`;
+            }
+
+            return `
+                <tr class="border-b border-slate-50 hover:bg-slate-50 transition">
+                    
+                    <!-- Vehicle -->
+                    <td class="py-4 font-bold text-slate-800">
+                        ${vehicle?.make_model || 'Unknown'}
+                    </td>
+
+                    <!-- Date -->
+                    <td class="py-4 text-slate-500">
+                        ${start.toLocaleDateString()}
+                    </td>
+
+                    <!-- Days -->
+                    <td class="py-4 text-center font-black text-slate-700">
+                        ${r.rental_days}d
+                    </td>
+
+                    <!-- Status Badge -->
+                    <td class="py-4 text-right">
+                        ${badge}
+                    </td>
+
+                </tr>
+            `;
+        }).join('');
+
+    } catch (err) {
+        console.error("Upcoming Bookings Error:", err);
+    }
+}
+
+        
         
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
     window.onload = init;
