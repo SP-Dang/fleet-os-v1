@@ -548,23 +548,34 @@ async function logout() {
     let html5QrCode;
     let activeScannedRental = null;
 
-    async function init() {
+async function init() {
 
-    // ✅ RUN ONCE IMMEDIATELY
-    await autoActivateBookings();
+    try {
+        // ✅ RUN FIRST
+        await autoActivateBookings();
+    } catch (err) {
+        console.error("Auto Activate Error:", err);
+    }
 
-    // ✅ LOAD UI
+    // ✅ LOAD UI (IMPORTANT: outside try)
     await loadVehicles();
     await loadCustomers();
     loadRentals();
     loadSummary();
 
-    // 🔥 AUTO-RUN EVERY 1 MINUTE
+    // ✅ SAFE INTERVAL (VERY IMPORTANT)
     setInterval(async () => {
-        await autoActivateBookings();
-        loadVehicles();
-        loadRentals();
-        loadSummary();
+        try {
+            await autoActivateBookings();
+
+            // reload UI safely
+            loadVehicles();
+            loadRentals();
+            loadSummary();
+
+        } catch (err) {
+            console.error("Interval Error:", err);
+        }
     }, 60000);
 
     // ✅ DEFAULT DATE
@@ -574,6 +585,7 @@ async function logout() {
     }
 }
 
+        
 
 function switchView(v) {
     document.querySelectorAll('.view-content').forEach(e => e.classList.add('hidden'));
