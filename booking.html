@@ -182,7 +182,13 @@ async function initCalendar(vehicleId) {
                 const end = new Date(start);
                 end.setDate(start.getDate() + Number(r.rental_days || 0));
 
-                return today <= end && (r.status === 'booked' || r.status === 'active');
+                return (
+                today >= start &&
+                today < end &&
+                (r.status === 'booked' || r.status === 'active')
+                );
+
+                
             });
 
             return `
