@@ -255,6 +255,46 @@ async function isVehicleAvailable(vehicleId, startDate, days) {
 }
 
 
+async function checkAvailability(vehicleId, startDate, days) {
+    try {
+        const { data: rentals } = await client
+            .from('rentals')
+            .select('start_date, rental_days, status')
+            .eq('vehicle_id', vehicleId);
+
+        const start = new Date(startDate);
+        start.setHours(0,0,0,0);
+
+        const end = new Date(start);
+        end.setDate(start.getDate() + Number(days));
+
+        for (const r of (rentals || [])) {
+
+            if (r.status !== 'booked' && r.status !== 'active') continue;
+
+            const rStart = new Date(r.start_date);
+            rStart.setHours(0,0,0,0);
+
+            const rEnd = new Date(rStart);
+            rEnd.setDate(rStart.getDate() + Number(r.rental_days || 0));
+
+            // 🚨 OVERLAP CHECK
+            const overlap = start < rEnd && end > rStart;
+
+            if (overlap) {
+                return false;
+            }
+        }
+
+        return true;
+
+    } catch (err) {
+        console.error("Availability Check Error:", err);
+        return false;
+    }
+}
+
+
     
 // ✅ SAVE CUSTOMER + BOOKING
 
@@ -279,24 +319,28 @@ async function isVehicleAvailable(vehicleId, startDate, days) {
         if (!license) return alert("Driving License is required");
         if (!start || !days) return alert("Booking date and duration required");
 
-        // 🚨 STEP 1: CHECK AVAILABILITY FIRST
-        const available = await isVehicleAvailable(selectedVehicle, start, days);
+        // =========================================
+        // 🚨 STEP 1: CHECK AVAILABILITY (NEW SYSTEM)
+        // =========================================
+        const isAvailable = await checkAvailability(selectedVehicle, start, days);
 
-        if (!available) {
-            alert("❌ This vehicle is already booked for selected dates");
+        if (!isAvailable) {
+            alert("❌ This vehicle is not available for selected dates");
             return;
         }
 
-        // 🚨 STEP 2: CHECK EXISTING CUSTOMER BY PHONE
+        // =========================================
+        // 🚨 STEP 2: CHECK EXISTING CUSTOMER
+        // =========================================
         let customerId = null;
 
         const { data: existingCustomer, error: findError } = await client
             .from('customers')
             .select('*')
             .eq('phone', phone)
-            .single();
+            .maybeSingle(); // ✅ safer than .single()
 
-        if (findError && findError.code !== 'PGRST116') {
+        if (findError) {
             console.error(findError);
             alert("Customer lookup error");
             return;
@@ -329,7 +373,9 @@ async function isVehicleAvailable(vehicleId, startDate, days) {
             customerId = newCustomer.id;
         }
 
-        // ✅ STEP 3: CREATE RENTAL
+        // =========================================
+        // 🚨 STEP 3: CREATE RENTAL
+        // =========================================
         const { error: rError } = await client
             .from('rentals')
             .insert([{
@@ -347,18 +393,19 @@ async function isVehicleAvailable(vehicleId, startDate, days) {
             return;
         }
 
-// ✅ SUCCESS MESSAGE (VISIBLE)
-const msg = document.getElementById('success-msg');
+        // =========================================
+        // ✅ SUCCESS MESSAGE (VISIBLE)
+        // =========================================
+        const msg = document.getElementById('success-msg');
 
-if (msg) {
-    msg.innerText = "🎉 Booking confirmed successfully!";
-    msg.classList.remove('hidden');
+        if (msg) {
+            msg.innerText = "🎉 Booking confirmed successfully!";
+            msg.classList.remove('hidden');
 
-    setTimeout(() => {
-        msg.classList.add('hidden');
-    }, 4000);
-}
-
+            setTimeout(() => {
+                msg.classList.add('hidden');
+            }, 4000);
+        }
 
 
 // ✅ CLEAR CUSTOMER FORM
