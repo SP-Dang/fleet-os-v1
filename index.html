@@ -548,11 +548,32 @@ async function logout() {
     let html5QrCode;
     let activeScannedRental = null;
 
-    async function init() { 
-        await loadVehicles(); 
-        await loadCustomers(); 
-        document.getElementById('b-start-date').valueAsDate = new Date();
+    async function init() {
+
+    // ✅ RUN ONCE IMMEDIATELY
+    await autoActivateBookings();
+
+    // ✅ LOAD UI
+    await loadVehicles();
+    await loadCustomers();
+    loadRentals();
+    loadSummary();
+
+    // 🔥 AUTO-RUN EVERY 1 MINUTE
+    setInterval(async () => {
+        await autoActivateBookings();
+        loadVehicles();
+        loadRentals();
+        loadSummary();
+    }, 60000);
+
+    // ✅ DEFAULT DATE
+    const dateInput = document.getElementById('b-start-date');
+    if (dateInput) {
+        dateInput.valueAsDate = new Date();
     }
+}
+
 
 function switchView(v) {
     document.querySelectorAll('.view-content').forEach(e => e.classList.add('hidden'));
