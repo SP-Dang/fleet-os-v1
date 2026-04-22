@@ -271,9 +271,12 @@ async function isVehicleAvailable(vehicleId, startDate, days) {
 
         // ✅ SUCCESS
         alert("✅ Booking successful!");
+        // ✅ Optional (only if modal exists)
+    if (typeof closeCustomerModal === 'function') closeCustomerModal();
+    if (typeof closeModal === 'function') closeModal();
 
-        closeCustomerModal();
-        closeModal();
+    // ✅ Always redirect
+    window.location.href = "index.html";
 
     } catch (err) {
         console.error("System Error:", err);
