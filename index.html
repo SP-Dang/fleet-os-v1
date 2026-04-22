@@ -1164,12 +1164,11 @@ async function loadSummary() {
             .select('id, make_model, license_plate');
 
         // ✅ SAFE FALLBACKS
-        const safeRentals = rentals || [];
+        let safeRentals = rentals || [];
         const safeLogs = logs || [];
         const safeVehicles = vehicleList || [];
 
-        // ✅ GLOBAL ACCESS (FOR EXPORT)
-        window.safeRentals = safeRentals;
+        // ✅ GLOBAL ACCESS (EXPORT)
         window.safeLogs = safeLogs;
         window.safeVehicles = safeVehicles;
 
@@ -1177,7 +1176,11 @@ async function loadSummary() {
         const today = new Date();
         today.setHours(0,0,0,0);
 
-        // ✅ AUTO ACTIVATE BOOKINGS
+        // =========================================
+        // 🚨 AUTO ACTIVATE BOOKINGS (FIXED)
+        // =========================================
+        let hasUpdate = false;
+
         for (const r of safeRentals) {
             if (r.status === 'booked') {
                 const start = new Date(r.start_date);
@@ -1193,35 +1196,59 @@ async function loadSummary() {
                         .from('vehicles')
                         .update({ status: 'rented' })
                         .eq('id', r.vehicle_id);
+
+                    hasUpdate = true;
                 }
             }
         }
 
-        // ✅ CALCULATIONS
-        const income = safeRentals.reduce((sum, r) => sum + (Number(r.total_price) || 0), 0);
-        const expenses = safeLogs.reduce((sum, l) => sum + (Number(l.cost) || 0), 0);
-        const expenseRatio = income > 0 ? (expenses / income) * 100 : 0;
+        // ✅ RE-FETCH UPDATED DATA
+        if (hasUpdate) {
+            const { data: refreshed } = await client.from('rentals').select('*');
+            safeRentals = refreshed || [];
+        }
 
-        // ✅ ACTIVE RENTALS
+        // ✅ SAVE FINAL DATA FOR EXPORT
+        window.safeRentals = safeRentals;
+
+        // =========================================
+        // 💰 CALCULATIONS
+        // =========================================
+        const income = safeRentals.reduce(
+            (sum, r) => sum + (Number(r.total_price) || 0),
+            0
+        );
+
+        const expenses = safeLogs.reduce(
+            (sum, l) => sum + (Number(l.cost) || 0),
+            0
+        );
+
+        const expenseRatio = income > 0
+            ? (expenses / income) * 100
+            : 0;
+
+        // =========================================
+        // 🚗 OPERATIONAL METRICS
+        // =========================================
         const activeRentalsList = safeRentals.filter(r => r.status === 'active');
         const activeRentals = activeRentalsList.length;
 
-        // ✅ UNIQUE VEHICLE COUNT
-        const activeVehicleIds = [...new Set(
-            activeRentalsList.map(r => String(r.vehicle_id))
-        )];
+        const activeVehicleIds = [
+            ...new Set(activeRentalsList.map(r => String(r.vehicle_id)))
+        ];
 
-        // ✅ AVAILABLE VEHICLES
         const availableVehicles = safeVehicles.filter(v =>
             v.id && !activeVehicleIds.includes(String(v.id))
         ).length;
 
-        // ✅ UTILIZATION
         const utilization = safeVehicles.length > 0
             ? (activeRentals / safeVehicles.length) * 100
             : 0;
 
-        // ✅ OVERDUE DETECTION (NEW 🔥)
+        // =========================================
+        // ⏰ OVERDUE DETECTION
+        // =========================================
         const overdueRentals = safeRentals.filter(r => {
             if (r.status !== 'active') return false;
 
@@ -1236,32 +1263,26 @@ async function loadSummary() {
 
         const overdueCount = overdueRentals.length;
 
-        // ✅ UPDATE UI (SAFE CHECK)
-        if (document.getElementById('stat-income'))
-            document.getElementById('stat-income').innerText = `₭${income.toLocaleString()}`;
+        // =========================================
+        // 🎯 UPDATE UI (SAFE)
+        // =========================================
+        const setText = (id, value) => {
+            const el = document.getElementById(id);
+            if (el) el.innerText = value;
+        };
 
-        if (document.getElementById('stat-expenses'))
-            document.getElementById('stat-expenses').innerText = `₭${expenses.toLocaleString()}`;
+        setText('stat-income', `₭${income.toLocaleString()}`);
+        setText('stat-expenses', `₭${expenses.toLocaleString()}`);
+        setText('stat-profit', `₭${(income - expenses).toLocaleString()}`);
+        setText('stat-active', activeRentals);
+        setText('stat-available', availableVehicles);
+        setText('stat-utilization', utilization.toFixed(1) + '%');
+        setText('expense-ratio', expenseRatio.toFixed(1) + '%');
+        setText('stat-overdue', overdueCount);
 
-        if (document.getElementById('stat-profit'))
-            document.getElementById('stat-profit').innerText = `₭${(income - expenses).toLocaleString()}`;
-
-        if (document.getElementById('stat-active'))
-            document.getElementById('stat-active').innerText = activeRentals;
-
-        if (document.getElementById('stat-available'))
-            document.getElementById('stat-available').innerText = availableVehicles;
-
-        if (document.getElementById('stat-utilization'))
-            document.getElementById('stat-utilization').innerText = utilization.toFixed(1) + '%';
-
-        if (document.getElementById('expense-ratio'))
-            document.getElementById('expense-ratio').innerText = expenseRatio.toFixed(1) + '%';
-
-        if (document.getElementById('stat-overdue'))
-            document.getElementById('stat-overdue').innerText = overdueCount;
-
-        // ✅ CHART
+        // =========================================
+        // 📊 CHART
+        // =========================================
         const ctx = document.getElementById('financeChart')?.getContext('2d');
 
         if (ctx) {
@@ -1286,12 +1307,13 @@ async function loadSummary() {
             });
         }
 
-        // ✅ TABLES
+        // =========================================
+        // 📋 TABLES
+        // =========================================
         updateTopEarners(safeRentals, safeVehicles);
         updateHighestMaintenance(safeLogs, safeVehicles);
         updateUpcomingBookings(safeRentals, safeVehicles);
         updateOverdueList(safeRentals, safeVehicles);
-
 
     } catch (err) {
         console.error("Summary Load Error:", err);
