@@ -312,11 +312,19 @@ if (typeof loadVehicles === 'function') {
     loadVehicles();
 }
 
+} catch (err) {
+    console.error("System Error:", err);
+    alert("System error occurred");
+}
+}
 
-   
+
+// ✅ SAFE AUTO LOAD
+window.onload = function () {
+    loadVehicles();
+};
+
     
-// AUTO LOAD
-loadVehicles();
 </script>
 
 </body>
