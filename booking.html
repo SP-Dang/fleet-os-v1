@@ -28,17 +28,24 @@
 
         <h2 class="text-xl font-black mb-4">Book Vehicle</h2>
 
+        <!-- ✅ SUCCESS MESSAGE (SAFE POSITION) -->
+        <div id="success-msg" class="hidden text-green-600 font-bold text-center mb-4"></div>
+
+        <!-- START DATE -->
         <input id="start-date" type="date"
             class="w-full p-3 border rounded-xl mb-3">
 
+        <!-- RENTAL DAYS -->
         <input id="days" type="number" placeholder="Days"
             class="w-full p-3 border rounded-xl mb-4">
 
+        <!-- NEXT BUTTON -->
         <button onclick="openCustomerModal()"
             class="w-full bg-blue-600 text-white p-3 rounded-xl font-bold">
             Next
         </button>
 
+        <!-- CANCEL BUTTON -->
         <button onclick="closeModal()"
             class="w-full mt-3 text-slate-400">
             Cancel
@@ -47,6 +54,7 @@
     </div>
 </div>
 
+    
 <!-- ✅ CUSTOMER MODAL -->
 <div id="customer-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center">
     <div class="bg-white p-8 rounded-2xl w-[400px]">
@@ -269,20 +277,41 @@ async function isVehicleAvailable(vehicleId, startDate, days) {
             return;
         }
 
-        // ✅ SUCCESS
-        alert("✅ Booking successful!");
-        // ✅ Optional (only if modal exists)
-    if (typeof closeCustomerModal === 'function') closeCustomerModal();
-    if (typeof closeModal === 'function') closeModal();
+       // ✅ SUCCESS
+const msg = document.getElementById('success-msg');
 
-    // ✅ Always redirect
-    window.location.href = "index.html";
+if (msg) {
+    msg.innerText = "🎉 Booking confirmed!";
+    msg.classList.remove('hidden');
 
-    } catch (err) {
-        console.error("System Error:", err);
-        alert("System error occurred");
-    }
+    // ✅ auto-hide after 3 seconds
+    setTimeout(() => {
+        msg.classList.add('hidden');
+    }, 3000);
 }
+
+
+// ✅ CLEAR CUSTOMER FORM
+document.getElementById('c-name').value = '';
+document.getElementById('c-phone').value = '';
+document.getElementById('c-email').value = '';
+document.getElementById('c-nationality').value = '';
+document.getElementById('c-passport').value = '';
+document.getElementById('c-license').value = '';
+
+// ✅ CLEAR BOOKING FORM
+document.getElementById('start-date').value = '';
+document.getElementById('days').value = '';
+
+// ✅ CLOSE MODALS (SAFE)
+if (typeof closeCustomerModal === 'function') closeCustomerModal();
+if (typeof closeModal === 'function') closeModal();
+
+// ✅ REFRESH VEHICLE LIST (IMPORTANT)
+if (typeof loadVehicles === 'function') {
+    loadVehicles();
+}
+
 
    
     
