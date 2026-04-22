@@ -145,39 +145,72 @@ function closeCustomerModal() {
 }
 
 // ✅ SAVE CUSTOMER + BOOKING
-async function saveCustomerAndBook() {
-    try {
-        const name = document.getElementById('c-name').value;
-        const phone = document.getElementById('c-phone').value;
 
-        if (!name || !phone) {
-            alert("Name and phone are required");
+ async function saveCustomerAndBook() {
+    try {
+        // ✅ GET VALUES
+        const name = document.getElementById('c-name').value.trim();
+        const phone = document.getElementById('c-phone').value.trim();
+        const email = document.getElementById('c-email').value.trim();
+        const nationality = document.getElementById('c-nationality').value.trim();
+        const passport = document.getElementById('c-passport').value.trim();
+        const license = document.getElementById('c-license').value.trim();
+
+        const start = document.getElementById('start-date').value;
+        const days = Number(document.getElementById('days').value);
+
+        // 🚨 VALIDATION (STRICT)
+        if (!name) {
+            alert("Full Name is required");
             return;
         }
 
-        // 1. CREATE CUSTOMER
+        if (!phone) {
+            alert("Phone Number is required");
+            return;
+        }
+
+        if (!nationality) {
+            alert("Nationality is required");
+            return;
+        }
+
+        if (!passport) {
+            alert("Passport / ID is required");
+            return;
+        }
+
+        if (!license) {
+            alert("Driving License is required");
+            return;
+        }
+
+        if (!start || !days) {
+            alert("Booking date and duration required");
+            return;
+        }
+
+        // ✅ CREATE CUSTOMER (CORRECT COLUMN NAMES)
         const { data: customer, error: cError } = await client
             .from('customers')
             .insert([{
                 full_name: name,
                 phone: phone,
-                email: document.getElementById('c-email').value,
-                nationality: document.getElementById('c-nationality').value,
-                passport_id: document.getElementById('c-passport').value,
-                license_no: document.getElementById('c-license').value
+                email: email || null,
+                nationality: nationality,
+                passport_number: passport,
+                license_number: license
             }])
             .select()
             .single();
 
         if (cError) {
-            alert("Customer error: " + cError.message);
+            console.error("Customer Error:", cError);
+            alert("❌ Customer error: " + cError.message);
             return;
         }
 
-        // 2. CREATE RENTAL
-        const start = document.getElementById('start-date').value;
-        const days = Number(document.getElementById('days').value);
-
+        // ✅ CREATE RENTAL
         const { error: rError } = await client
             .from('rentals')
             .insert([{
@@ -190,21 +223,24 @@ async function saveCustomerAndBook() {
             }]);
 
         if (rError) {
-            alert("Booking error: " + rError.message);
+            console.error("Rental Error:", rError);
+            alert("❌ Booking error: " + rError.message);
             return;
         }
 
+        // ✅ SUCCESS
         alert("✅ Booking successful!");
 
         closeCustomerModal();
         closeModal();
 
     } catch (err) {
-        console.error(err);
-        alert("System error");
+        console.error("System Error:", err);
+        alert("System error occurred");
     }
 }
-
+   
+    
 // AUTO LOAD
 loadVehicles();
 </script>
