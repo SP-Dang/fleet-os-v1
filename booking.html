@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Booking</title>
+
+    <!-- ✅ REQUIRED -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-slate-50 p-6">
+
+    <!-- HEADER -->
+    <div class="max-w-6xl mx-auto mb-10">
+        <h1 class="text-3xl font-black">🚗 Book Your Vehicle</h1>
+        <p class="text-slate-500">Select a vehicle and choose your date</p>
+    </div>
+
+    <!-- VEHICLE GRID -->
+    <div id="vehicle-list" class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6"></div>
+
+    <!-- BOOKING MODAL -->
+    <div id="booking-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center">
+        <div class="bg-white p-8 rounded-2xl w-96">
+
+            <h2 class="text-xl font-black mb-4">Book Vehicle</h2>
+
+            <input id="customer-name" placeholder="Your Name"
+                class="w-full p-3 border rounded-xl mb-3">
+
+            <input id="start-date" type="date"
+                class="w-full p-3 border rounded-xl mb-3">
+
+            <input id="days" type="number" placeholder="Days"
+                class="w-full p-3 border rounded-xl mb-4">
+
+            <button onclick="submitBooking()"
+                class="w-full bg-blue-600 text-white p-3 rounded-xl font-bold">
+                Confirm Booking
+            </button>
+
+            <button onclick="closeModal()"
+                class="w-full mt-3 text-slate-400">
+                Cancel
+            </button>
+
+        </div>
+    </div>
+
+    <!-- ✅ SCRIPT AT BOTTOM -->
+    <script>
+        const client = supabase.createClient(
+            "https://unaeguquzlvjmiebxsvg.supabase.co",
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVuYWVndXF1emx2am1pZWJ4c3ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNDk5MTAsImV4cCI6MjA5MTYyNTkxMH0.m6kCJus2-oHlzvmVxfFtbedKPbf8ricpQdIOQeB0fVg"
+        );
+
+        let selectedVehicle = null;
+    </script>
+
+</body>
+</html>
