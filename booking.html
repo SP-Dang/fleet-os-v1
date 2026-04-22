@@ -108,35 +108,68 @@
             document.getElementById('booking-modal').classList.add('hidden');
         }
 
+
+    function isDateConflict(start, days, bookings) {
+    const startDate = new Date(start);
+    const endDate = new Date(start);
+    endDate.setDate(startDate.getDate() + Number(days));
+
+    return bookings.some(b => {
+        const bStart = new Date(b.start_date);
+        const bEnd = new Date(b.start_date);
+        bEnd.setDate(bStart.getDate() + Number(b.rental_days));
+
+        // 🔥 OVERLAP LOGIC
+        return (startDate < bEnd && endDate > bStart);
+    });
+}
+
+        
         // ✅ SUBMIT BOOKING
         async function submitBooking() {
-            try {
-                const name = document.getElementById('customer-name').value;
-                const start = document.getElementById('start-date').value;
-                const days = document.getElementById('days').value;
+    try {
+        const name = document.getElementById('customer-name').value;
+        const start = document.getElementById('start-date').value;
+        const days = document.getElementById('days').value;
 
-                if (!name || !start || !days) {
-                    alert("Please fill all fields");
-                    return;
-                }
-
-                await client.from('rentals').insert([{
-                    vehicle_id: selectedVehicle,
-                    customer_name: name,
-                    start_date: start,
-                    rental_days: Number(days),
-                    status: 'booked'
-                }]);
-
-                alert("Booking successful!");
-
-                closeModal();
-
-            } catch (err) {
-                console.error("Booking Error:", err);
-                alert("Booking failed");
-            }
+        if (!name || !start || !days) {
+            alert("Please fill all fields");
+            return;
         }
+
+        // ✅ FETCH EXISTING BOOKINGS FOR THIS VEHICLE
+        const { data: bookings } = await client
+            .from('rentals')
+            .select('start_date, rental_days')
+            .eq('vehicle_id', selectedVehicle)
+            .in('status', ['booked', 'active']);
+
+        // ✅ CHECK CONFLICT
+        const conflict = isDateConflict(start, days, bookings || []);
+
+        if (conflict) {
+            alert("❌ This vehicle is not available for selected dates");
+            return;
+        }
+
+        // ✅ INSERT BOOKING
+        await client.from('rentals').insert([{
+            vehicle_id: selectedVehicle,
+            customer_name: name,
+            start_date: start,
+            rental_days: Number(days),
+            status: 'booked'
+        }]);
+
+        alert("✅ Booking successful!");
+
+        closeModal();
+
+    } catch (err) {
+        console.error("Booking Error:", err);
+        alert("Booking failed");
+    }
+}
 
         // ✅ AUTO LOAD (VERY IMPORTANT)
         loadVehicles();
