@@ -366,7 +366,8 @@ const start = selectedStart.toISOString().split('T')[0];
 
 // calculate days automatically
 const diff = selectedEnd - selectedStart;
-const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+const days = Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+
 
 
         // 🚨 VALIDATION
@@ -474,9 +475,13 @@ document.getElementById('c-nationality').value = '';
 document.getElementById('c-passport').value = '';
 document.getElementById('c-license').value = '';
 
-// ✅ CLEAR BOOKING FORM
-document.getElementById('start-date').value = '';
-document.getElementById('days').value = '';
+// ✅ CLEAR CALENDAR (NEW SYSTEM)
+selectedStart = null;
+selectedEnd = null;
+
+const dateInput = document.getElementById('date-range');
+if (dateInput) dateInput.value = '';
+
 
 // ✅ CLOSE MODALS (SAFE)
 if (typeof closeCustomerModal === 'function') closeCustomerModal();
