@@ -52,14 +52,75 @@
     </div>
 
     <!-- ✅ SCRIPT AT BOTTOM -->
-    <script>
-        const client = supabase.createClient(
-            "https://unaeguquzlvjmiebxsvg.supabase.co",
-            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVuYWVndXF1emx2am1pZWJ4c3ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNDk5MTAsImV4cCI6MjA5MTYyNTkxMH0.m6kCJus2-oHlzvmVxfFtbedKPbf8ricpQdIOQeB0fVg"
-        );
+ <script>
+     
+    const client = supabase.createClient(
+        'YOUR_URL',
+        'YOUR_KEY'
+    );
 
-        let selectedVehicle = null;
-    </script>
+    let selectedVehicle = null;
+
+    // ✅ STEP 3 — LOAD VEHICLES
+    async function loadVehicles() {
+        const { data } = await client.from('vehicles').select('*');
+
+        const list = document.getElementById('vehicle-list');
+
+        list.innerHTML = data.map(v => `
+            <div class="bg-white p-6 rounded-2xl shadow">
+
+                <h3 class="text-xl font-black mb-2">${v.make_model}</h3>
+                <p class="text-slate-400 mb-2">${v.license_plate || ''}</p>
+
+                <button onclick="openModal('${v.id}')"
+                    class="w-full bg-black text-white p-3 rounded-xl">
+                    Book Now
+                </button>
+
+            </div>
+        `).join('');
+    }
+
+    // ✅ STEP 4 — MODAL CONTROL
+    function openModal(id) {
+        selectedVehicle = id;
+        document.getElementById('booking-modal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+        document.getElementById('booking-modal').classList.add('hidden');
+    }
+
+    // ✅ STEP 5 — CREATE BOOKING
+    async function submitBooking() {
+        const name = document.getElementById('customer-name').value;
+        const start = document.getElementById('start-date').value;
+        const days = document.getElementById('days').value;
+
+        if (!name || !start || !days) {
+            alert("Please fill all fields");
+            return;
+        }
+
+        await client.from('rentals').insert([{
+            vehicle_id: selectedVehicle,
+            customer_name: name,
+            start_date: start,
+            rental_days: Number(days),
+            status: 'booked'
+        }]);
+
+        alert("Booking successful!");
+
+        closeModal();
+    }
+
+    // ✅ AUTO LOAD VEHICLES (VERY IMPORTANT)
+    loadVehicles();
+
+</script>
+
 
 </body>
 </html>
