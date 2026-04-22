@@ -19,6 +19,11 @@
     <p class="text-slate-500">Select a vehicle and choose your date</p>
 </div>
 
+<!-- ✅ GLOBAL SUCCESS MESSAGE (VISIBLE AFTER BOOKING) -->
+<div id="success-msg" 
+     class="hidden max-w-6xl mx-auto mb-6 p-4 bg-green-100 text-green-700 font-bold rounded-xl text-center">
+</div>
+
 <!-- VEHICLE GRID -->
 <div id="vehicle-list" class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6"></div>
 
@@ -27,9 +32,6 @@
     <div class="bg-white p-8 rounded-2xl w-96">
 
         <h2 class="text-xl font-black mb-4">Book Vehicle</h2>
-
-        <!-- ✅ SUCCESS MESSAGE (SAFE POSITION) -->
-        <div id="success-msg" class="hidden text-green-600 font-bold text-center mb-4"></div>
 
         <!-- START DATE -->
         <input id="start-date" type="date"
@@ -277,18 +279,18 @@ async function isVehicleAvailable(vehicleId, startDate, days) {
             return;
         }
 
-       // ✅ SUCCESS
+// ✅ SUCCESS MESSAGE (VISIBLE)
 const msg = document.getElementById('success-msg');
 
 if (msg) {
-    msg.innerText = "🎉 Booking confirmed!";
+    msg.innerText = "🎉 Booking confirmed successfully!";
     msg.classList.remove('hidden');
 
-    // ✅ auto-hide after 3 seconds
     setTimeout(() => {
         msg.classList.add('hidden');
-    }, 3000);
+    }, 4000);
 }
+
 
 
 // ✅ CLEAR CUSTOMER FORM
