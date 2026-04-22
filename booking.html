@@ -144,6 +144,40 @@ function closeCustomerModal() {
     document.getElementById('customer-modal').classList.add('hidden');
 }
 
+
+async function isVehicleAvailable(vehicleId, startDate, days) {
+    const start = new Date(startDate);
+    const end = new Date(start);
+    end.setDate(end.getDate() + days);
+
+    // get existing rentals
+    const { data: rentals, error } = await client
+        .from('rentals')
+        .select('*')
+        .eq('vehicle_id', vehicleId)
+        .in('status', ['booked', 'active']);
+
+    if (error) {
+        console.error(error);
+        return false;
+    }
+
+    for (const r of rentals) {
+        const rStart = new Date(r.start_date);
+        const rEnd = new Date(rStart);
+        rEnd.setDate(rEnd.getDate() + Number(r.rental_days));
+
+        // 🚨 OVERLAP CHECK
+        if (start <= rEnd && end >= rStart) {
+            return false; // NOT AVAILABLE
+        }
+    }
+
+    return true; // AVAILABLE
+}
+
+
+    
 // ✅ SAVE CUSTOMER + BOOKING
 
  async function saveCustomerAndBook() {
@@ -159,63 +193,70 @@ function closeCustomerModal() {
         const start = document.getElementById('start-date').value;
         const days = Number(document.getElementById('days').value);
 
-        // 🚨 VALIDATION (STRICT)
-        if (!name) {
-            alert("Full Name is required");
+        // 🚨 VALIDATION
+        if (!name) return alert("Full Name is required");
+        if (!phone) return alert("Phone Number is required");
+        if (!nationality) return alert("Nationality is required");
+        if (!passport) return alert("Passport / ID is required");
+        if (!license) return alert("Driving License is required");
+        if (!start || !days) return alert("Booking date and duration required");
+
+        // 🚨 STEP 1: CHECK AVAILABILITY FIRST
+        const available = await isVehicleAvailable(selectedVehicle, start, days);
+
+        if (!available) {
+            alert("❌ This vehicle is already booked for selected dates");
             return;
         }
 
-        if (!phone) {
-            alert("Phone Number is required");
-            return;
-        }
+        // 🚨 STEP 2: CHECK EXISTING CUSTOMER BY PHONE
+        let customerId = null;
 
-        if (!nationality) {
-            alert("Nationality is required");
-            return;
-        }
-
-        if (!passport) {
-            alert("Passport / ID is required");
-            return;
-        }
-
-        if (!license) {
-            alert("Driving License is required");
-            return;
-        }
-
-        if (!start || !days) {
-            alert("Booking date and duration required");
-            return;
-        }
-
-        // ✅ CREATE CUSTOMER (CORRECT COLUMN NAMES)
-        const { data: customer, error: cError } = await client
+        const { data: existingCustomer, error: findError } = await client
             .from('customers')
-            .insert([{
-                full_name: name,
-                phone: phone,
-                email: email || null,
-                nationality: nationality,
-                passport_number: passport,
-                license_number: license
-            }])
-            .select()
+            .select('*')
+            .eq('phone', phone)
             .single();
 
-        if (cError) {
-            console.error("Customer Error:", cError);
-            alert("❌ Customer error: " + cError.message);
+        if (findError && findError.code !== 'PGRST116') {
+            console.error(findError);
+            alert("Customer lookup error");
             return;
         }
 
-        // ✅ CREATE RENTAL
+        if (existingCustomer) {
+            // ✅ reuse existing customer
+            customerId = existingCustomer.id;
+        } else {
+            // ✅ create new customer
+            const { data: newCustomer, error: cError } = await client
+                .from('customers')
+                .insert([{
+                    full_name: name,
+                    phone: phone,
+                    email: email || null,
+                    nationality: nationality,
+                    passport_number: passport,
+                    license_number: license
+                }])
+                .select()
+                .single();
+
+            if (cError) {
+                console.error("Customer Error:", cError);
+                alert("❌ Customer error: " + cError.message);
+                return;
+            }
+
+            customerId = newCustomer.id;
+        }
+
+        // ✅ STEP 3: CREATE RENTAL
         const { error: rError } = await client
             .from('rentals')
             .insert([{
                 vehicle_id: selectedVehicle,
-                customer_id: customer.id,
+                customer_id: customerId,
                 start_date: start,
                 rental_days: days,
                 total_price: days * (selectedVehicleData?.daily_rate || 0),
@@ -239,6 +280,7 @@ function closeCustomerModal() {
         alert("System error occurred");
     }
 }
+
    
     
 // AUTO LOAD
