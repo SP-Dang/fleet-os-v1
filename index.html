@@ -551,22 +551,12 @@ async function logout() {
 async function init() {
 
     // =========================================
-    // 🔥 1. HANDLE REFRESH FLAG (INITIAL LOAD)
-    // =========================================
-    const shouldRefresh = localStorage.getItem('refreshFleet');
-
-    if (shouldRefresh === 'true') {
-        localStorage.removeItem('refreshFleet');
-        console.log("🔄 Refresh triggered from booking");
-    }
-
-    // =========================================
-    // 🔥 2. LOAD GLOBAL DATA FIRST (CRITICAL)
+    // 🔥 1. LOAD GLOBAL DATA FIRST (CRITICAL)
     // =========================================
     await loadGlobalData();
 
     // =========================================
-    // 🔥 3. AUTO ACTIVATE BOOKINGS
+    // 🔥 2. AUTO ACTIVATE BOOKINGS
     // =========================================
     try {
         await autoActivateBookings();
@@ -575,7 +565,7 @@ async function init() {
     }
 
     // =========================================
-    // 🔥 4. LOAD ALL UI
+    // 🔥 3. LOAD ALL UI
     // =========================================
     await loadVehicles();
 
@@ -587,7 +577,51 @@ async function init() {
     await loadSummary();
 
     // =========================================
-    // 🔥 5. AUTO REFRESH EVERY 60s
+    // 🔥 4. REALTIME SYNC (MAIN FIX 🚀)
+    // =========================================
+    const channel = client
+        .channel('fleet-realtime')
+
+        // 🟢 RENTALS CHANGE (booking, update, cancel)
+        .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'rentals'
+        }, async (payload) => {
+
+            console.log("📡 Rentals changed:", payload);
+
+            try {
+                await loadGlobalData();
+                await loadVehicles();
+                await loadRentals();
+                await loadSummary();
+            } catch (err) {
+                console.error("Realtime Rentals Error:", err);
+            }
+        })
+
+        // 🔵 VEHICLES CHANGE (status update)
+        .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'vehicles'
+        }, async (payload) => {
+
+            console.log("🚗 Vehicles changed:", payload);
+
+            try {
+                await loadVehicles();
+                await loadSummary();
+            } catch (err) {
+                console.error("Realtime Vehicles Error:", err);
+            }
+        })
+
+        .subscribe();
+
+    // =========================================
+    // 🔥 5. AUTO REFRESH (BACKUP ONLY)
     // =========================================
     setInterval(async () => {
         try {
@@ -598,7 +632,7 @@ async function init() {
             await loadRentals();
             await loadSummary();
 
-            console.log("🔄 Auto refresh complete");
+            console.log("🔄 Backup refresh");
 
         } catch (err) {
             console.error("Interval Error:", err);
@@ -606,50 +640,7 @@ async function init() {
     }, 60000);
 
     // =========================================
-    // 🔥 6. LIVE CROSS-TAB REFRESH (NEW FIX)
-    // =========================================
-    window.addEventListener('storage', async (event) => {
-        if (event.key === 'refreshFleet' && event.newValue === 'true') {
-
-            console.log("🔄 Fleet refresh triggered from booking page");
-
-            localStorage.removeItem('refreshFleet');
-
-            try {
-                await loadGlobalData();
-                await loadVehicles();
-                await loadRentals();
-                await loadSummary();
-            } catch (err) {
-                console.error("Storage Refresh Error:", err);
-            }
-        }
-    });
-
-    // =========================================
-    // 🔥 7. SAME-TAB FALLBACK (VERY IMPORTANT)
-    // =========================================
-    setInterval(async () => {
-        const flag = localStorage.getItem('refreshFleet');
-
-        if (flag === 'true') {
-            localStorage.removeItem('refreshFleet');
-
-            console.log("🔄 Same-tab refresh triggered");
-
-            try {
-                await loadGlobalData();
-                await loadVehicles();
-                await loadRentals();
-                await loadSummary();
-            } catch (err) {
-                console.error("Fallback Refresh Error:", err);
-            }
-        }
-    }, 2000);
-
-    // =========================================
-    // 🔥 8. DEFAULT DATE (SAFE)
+    // 🔥 6. DEFAULT DATE
     // =========================================
     const dateInput = document.getElementById('b-start-date');
     if (dateInput) {
