@@ -172,9 +172,13 @@ async function initCalendar(vehicleId) {
 
         list.innerHTML = (vehicles || []).map(v => {
 
-            // ✅ CHECK AVAILABILITY
-            const isUnavailable = (rentals || []).some(r => {
+            // =========================================
+            // ✅ CHECK IF CURRENTLY RENTED (TODAY)
+            // =========================================
+            const isRentedNow = (rentals || []).some(r => {
                 if (String(r.vehicle_id) !== String(v.id)) return false;
+
+                if (r.status !== 'booked' && r.status !== 'active') return false;
 
                 const start = new Date(r.start_date);
                 start.setHours(0,0,0,0);
@@ -182,39 +186,58 @@ async function initCalendar(vehicleId) {
                 const end = new Date(start);
                 end.setDate(start.getDate() + Number(r.rental_days || 0));
 
-                return (
-                today >= start &&
-                today < end &&
-                (r.status === 'booked' || r.status === 'active')
-                );
-
-                
+                return today >= start && today < end;
             });
+
+            // =========================================
+            // ✅ CHECK IF HAS FUTURE BOOKINGS
+            // =========================================
+            const hasFutureBooking = (rentals || []).some(r => {
+                if (String(r.vehicle_id) !== String(v.id)) return false;
+
+                if (r.status !== 'booked') return false;
+
+                const start = new Date(r.start_date);
+                start.setHours(0,0,0,0);
+
+                return start > today;
+            });
+
+            // =========================================
+            // 🎯 FINAL STATUS LOGIC
+            // =========================================
+            let badgeText = "Available";
+            let badgeClass = "bg-green-100 text-green-600";
+            let disabled = false;
+
+            if (isRentedNow) {
+                badgeText = "Rented";
+                badgeClass = "bg-red-100 text-red-600";
+                disabled = true;
+            } else if (hasFutureBooking) {
+                badgeText = "Booked";
+                badgeClass = "bg-yellow-100 text-yellow-600";
+                disabled = false; // still bookable for other dates
+            }
 
             return `
                 <div class="bg-white p-6 rounded-2xl shadow relative">
 
                     <!-- STATUS BADGE -->
-                    <div class="absolute top-4 right-4 text-xs font-bold px-3 py-1 rounded-full
-                        ${isUnavailable 
-                            ? 'bg-red-100 text-red-600' 
-                            : 'bg-green-100 text-green-600'}">
-                        ${isUnavailable ? 'Booked' : 'Available'}
+                    <div class="absolute top-4 right-4 text-xs font-bold px-3 py-1 rounded-full ${badgeClass}">
+                        ${badgeText}
                     </div>
 
                     <!-- VEHICLE NAME -->
                     <h3 class="text-xl font-black mb-1">${v.make_model}</h3>
                     <p class="text-slate-400 mb-3">${v.license_plate || ''}</p>
 
-                    <!-- ✅ VEHICLE SPECS (FIXED COLUMN NAMES) -->
+                    <!-- SPECS -->
                     <div class="grid grid-cols-2 gap-2 text-xs font-bold text-slate-600 mb-4">
-
                         <div>Seats: ${v.seats || '-'}</div>
                         <div>Type: ${v.vehicle_type || '-'}</div>
-
                         <div>Fuel: ${v.fuel_type || '-'}</div>
                         <div>Trans: ${v.transmission || '-'}</div>
-
                     </div>
 
                     <!-- PRICE -->
@@ -224,13 +247,13 @@ async function initCalendar(vehicleId) {
 
                     <!-- BUTTON -->
                     <button 
-                        ${isUnavailable ? 'disabled' : ''}
+                        ${disabled ? 'disabled' : ''}
                         onclick='openModal(${JSON.stringify(v)})'
                         class="w-full p-3 rounded-xl font-bold
-                            ${isUnavailable 
+                            ${disabled 
                                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
                                 : 'bg-black text-white hover:bg-blue-600'}">
-                        ${isUnavailable ? 'Unavailable' : 'Book Now'}
+                        ${disabled ? 'Unavailable' : 'Book Now'}
                     </button>
 
                 </div>
