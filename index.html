@@ -548,35 +548,78 @@ async function logout() {
     let html5QrCode;
     let activeScannedRental = null;
 
-async function init() {
-
+async function autoActivateBookings() {
     try {
-        // ✅ RUN FIRST
-        await autoActivateBookings();
+        const { data: rentals } = await client.from('rentals').select('*');
+
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        for (const r of rentals || []) {
+            if (r.status !== 'booked') continue;
+
+            const start = new Date(r.start_date);
+            start.setHours(0,0,0,0);
+
+            if (today >= start) {
+                await client
+                    .from('rentals')
+                    .update({ status: 'active' })
+                    .eq('id', r.id);
+
+                await client
+                    .from('vehicles')
+                    .update({ status: 'rented' })
+                    .eq('id', r.vehicle_id);
+            }
+        }
+
     } catch (err) {
         console.error("Auto Activate Error:", err);
     }
+}
 
-    // ✅ LOAD UI (IMPORTANT: outside try)
-    await loadVehicles();
-    await loadCustomers();
-    loadRentals();
-    loadSummary();
+        
+let autoRefreshInterval = null; // ✅ prevent duplicate intervals
 
-    // ✅ SAFE INTERVAL (VERY IMPORTANT)
-    setInterval(async () => {
-        try {
-            await autoActivateBookings();
+async function init() {
 
-            // reload UI safely
-            loadVehicles();
-            loadRentals();
-            loadSummary();
+    try {
+        // =========================================
+        // 🔥 STEP 1: ACTIVATE BOOKINGS FIRST
+        // =========================================
+        await autoActivateBookings();
 
-        } catch (err) {
-            console.error("Interval Error:", err);
-        }
-    }, 60000);
+        // =========================================
+        // 🚗 STEP 2: LOAD UI (WAIT PROPERLY)
+        // =========================================
+        await loadVehicles();
+        await loadCustomers();
+        await loadRentals();
+        await loadSummary();
+
+    } catch (err) {
+        console.error("Init Error:", err);
+    }
+
+    // =========================================
+    // 🔁 STEP 3: SAFE AUTO REFRESH
+    // =========================================
+    if (!autoRefreshInterval) {
+        autoRefreshInterval = setInterval(async () => {
+            try {
+                await autoActivateBookings();
+
+                await loadVehicles();
+                await loadRentals();
+                await loadSummary();
+
+            } catch (err) {
+                console.error("Interval Error:", err);
+            }
+        }, 60000);
+    }
+}
 
     // ✅ DEFAULT DATE
     const dateInput = document.getElementById('b-start-date');
@@ -1189,60 +1232,29 @@ let myChart = null; // Global variable to store the chart instance
 
 async function loadSummary() {
     try {
+        // =========================================
         // ✅ FETCH DATA
+        // =========================================
         const { data: rentals } = await client.from('rentals').select('*');
         const { data: logs } = await client.from('maintenance_logs').select('*');
         const { data: vehicleList } = await client
             .from('vehicles')
             .select('id, make_model, license_plate');
 
-        // ✅ SAFE FALLBACKS
-        let safeRentals = rentals || [];
+        const safeRentals = rentals || [];
         const safeLogs = logs || [];
         const safeVehicles = vehicleList || [];
 
-        // ✅ GLOBAL ACCESS (EXPORT)
+        // ✅ GLOBAL ACCESS
+        window.safeRentals = safeRentals;
         window.safeLogs = safeLogs;
         window.safeVehicles = safeVehicles;
 
-        // ✅ TODAY DATE
+        // =========================================
+        // 📅 TODAY
+        // =========================================
         const today = new Date();
         today.setHours(0,0,0,0);
-
-        // =========================================
-        // 🚨 AUTO ACTIVATE BOOKINGS (FIXED)
-        // =========================================
-        let hasUpdate = false;
-
-        for (const r of safeRentals) {
-            if (r.status === 'booked') {
-                const start = new Date(r.start_date);
-                start.setHours(0,0,0,0);
-
-                if (today >= start) {
-                    await client
-                        .from('rentals')
-                        .update({ status: 'active' })
-                        .eq('id', r.id);
-
-                    await client
-                        .from('vehicles')
-                        .update({ status: 'rented' })
-                        .eq('id', r.vehicle_id);
-
-                    hasUpdate = true;
-                }
-            }
-        }
-
-        // ✅ RE-FETCH UPDATED DATA
-        if (hasUpdate) {
-            const { data: refreshed } = await client.from('rentals').select('*');
-            safeRentals = refreshed || [];
-        }
-
-        // ✅ SAVE FINAL DATA FOR EXPORT
-        window.safeRentals = safeRentals;
 
         // =========================================
         // 💰 CALCULATIONS
@@ -1262,9 +1274,20 @@ async function loadSummary() {
             : 0;
 
         // =========================================
-        // 🚗 OPERATIONAL METRICS
+        // 🚗 ACTIVE RENTALS (REAL-TIME CALCULATION)
         // =========================================
-        const activeRentalsList = safeRentals.filter(r => r.status === 'active');
+        const activeRentalsList = safeRentals.filter(r => {
+            if (r.status !== 'booked' && r.status !== 'active') return false;
+
+            const start = new Date(r.start_date);
+            start.setHours(0,0,0,0);
+
+            const end = new Date(start);
+            end.setDate(start.getDate() + Number(r.rental_days || 0));
+
+            return today >= start && today < end;
+        });
+
         const activeRentals = activeRentalsList.length;
 
         const activeVehicleIds = [
@@ -1297,7 +1320,7 @@ async function loadSummary() {
         const overdueCount = overdueRentals.length;
 
         // =========================================
-        // 🎯 UPDATE UI (SAFE)
+        // 🎯 SAFE UI UPDATE
         // =========================================
         const setText = (id, value) => {
             const el = document.getElementById(id);
