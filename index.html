@@ -551,7 +551,7 @@ async function logout() {
 async function init() {
 
     // =========================================
-    // 🔥 1. HANDLE REFRESH FLAG (SAFE)
+    // 🔥 1. HANDLE REFRESH FLAG (INITIAL LOAD)
     // =========================================
     const shouldRefresh = localStorage.getItem('refreshFleet');
 
@@ -561,7 +561,7 @@ async function init() {
     }
 
     // =========================================
-    // 🔥 2. LOAD GLOBAL DATA FIRST (CRITICAL FIX)
+    // 🔥 2. LOAD GLOBAL DATA FIRST (CRITICAL)
     // =========================================
     await loadGlobalData();
 
@@ -575,7 +575,7 @@ async function init() {
     }
 
     // =========================================
-    // 🔥 4. LOAD ALL UI (WITH AWAIT = FIX)
+    // 🔥 4. LOAD ALL UI
     // =========================================
     await loadVehicles();
 
@@ -587,12 +587,12 @@ async function init() {
     await loadSummary();
 
     // =========================================
-    // 🔥 5. AUTO REFRESH EVERY 60s (FIXED)
+    // 🔥 5. AUTO REFRESH EVERY 60s
     // =========================================
     setInterval(async () => {
         try {
-            await loadGlobalData();              // ✅ NEW (IMPORTANT)
-            await autoActivateBookings();       // keep logic
+            await loadGlobalData();
+            await autoActivateBookings();
 
             await loadVehicles();
             await loadRentals();
@@ -606,7 +606,50 @@ async function init() {
     }, 60000);
 
     // =========================================
-    // 🔥 6. DEFAULT DATE (SAFE)
+    // 🔥 6. LIVE CROSS-TAB REFRESH (NEW FIX)
+    // =========================================
+    window.addEventListener('storage', async (event) => {
+        if (event.key === 'refreshFleet' && event.newValue === 'true') {
+
+            console.log("🔄 Fleet refresh triggered from booking page");
+
+            localStorage.removeItem('refreshFleet');
+
+            try {
+                await loadGlobalData();
+                await loadVehicles();
+                await loadRentals();
+                await loadSummary();
+            } catch (err) {
+                console.error("Storage Refresh Error:", err);
+            }
+        }
+    });
+
+    // =========================================
+    // 🔥 7. SAME-TAB FALLBACK (VERY IMPORTANT)
+    // =========================================
+    setInterval(async () => {
+        const flag = localStorage.getItem('refreshFleet');
+
+        if (flag === 'true') {
+            localStorage.removeItem('refreshFleet');
+
+            console.log("🔄 Same-tab refresh triggered");
+
+            try {
+                await loadGlobalData();
+                await loadVehicles();
+                await loadRentals();
+                await loadSummary();
+            } catch (err) {
+                console.error("Fallback Refresh Error:", err);
+            }
+        }
+    }, 2000);
+
+    // =========================================
+    // 🔥 8. DEFAULT DATE (SAFE)
     // =========================================
     const dateInput = document.getElementById('b-start-date');
     if (dateInput) {
