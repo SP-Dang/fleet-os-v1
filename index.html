@@ -550,48 +550,64 @@ async function logout() {
 
 async function init() {
 
-    // 🔥 PLACE IT RIGHT HERE (TOP OF FUNCTION)
+    // =========================================
+    // 🔥 1. HANDLE REFRESH FLAG (SAFE)
+    // =========================================
     const shouldRefresh = localStorage.getItem('refreshFleet');
 
     if (shouldRefresh === 'true') {
         localStorage.removeItem('refreshFleet');
-
-        setTimeout(async () => {
-            if (typeof loadVehicles === 'function') await loadVehicles();
-            if (typeof loadRentals === 'function') await loadRentals();
-            if (typeof loadSummary === 'function') await loadSummary();
-        }, 500);
+        console.log("🔄 Refresh triggered from booking");
     }
 
+    // =========================================
+    // 🔥 2. LOAD GLOBAL DATA FIRST (CRITICAL FIX)
+    // =========================================
+    await loadGlobalData();
+
+    // =========================================
+    // 🔥 3. AUTO ACTIVATE BOOKINGS
+    // =========================================
     try {
         await autoActivateBookings();
-
     } catch (err) {
         console.error("Auto Activate Error:", err);
     }
 
-    // ✅ LOAD UI (IMPORTANT: outside try)
+    // =========================================
+    // 🔥 4. LOAD ALL UI (WITH AWAIT = FIX)
+    // =========================================
     await loadVehicles();
-    await loadCustomers();
-    loadRentals();
-    loadSummary();
 
-    // ✅ SAFE INTERVAL (VERY IMPORTANT)
+    if (typeof loadCustomers === 'function') {
+        await loadCustomers();
+    }
+
+    await loadRentals();
+    await loadSummary();
+
+    // =========================================
+    // 🔥 5. AUTO REFRESH EVERY 60s (FIXED)
+    // =========================================
     setInterval(async () => {
         try {
-            await autoActivateBookings();
+            await loadGlobalData();              // ✅ NEW (IMPORTANT)
+            await autoActivateBookings();       // keep logic
 
-            // reload UI safely
-            loadVehicles();
-            loadRentals();
-            loadSummary();
+            await loadVehicles();
+            await loadRentals();
+            await loadSummary();
+
+            console.log("🔄 Auto refresh complete");
 
         } catch (err) {
             console.error("Interval Error:", err);
         }
     }, 60000);
 
-    // ✅ DEFAULT DATE
+    // =========================================
+    // 🔥 6. DEFAULT DATE (SAFE)
+    // =========================================
     const dateInput = document.getElementById('b-start-date');
     if (dateInput) {
         dateInput.valueAsDate = new Date();
@@ -1746,7 +1762,21 @@ function updateOverdueList(rentals, vehicleList) {
     }
 }
         
-        
+async function loadGlobalData() {
+    try {
+        const { data: rentals } = await client.from('rentals').select('*');
+        const { data: logs } = await client.from('maintenance_logs').select('*');
+        const { data: vehicles } = await client.from('vehicles').select('*');
+
+        window.safeRentals = rentals || [];
+        window.safeLogs = logs || [];
+        window.safeVehicles = vehicles || [];
+
+    } catch (err) {
+        console.error("Global Data Load Error:", err);
+    }
+}
+      
         
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
     window.onload = init;
