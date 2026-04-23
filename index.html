@@ -550,9 +550,22 @@ async function logout() {
 
 async function init() {
 
+    // 🔥 PLACE IT RIGHT HERE (TOP OF FUNCTION)
+    const shouldRefresh = localStorage.getItem('refreshFleet');
+
+    if (shouldRefresh === 'true') {
+        localStorage.removeItem('refreshFleet');
+
+        setTimeout(async () => {
+            if (typeof loadVehicles === 'function') await loadVehicles();
+            if (typeof loadRentals === 'function') await loadRentals();
+            if (typeof loadSummary === 'function') await loadSummary();
+        }, 500);
+    }
+
     try {
-        // ✅ RUN FIRST
         await autoActivateBookings();
+
     } catch (err) {
         console.error("Auto Activate Error:", err);
     }
