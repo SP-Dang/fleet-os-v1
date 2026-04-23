@@ -761,9 +761,23 @@ async function processCheckIn(rental) {
     }
 
     async function loadCustomers() {
+    try {
         const { data } = await client.from('customers').select('*');
-        document.getElementById('b-customer').innerHTML = (data || []).map(c => `<option value="${c.id}">${c.full_name}</option>`).join('');
+
+        const dropdown = document.getElementById('b-customer');
+
+        // ✅ PREVENT CRASH
+        if (!dropdown) return;
+
+        dropdown.innerHTML = (data || [])
+            .map(c => `<option value="${c.id}">${c.full_name}</option>`)
+            .join('');
+
+    } catch (err) {
+        console.error("Load Customers Error:", err);
     }
+}
+
 
     function openCustomerModal() { document.getElementById('customer-modal').classList.add('active'); }
 
