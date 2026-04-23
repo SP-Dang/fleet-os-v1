@@ -548,78 +548,35 @@ async function logout() {
     let html5QrCode;
     let activeScannedRental = null;
 
-async function autoActivateBookings() {
-    try {
-        const { data: rentals } = await client.from('rentals').select('*');
-
-        const today = new Date();
-        today.setHours(0,0,0,0);
-
-        for (const r of rentals || []) {
-            if (r.status !== 'booked') continue;
-
-            const start = new Date(r.start_date);
-            start.setHours(0,0,0,0);
-
-            if (today >= start) {
-                await client
-                    .from('rentals')
-                    .update({ status: 'active' })
-                    .eq('id', r.id);
-
-                await client
-                    .from('vehicles')
-                    .update({ status: 'rented' })
-                    .eq('id', r.vehicle_id);
-            }
-        }
-
-    } catch (err) {
-        console.error("Auto Activate Error:", err);
-    }
-}
-
-        
-let autoRefreshInterval = null; // ✅ prevent duplicate intervals
-
 async function init() {
 
     try {
-        // =========================================
-        // 🔥 STEP 1: ACTIVATE BOOKINGS FIRST
-        // =========================================
+        // ✅ RUN FIRST
         await autoActivateBookings();
-
-        // =========================================
-        // 🚗 STEP 2: LOAD UI (WAIT PROPERLY)
-        // =========================================
-        await loadVehicles();
-        await loadCustomers();
-        await loadRentals();
-        await loadSummary();
-
     } catch (err) {
-        console.error("Init Error:", err);
+        console.error("Auto Activate Error:", err);
     }
 
-    // =========================================
-    // 🔁 STEP 3: SAFE AUTO REFRESH
-    // =========================================
-    if (!autoRefreshInterval) {
-        autoRefreshInterval = setInterval(async () => {
-            try {
-                await autoActivateBookings();
+    // ✅ LOAD UI (IMPORTANT: outside try)
+    await loadVehicles();
+    await loadCustomers();
+    loadRentals();
+    loadSummary();
 
-                await loadVehicles();
-                await loadRentals();
-                await loadSummary();
+    // ✅ SAFE INTERVAL (VERY IMPORTANT)
+    setInterval(async () => {
+        try {
+            await autoActivateBookings();
 
-            } catch (err) {
-                console.error("Interval Error:", err);
-            }
-        }, 60000);
-    }
-}
+            // reload UI safely
+            loadVehicles();
+            loadRentals();
+            loadSummary();
+
+        } catch (err) {
+            console.error("Interval Error:", err);
+        }
+    }, 60000);
 
     // ✅ DEFAULT DATE
     const dateInput = document.getElementById('b-start-date');
@@ -761,23 +718,9 @@ async function processCheckIn(rental) {
     }
 
     async function loadCustomers() {
-    try {
         const { data } = await client.from('customers').select('*');
-
-        const dropdown = document.getElementById('b-customer');
-
-        // ✅ PREVENT CRASH
-        if (!dropdown) return;
-
-        dropdown.innerHTML = (data || [])
-            .map(c => `<option value="${c.id}">${c.full_name}</option>`)
-            .join('');
-
-    } catch (err) {
-        console.error("Load Customers Error:", err);
+        document.getElementById('b-customer').innerHTML = (data || []).map(c => `<option value="${c.id}">${c.full_name}</option>`).join('');
     }
-}
-
 
     function openCustomerModal() { document.getElementById('customer-modal').classList.add('active'); }
 
@@ -1246,29 +1189,60 @@ let myChart = null; // Global variable to store the chart instance
 
 async function loadSummary() {
     try {
-        // =========================================
         // ✅ FETCH DATA
-        // =========================================
         const { data: rentals } = await client.from('rentals').select('*');
         const { data: logs } = await client.from('maintenance_logs').select('*');
         const { data: vehicleList } = await client
             .from('vehicles')
             .select('id, make_model, license_plate');
 
-        const safeRentals = rentals || [];
+        // ✅ SAFE FALLBACKS
+        let safeRentals = rentals || [];
         const safeLogs = logs || [];
         const safeVehicles = vehicleList || [];
 
-        // ✅ GLOBAL ACCESS
-        window.safeRentals = safeRentals;
+        // ✅ GLOBAL ACCESS (EXPORT)
         window.safeLogs = safeLogs;
         window.safeVehicles = safeVehicles;
 
-        // =========================================
-        // 📅 TODAY
-        // =========================================
+        // ✅ TODAY DATE
         const today = new Date();
         today.setHours(0,0,0,0);
+
+        // =========================================
+        // 🚨 AUTO ACTIVATE BOOKINGS (FIXED)
+        // =========================================
+        let hasUpdate = false;
+
+        for (const r of safeRentals) {
+            if (r.status === 'booked') {
+                const start = new Date(r.start_date);
+                start.setHours(0,0,0,0);
+
+                if (today >= start) {
+                    await client
+                        .from('rentals')
+                        .update({ status: 'active' })
+                        .eq('id', r.id);
+
+                    await client
+                        .from('vehicles')
+                        .update({ status: 'rented' })
+                        .eq('id', r.vehicle_id);
+
+                    hasUpdate = true;
+                }
+            }
+        }
+
+        // ✅ RE-FETCH UPDATED DATA
+        if (hasUpdate) {
+            const { data: refreshed } = await client.from('rentals').select('*');
+            safeRentals = refreshed || [];
+        }
+
+        // ✅ SAVE FINAL DATA FOR EXPORT
+        window.safeRentals = safeRentals;
 
         // =========================================
         // 💰 CALCULATIONS
@@ -1288,20 +1262,9 @@ async function loadSummary() {
             : 0;
 
         // =========================================
-        // 🚗 ACTIVE RENTALS (REAL-TIME CALCULATION)
+        // 🚗 OPERATIONAL METRICS
         // =========================================
-        const activeRentalsList = safeRentals.filter(r => {
-            if (r.status !== 'booked' && r.status !== 'active') return false;
-
-            const start = new Date(r.start_date);
-            start.setHours(0,0,0,0);
-
-            const end = new Date(start);
-            end.setDate(start.getDate() + Number(r.rental_days || 0));
-
-            return today >= start && today < end;
-        });
-
+        const activeRentalsList = safeRentals.filter(r => r.status === 'active');
         const activeRentals = activeRentalsList.length;
 
         const activeVehicleIds = [
@@ -1334,7 +1297,7 @@ async function loadSummary() {
         const overdueCount = overdueRentals.length;
 
         // =========================================
-        // 🎯 SAFE UI UPDATE
+        // 🎯 UPDATE UI (SAFE)
         // =========================================
         const setText = (id, value) => {
             const el = document.getElementById(id);
