@@ -391,7 +391,10 @@ if (!selectedStart || !selectedEnd) {
     return;
 }
 
-const start = selectedStart.toISOString().split('T')[0];
+const start = selectedStart.getFullYear() + '-' +
+    String(selectedStart.getMonth() + 1).padStart(2, '0') + '-' +
+    String(selectedStart.getDate()).padStart(2, '0');
+
 
 // calculate days automatically
 const diff = selectedEnd - selectedStart;
