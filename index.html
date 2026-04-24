@@ -1249,7 +1249,9 @@ async function loadRentals() {
         return;
     }
 
-    // Filter data locally for high-speed searching across all fields
+    // =========================================
+    // 🔍 FILTER (UNCHANGED)
+    // =========================================
     let filteredData = (data || []).filter(r => {
         const vehicleName = (r.vehicles?.make_model || "").toLowerCase();
         const plate = (r.vehicles?.license_plate || "").toLowerCase();
@@ -1260,43 +1262,95 @@ async function loadRentals() {
                customerName.includes(searchTerm);
     });
 
+    // =========================================
+    // 🔥 RENDER TABLE
+    // =========================================
     document.getElementById('rental-list').innerHTML = filteredData.map(r => {
-    const vehicle = Array.isArray(r.vehicles) ? r.vehicles[0] : r.vehicles;
-    const customer = Array.isArray(r.customers) ? r.customers[0] : r.customers;
-    
-    return `
-    <tr>
-        <td class="p-8">
-            <div class="font-black italic uppercase text-slate-900">${vehicle?.make_model || 'Unknown Vehicle'}</div>
-            <div class="text-[9px] font-bold text-slate-400">${vehicle?.license_plate || 'N/A'}</div>
-        </td>
-        <td class="p-8 font-bold text-slate-600">${customer?.full_name || 'N/A'}</td>
-        <td class="p-8 text-slate-500 font-medium">${r.rental_days} Days</td>
-        <td class="p-8">
-            <span class="px-3 py-1 rounded-full text-[8px] font-black uppercase ${
-                r.status === 'booked' ? 'bg-amber-100 text-amber-600' : 
-                r.status === 'active' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-400'
-            }">
-                ● ${r.status}
-            </span>
-        </td>
-        <td class="p-8 text-right flex justify-end gap-2">
-            ${r.status === 'booked' ? `
-                <button onclick='processCheckIn(${JSON.stringify(r)})' class="bg-blue-600 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-slate-900 transition-all">Check IN</button>
-            ` : ''}
-            
-            ${r.status === 'active' ? `
-                <button onclick='handleManualReturn(${JSON.stringify(r)})' class="bg-emerald-50 text-emerald-600 px-4 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-emerald-600 hover:text-white transition-all">Return</button>
-            ` : ''}
-            <button onclick='preparePrint(${JSON.stringify(r)})' class="bg-slate-900 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-blue-600 transition-all">Print</button>
-        </td>
-    </tr>`;
-}).join('');
+
+        const vehicle = Array.isArray(r.vehicles) ? r.vehicles[0] : r.vehicles;
+        const customer = Array.isArray(r.customers) ? r.customers[0] : r.customers;
+
+        // =========================================
+        // 🔥 PAYMENT BADGE (NEW)
+        // =========================================
+        const paymentBadge = r.payment_status === 'paid'
+            ? '<span class="px-3 py-1 rounded-full text-[8px] font-black bg-emerald-100 text-emerald-600">● Paid</span>'
+            : '<span class="px-3 py-1 rounded-full text-[8px] font-black bg-amber-100 text-amber-600">● Pending</span>';
+
+        return `
+        <tr>
+            <td class="p-8">
+                <div class="font-black italic uppercase text-slate-900">
+                    ${vehicle?.make_model || 'Unknown Vehicle'}
+                </div>
+                <div class="text-[9px] font-bold text-slate-400">
+                    ${vehicle?.license_plate || 'N/A'}
+                </div>
+            </td>
+
+            <td class="p-8 font-bold text-slate-600">
+                ${customer?.full_name || 'N/A'}
+            </td>
+
+            <td class="p-8 text-slate-500 font-medium">
+                ${r.rental_days} Days
+            </td>
+
+            <!-- 🔥 STATUS -->
+            <td class="p-8">
+                <span class="px-3 py-1 rounded-full text-[8px] font-black uppercase ${
+                    r.status === 'booked' ? 'bg-amber-100 text-amber-600' : 
+                    r.status === 'active' ? 'bg-blue-100 text-blue-600' : 
+                    'bg-slate-100 text-slate-400'
+                }">
+                    ● ${r.status}
+                </span>
+            </td>
+
+            <!-- 🔥 PAYMENT STATUS (NEW COLUMN) -->
+            <td class="p-8">
+                ${paymentBadge}
+            </td>
+
+            <!-- 🔥 ACTIONS -->
+            <td class="p-8 text-right flex justify-end gap-2 flex-wrap">
+
+                ${r.payment_status !== 'paid' ? `
+                    <button onclick="markAsPaid('${r.id}')"
+                        class="bg-emerald-100 text-emerald-600 px-3 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-emerald-600 hover:text-white transition">
+                        Mark Paid
+                    </button>
+                ` : ''}
+
+                ${r.status === 'booked' ? `
+                    <button onclick='processCheckIn(${JSON.stringify(r)})'
+                        class="bg-blue-600 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-slate-900 transition-all">
+                        Check IN
+                    </button>
+                ` : ''}
+                
+                ${r.status === 'active' ? `
+                    <button onclick='handleManualReturn(${JSON.stringify(r)})'
+                        class="bg-emerald-50 text-emerald-600 px-4 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-emerald-600 hover:text-white transition-all">
+                        Return
+                    </button>
+                ` : ''}
+
+                <button onclick='preparePrint(${JSON.stringify(r)})'
+                    class="bg-slate-900 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-blue-600 transition-all">
+                    Print
+                </button>
+
+            </td>
+        </tr>`;
+    }).join('');
     
 
-    // Handle "Load More" button visibility
+    // =========================================
+    // 🔽 LOAD MORE BUTTON (UNCHANGED)
+    // =========================================
     const loadMoreBtn = document.getElementById('load-more-container');
-    if (data.length >= displayLimit) {
+    if ((data || []).length >= displayLimit) {
         loadMoreBtn.classList.remove('hidden');
     } else {
         loadMoreBtn.classList.add('hidden');
@@ -1318,6 +1372,25 @@ async function handleManualReturn(rental) {
     document.getElementById('btn-confirm-return').onclick = () => processReturn(rental);
     document.getElementById('return-modal').classList.add('active');
 }
+
+async function markAsPaid(rentalId) {
+    try {
+        await client
+            .from('rentals')
+            .update({ payment_status: 'paid' })
+            .eq('id', rentalId);
+
+        alert("✅ Payment confirmed");
+
+        await loadRentals();
+        await loadSummary();
+
+    } catch (err) {
+        console.error(err);
+        alert("Error updating payment");
+    }
+}
+
         
  async function renderScheduleGrid() {
     const { data: vList } = await client.from('vehicles').select('*');
