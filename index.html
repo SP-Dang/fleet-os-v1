@@ -117,19 +117,25 @@
             </div>
         </div>
 
-        <div class="bg-white rounded-[48px] border border-slate-100 shadow-sm overflow-hidden">
-            <table class="w-full text-left border-collapse">
-                <thead class="bg-slate-50 border-b border-slate-100">
-                    <tr>
-                        <th class="p-8 text-[10px] font-black uppercase text-slate-400 italic">Vehicle</th>
-                        <th class="p-8 text-[10px] font-black uppercase text-slate-400 italic">Customer</th>
-                        <th class="p-8 text-[10px] font-black uppercase text-slate-400 italic">Duration</th>
-                        <th class="p-8 text-[10px] font-black uppercase text-slate-400 italic">Status</th>
-                        <th class="p-8 text-right text-[10px] font-black uppercase text-slate-400 italic">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="rental-list" class="divide-y divide-slate-50"></tbody>
-            </table>
+    <div class="bg-white rounded-[48px] border border-slate-100 shadow-sm overflow-hidden">
+        <table class="w-full text-left border-collapse">
+
+        <thead class="bg-slate-50 border-b border-slate-100">
+            <tr>
+                <th class="p-8 text-[10px] font-black uppercase text-slate-400 italic">Vehicle</th>
+                <th class="p-8 text-[10px] font-black uppercase text-slate-400 italic">Customer</th>
+                <th class="p-8 text-[10px] font-black uppercase text-slate-400 italic">Duration</th>
+                <th class="p-8 text-[10px] font-black uppercase text-slate-400 italic">Status</th>
+                <!-- 🔥 ADD THIS -->
+                <th class="p-8 text-[10px] font-black uppercase text-slate-400 italic">Payment</th>
+
+                <th class="p-8 text-right text-[10px] font-black uppercase text-slate-400 italic">Actions</th>
+            </tr>
+        </thead>
+
+        <tbody id="rental-list" class="divide-y divide-slate-50"></tbody>
+
+    </table>
             
             <div id="load-more-container" class="p-8 flex justify-center border-t border-slate-50 hidden">
                 <button onclick="loadMoreRentals()" class="px-12 py-5 bg-slate-50 text-slate-400 rounded-3xl font-black text-[10px] uppercase hover:bg-blue-600 hover:text-white transition-all active:scale-95">
@@ -1278,7 +1284,7 @@ async function loadRentals() {
             : '<span class="px-3 py-1 rounded-full text-[8px] font-black bg-amber-100 text-amber-600">● Pending</span>';
 
         return `
-        <tr>
+        <tr class="border-b hover:bg-slate-50 transition">
             <td class="p-8">
                 <div class="font-black italic uppercase text-slate-900">
                     ${vehicle?.make_model || 'Unknown Vehicle'}
