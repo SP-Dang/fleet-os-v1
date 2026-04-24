@@ -428,6 +428,30 @@
         </div>
     </div>
 
+    <!-- IMAGE UPLOAD MODAL (GM ONLY) -->
+<div id="image-modal"
+    class="fixed inset-0 bg-black/50 hidden items-center justify-center">
+
+    <div class="bg-white p-6 rounded-2xl w-[400px]">
+
+        <h2 class="text-lg font-bold mb-4">Upload Vehicle Image</h2>
+
+        <input type="file" id="image-file" class="w-full mb-4">
+
+        <button onclick="uploadVehicleImage()"
+            class="w-full bg-blue-600 text-white p-3 rounded-xl font-bold">
+            Upload
+        </button>
+
+        <button onclick="closeImageModal()"
+            class="w-full mt-3 text-slate-400">
+            Cancel
+        </button>
+
+    </div>
+</div>
+    
+        
     <div id="edit-modal" class="modal">
     <div class="bg-white w-full max-w-lg rounded-[48px] shadow-2xl overflow-hidden flex flex-col border border-slate-200">
         
@@ -666,35 +690,89 @@ function switchView(v) {
         renderGrid(allVehicles);
     }
 
-    function renderGrid(list) {
-        document.getElementById('vehicle-grid').innerHTML = list.map(v => {
-            let sColor = v.status === 'available' ? 'bg-emerald-100 text-emerald-600' : (v.status === 'rented' ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-600');
-            return `
-            <div class="bg-white p-8 rounded-[48px] border border-slate-100 shadow-sm transition-all group hover:shadow-2xl">
-                <div class="flex justify-between items-start mb-4">
-                    <span class="px-3 py-1 bg-slate-50 border border-slate-100 rounded-full text-[8px] font-black text-slate-400 uppercase">${v.license_plate}</span>
-                    <span class="px-3 py-1 rounded-full text-[8px] font-black uppercase ${sColor}">● ${v.status}</span>
+ function renderGrid(list) {
+    document.getElementById('vehicle-grid').innerHTML = list.map(v => {
+
+        let sColor = v.status === 'available'
+            ? 'bg-emerald-100 text-emerald-600'
+            : (v.status === 'rented'
+                ? 'bg-rose-100 text-rose-600'
+                : 'bg-amber-100 text-amber-600');
+
+        return `
+        <div class="bg-white p-8 rounded-[48px] border border-slate-100 shadow-sm transition-all group hover:shadow-2xl">
+
+            <div class="flex justify-between items-start mb-4">
+                <span class="px-3 py-1 bg-slate-50 border border-slate-100 rounded-full text-[8px] font-black text-slate-400 uppercase">
+                    ${v.license_plate}
+                </span>
+
+                <span class="px-3 py-1 rounded-full text-[8px] font-black uppercase ${sColor}">
+                    ● ${v.status}
+                </span>
+            </div>
+
+            <h3 class="text-2xl font-black italic uppercase leading-none mb-4 group-hover:text-blue-600">
+                ${v.make_model}
+            </h3>
+
+            <p class="text-blue-600 font-black text-xl mb-6">
+                $${v.daily_rate}
+                <span class="text-[10px] text-slate-300">/day</span>
+            </p>
+
+            <div class="grid grid-cols-4 gap-2 mb-8 border-y border-slate-50 py-4">
+                <div class="text-center">
+                    <p class="text-[7px] text-slate-400 font-black uppercase italic">Seats</p>
+                    <p class="text-[10px] font-bold">${v.seats || '-'}</p>
                 </div>
-                <h3 class="text-2xl font-black italic uppercase leading-none mb-4 group-hover:text-blue-600">${v.make_model}</h3>
-                <p class="text-blue-600 font-black text-xl mb-6">$${v.daily_rate}<span class="text-[10px] text-slate-300">/day</span></p>
-                <div class="grid grid-cols-4 gap-2 mb-8 border-y border-slate-50 py-4">
-                    <div class="text-center"><p class="text-[7px] text-slate-400 font-black uppercase italic">Seats</p><p class="text-[10px] font-bold">${v.seats || '-'}</p></div>
-                    <div class="text-center"><p class="text-[7px] text-slate-400 font-black uppercase italic">Type</p><p class="text-[10px] font-bold truncate">${v.vehicle_type || '-'}</p></div>
-                    <div class="text-center"><p class="text-[7px] text-slate-400 font-black uppercase italic">Fuel</p><p class="text-[10px] font-bold">${v.fuel_type || '-'}</p></div>
-                    <div class="text-center"><p class="text-[7px] text-slate-400 font-black uppercase italic">Trans</p><p class="text-[10px] font-bold">${v.transmission || '-'}</p></div>
+
+                <div class="text-center">
+                    <p class="text-[7px] text-slate-400 font-black uppercase italic">Type</p>
+                    <p class="text-[10px] font-bold truncate">${v.vehicle_type || '-'}</p>
                 </div>
-                <button onclick='openBooking(${JSON.stringify(v)})' ${v.status !== 'available' ? 'disabled' : ''} class="w-full py-5 bg-slate-900 text-white rounded-3xl font-black text-[10px] uppercase mb-3 active:scale-95 disabled:opacity-20">
-                    ${v.status === 'available' ? 'Select & Book' : 'Unavailable'}
+
+                <div class="text-center">
+                    <p class="text-[7px] text-slate-400 font-black uppercase italic">Fuel</p>
+                    <p class="text-[10px] font-bold">${v.fuel_type || '-'}</p>
+                </div>
+
+                <div class="text-center">
+                    <p class="text-[7px] text-slate-400 font-black uppercase italic">Trans</p>
+                    <p class="text-[10px] font-bold">${v.transmission || '-'}</p>
+                </div>
+            </div>
+
+            <!-- BOOK BUTTON -->
+            <button onclick='openBooking(${JSON.stringify(v)})'
+                ${v.status !== 'available' ? 'disabled' : ''}
+                class="w-full py-5 bg-slate-900 text-white rounded-3xl font-black text-[10px] uppercase mb-3 active:scale-95 disabled:opacity-20">
+                ${v.status === 'available' ? 'Select & Book' : 'Unavailable'}
+            </button>
+
+            <!-- 🔥 ADD IMAGE BUTTON (NEW) -->
+            <button onclick="openImageModal('${v.id}')"
+                class="w-full py-2 mb-3 text-[9px] font-bold text-blue-600 border border-blue-100 rounded-2xl hover:bg-blue-50">
+                + Add Image
+            </button>
+
+            <!-- ACTION BUTTONS -->
+            <div class="flex gap-2">
+                <button onclick='openEdit(${JSON.stringify(v)})'
+                    class="flex-1 py-3 bg-slate-50 text-slate-400 rounded-2xl font-black text-[8px] uppercase hover:bg-blue-50">
+                    Edit
                 </button>
-                <div class="flex gap-2">
-                    <button onclick='openEdit(${JSON.stringify(v)})' class="flex-1 py-3 bg-slate-50 text-slate-400 rounded-2xl font-black text-[8px] uppercase hover:bg-blue-50">Edit</button>
-                    <button onclick="toggleMaintenance('${v.id}', '${v.status}')" class="flex-1 py-3 bg-slate-50 text-slate-400 rounded-2xl font-black text-[8px] uppercase hover:bg-amber-50">
-                        ${v.status === 'maintenance' ? 'Set Ready' : 'Repair'}
-                    </button>
-                </div>
-            </div>`;
-        }).join('');
-    }
+
+                <button onclick="toggleMaintenance('${v.id}', '${v.status}')"
+                    class="flex-1 py-3 bg-slate-50 text-slate-400 rounded-2xl font-black text-[8px] uppercase hover:bg-amber-50">
+                    ${v.status === 'maintenance' ? 'Set Ready' : 'Repair'}
+                </button>
+            </div>
+
+        </div>`;
+    }).join('');
+}
+
 
     function filterVehicles() {
         const q = document.getElementById('search-input').value.toLowerCase();
@@ -1810,9 +1888,75 @@ async function loadGlobalData() {
         console.error("Global Data Load Error:", err);
     }
 }
-      
+
+  function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+let selectedVehicleForImage = null;
+
+// OPEN IMAGE MODAL
+function openImageModal(vehicleId) {
+    selectedVehicleForImage = vehicleId;
+    document.getElementById('image-modal').classList.remove('hidden');
+}
+
+// CLOSE IMAGE MODAL
+function closeImageModal() {
+    document.getElementById('image-modal').classList.add('hidden');
+}
+
+async function uploadVehicleImage() {
+    try {
+        const file = document.getElementById('image-file').files[0];
+
+        if (!file) {
+            alert("Please select image");
+            return;
+        }
+
+        const fileName = `${Date.now()}_${file.name}`;
+
+        // UPLOAD
+        const { error } = await client.storage
+            .from('vehicles')
+            .upload(fileName, file);
+
+        if (error) {
+            console.error(error);
+            alert("Upload failed");
+            return;
+        }
+
+        // GET URL
+        const { data } = client.storage
+            .from('vehicles')
+            .getPublicUrl(fileName);
+
+        const publicUrl = data.publicUrl;
+
+        // SAVE DB
+        const { error: dbError } = await client
+            .from('vehicle_images')
+            .insert([{
+                vehicle_id: selectedVehicleForImage,
+                image_url: publicUrl
+            }]);
+
+        if (dbError) {
+            console.error(dbError);
+            alert("Database error");
+            return;
+        }
+
+        alert("✅ Image uploaded");
+
+        closeImageModal();
+
+    } catch (err) {
+        console.error(err);
+        alert("System error");
+    }
+}
         
-    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
     window.onload = init;
         
 </script>
