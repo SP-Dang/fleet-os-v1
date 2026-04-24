@@ -569,9 +569,6 @@ endDate.setHours(0,0,0,0);
 const diff = (endDate - startDate) / (1000 * 60 * 60 * 24);
 const days = Math.max(1, Math.round(diff));
 
-
-
-
         // 🚨 VALIDATION
         if (!name) return alert("Full Name is required");
         if (!phone) return alert("Phone Number is required");
@@ -645,7 +642,8 @@ const days = Math.max(1, Math.round(diff));
                 start_date: start,
                 rental_days: days,
                 total_price: days * (selectedVehicleData?.daily_rate || 0),
-                status: 'booked'
+                status: 'booked',
+                payment_status: 'pending'
             }]);
 
         if (rError) {
