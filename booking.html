@@ -131,29 +131,6 @@
     </div>
 </div>
 
-<!-- IMAGE UPLOAD MODAL -->
-    <div id="image-modal"
-        class="fixed inset-0 bg-black/50 hidden items-center justify-center">
-
-        <div class="bg-white p-6 rounded-2xl w-[400px]">
-
-            <h2 class="text-lg font-bold mb-4">Upload Vehicle Image</h2>
-
-            <input type="file" id="image-file" class="w-full mb-4">
-
-            <button onclick="uploadVehicleImage()"
-                class="w-full bg-blue-600 text-white p-3 rounded-xl font-bold">
-                Upload
-            </button>
-
-            <button onclick="closeImageModal()"
-                class="w-full mt-3 text-slate-400">
-                Cancel
-            </button>
-
-        </div>
-    </div>
-    
 <!-- SCRIPT -->
 <script>
 const client = supabase.createClient(
@@ -166,8 +143,6 @@ let selectedVehicleData = null;
 
 let selectedStart = null;
 let selectedEnd = null;
-let selectedVehicleForImage = null;
-
 
 async function initCalendar(vehicleId) {
     try {
@@ -317,11 +292,6 @@ async function initCalendar(vehicleId) {
                         ${disabled ? 'Unavailable' : 'Book Now'}
                     </button>
 
-                    <button onclick="openImageModal('${v.id}')"
-                    class="w-full mt-2 text-xs text-blue-600">
-                    Add Image
-                    </button>
-                        
                 </div>
             `;
         }).join('');
@@ -418,73 +388,6 @@ function closeModal() {
     setTimeout(() => {
         modal.classList.add('hidden');
     }, 300);
-}
-
-
-// OPEN IMAGE MODAL
-function openImageModal(vehicleId) {
-    selectedVehicleForImage = vehicleId;
-    document.getElementById('image-modal').classList.remove('hidden');
-}
-
-// CLOSE IMAGE MODAL
-function closeImageModal() {
-    document.getElementById('image-modal').classList.add('hidden');
-}
-    
-
-async function uploadVehicleImage() {
-    try {
-        const fileInput = document.getElementById('image-file');
-        const file = fileInput.files[0];
-
-        if (!file) {
-            alert("Please select an image");
-            return;
-        }
-
-        const fileName = `${Date.now()}_${file.name}`;
-
-        // UPLOAD TO STORAGE
-        const { error: uploadError } = await client.storage
-            .from('vehicles')
-            .upload(fileName, file);
-
-        if (uploadError) {
-            console.error(uploadError);
-            alert("Upload failed");
-            return;
-        }
-
-        // GET PUBLIC URL
-        const { data } = client.storage
-            .from('vehicles')
-            .getPublicUrl(fileName);
-
-        const publicUrl = data.publicUrl;
-
-        // SAVE TO DATABASE
-        const { error: dbError } = await client
-            .from('vehicle_images')
-            .insert([{
-                vehicle_id: selectedVehicleForImage,
-                image_url: publicUrl
-            }]);
-
-        if (dbError) {
-            console.error(dbError);
-            alert("Database error");
-            return;
-        }
-
-        alert("✅ Image uploaded");
-
-        closeImageModal();
-
-    } catch (err) {
-        console.error(err);
-        alert("System error");
-    }
 }
 
     
@@ -636,13 +539,17 @@ endDate.setHours(0,0,0,0);
 const diff = (endDate - startDate) / (1000 * 60 * 60 * 24);
 const days = Math.max(1, Math.round(diff));
 
+
+
+
         // 🚨 VALIDATION
         if (!name) return alert("Full Name is required");
         if (!phone) return alert("Phone Number is required");
         if (!nationality) return alert("Nationality is required");
         if (!passport) return alert("Passport / ID is required");
         if (!license) return alert("Driving License is required");
-       
+        
+
         // =========================================
         // 🚨 STEP 1: CHECK AVAILABILITY (NEW SYSTEM)
         // =========================================
