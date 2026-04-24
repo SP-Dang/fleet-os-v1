@@ -32,56 +32,63 @@
 <div id="vehicle-list" class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6"></div>
 
 <!-- BOOKING MODAL -->
-<div id="booking-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center transition-opacity duration-300 opacity-0">
+<div id="booking-modal"
+    class="fixed inset-0 bg-black/50 hidden items-center justify-center transition-opacity duration-300 opacity-0">
 
     <div id="modal-card"
-        class="bg-white p-6 rounded-2xl w-[420px] transform scale-95 opacity-0 transition-all duration-300">
+        class="bg-white rounded-2xl w-[700px] max-h-[90vh] overflow-hidden transform scale-95 opacity-0 transition-all duration-300 shadow-2xl">
 
-        <!-- 🔥 IMAGE SLIDER -->
-        <div class="relative mb-4">
+        <!-- 🔥 BIG IMAGE SECTION -->
+        <div class="relative">
 
             <img id="vehicle-image"
-                src=""
-                class="w-full h-44 object-cover rounded-xl">
+                class="w-full h-72 object-cover">
 
             <!-- LEFT -->
             <button onclick="prevImage()"
-                class="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 text-white px-2 py-1 rounded-full">
+                class="absolute left-3 top-1/2 -translate-y-1/2 bg-black/50 text-white px-3 py-1 rounded-full">
                 ‹
             </button>
 
             <!-- RIGHT -->
             <button onclick="nextImage()"
-                class="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 text-white px-2 py-1 rounded-full">
+                class="absolute right-3 top-1/2 -translate-y-1/2 bg-black/50 text-white px-3 py-1 rounded-full">
                 ›
             </button>
 
         </div>
 
-        <!-- VEHICLE INFO -->
-        <h3 id="vehicle-name"
-            class="text-lg font-bold text-slate-800"></h3>
+        <!-- 🔥 CONTENT AREA -->
+        <div class="p-6">
 
-        <p id="vehicle-price"
-            class="text-blue-600 font-bold text-sm mb-3"></p>
+            <!-- VEHICLE INFO -->
+            <div class="flex justify-between items-center mb-3">
+                <h3 id="vehicle-name"
+                    class="text-xl font-bold text-slate-800"></h3>
 
-        <h2 class="text-xl font-black mb-3">Book Vehicle</h2>
+                <p id="vehicle-price"
+                    class="text-blue-600 font-bold"></p>
+            </div>
 
-        <!-- DATE -->
-        <input id="date-range"
-            placeholder="Select booking dates"
-            class="w-full p-3 border rounded-xl mb-4">
+            <h2 class="text-lg font-black mb-3">Select Dates</h2>
 
-        <!-- BUTTON -->
-        <button onclick="openCustomerModal()"
-            class="w-full bg-blue-600 text-white p-3 rounded-xl font-bold hover:bg-blue-700 transition">
-            Next
-        </button>
+            <!-- DATE INPUT -->
+            <input id="date-range"
+                placeholder="Select booking dates"
+                class="w-full p-3 border rounded-xl mb-4">
 
-        <button onclick="closeModal()"
-            class="w-full mt-3 text-slate-400 hover:text-slate-600">
-            Cancel
-        </button>
+            <!-- BUTTON -->
+            <button onclick="openCustomerModal()"
+                class="w-full bg-blue-600 text-white p-3 rounded-xl font-bold hover:bg-blue-700 transition">
+                Next
+            </button>
+
+            <button onclick="closeModal()"
+                class="w-full mt-3 text-slate-400 hover:text-slate-600">
+                Cancel
+            </button>
+
+        </div>
 
     </div>
 </div>
