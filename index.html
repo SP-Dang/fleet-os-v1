@@ -572,6 +572,48 @@ async function logout() {
     let html5QrCode;
     let activeScannedRental = null;
 
+
+// =========================================
+// 🔥 AUTO ACTIVATE BOOKINGS (SAFE VERSION)
+// =========================================
+async function autoActivateBookings() {
+    try {
+        const { data: rentals } = await client
+            .from('rentals')
+            .select('*');
+
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        for (const r of rentals || []) {
+
+            if (r.status !== 'booked') continue;
+
+            const start = new Date(r.start_date);
+            start.setHours(0,0,0,0);
+
+            // 👉 when booking start date reached → activate
+            if (today >= start) {
+
+                await client
+                    .from('rentals')
+                    .update({ status: 'active' })
+                    .eq('id', r.id);
+
+                await client
+                    .from('vehicles')
+                    .update({ status: 'rented' })
+                    .eq('id', r.vehicle_id);
+            }
+        }
+
+    } catch (err) {
+        console.error("Auto Activate Error:", err);
+    }
+}
+
+        
+        
 async function init() {
 
     // =========================================
