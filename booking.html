@@ -32,39 +32,52 @@
 <div id="vehicle-list" class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6"></div>
 
 <!-- BOOKING MODAL -->
-<div id="booking-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center">
-    
-    <div class="bg-white p-6 rounded-2xl w-[420px]">
+<div id="booking-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center transition-opacity duration-300 opacity-0">
 
-        <!-- 🔥 VEHICLE PREVIEW -->
-        <div class="mb-4">
+    <div id="modal-card"
+        class="bg-white p-6 rounded-2xl w-[420px] transform scale-95 opacity-0 transition-all duration-300">
+
+        <!-- 🔥 IMAGE SLIDER -->
+        <div class="relative mb-4">
 
             <img id="vehicle-image"
                 src=""
-                class="w-full h-44 object-cover rounded-xl mb-3 hidden">
+                class="w-full h-44 object-cover rounded-xl">
 
-            <h3 id="vehicle-name"
-                class="text-lg font-bold text-slate-800"></h3>
+            <!-- LEFT -->
+            <button onclick="prevImage()"
+                class="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 text-white px-2 py-1 rounded-full">
+                ‹
+            </button>
 
-            <p id="vehicle-price"
-                class="text-blue-600 font-bold text-sm"></p>
+            <!-- RIGHT -->
+            <button onclick="nextImage()"
+                class="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 text-white px-2 py-1 rounded-full">
+                ›
+            </button>
 
         </div>
 
+        <!-- VEHICLE INFO -->
+        <h3 id="vehicle-name"
+            class="text-lg font-bold text-slate-800"></h3>
+
+        <p id="vehicle-price"
+            class="text-blue-600 font-bold text-sm mb-3"></p>
+
         <h2 class="text-xl font-black mb-3">Book Vehicle</h2>
 
-        <!-- ✅ DATE RANGE -->
+        <!-- DATE -->
         <input id="date-range"
             placeholder="Select booking dates"
             class="w-full p-3 border rounded-xl mb-4">
 
-        <!-- NEXT BUTTON -->
+        <!-- BUTTON -->
         <button onclick="openCustomerModal()"
             class="w-full bg-blue-600 text-white p-3 rounded-xl font-bold hover:bg-blue-700 transition">
             Next
         </button>
 
-        <!-- CANCEL BUTTON -->
         <button onclick="closeModal()"
             class="w-full mt-3 text-slate-400 hover:text-slate-600">
             Cancel
@@ -285,49 +298,69 @@ async function initCalendar(vehicleId) {
 // ✅ OPEN BOOKING MODAL
 function openModal(vehicle) {
 
-    // =========================================
-    // ✅ KEEP YOUR ORIGINAL LOGIC
-    // =========================================
     selectedVehicle = vehicle.id;
     selectedVehicleData = vehicle;
 
-    document.getElementById('booking-modal').classList.remove('hidden');
+    const modal = document.getElementById('booking-modal');
+    const card = document.getElementById('modal-card');
+
+    modal.classList.remove('hidden');
+
+    // 🔥 SMOOTH ANIMATION
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        card.classList.remove('scale-95', 'opacity-0');
+        card.classList.add('scale-100', 'opacity-100');
+    }, 10);
 
     // =========================================
-    // 🔥 VEHICLE PREVIEW (NEW)
+    // 🔥 IMAGE GALLERY
     // =========================================
+    vehicleImages = [];
 
-    // IMAGE
+    if (vehicle.image_url) {
+        vehicleImages.push(vehicle.image_url);
+    }
+
+    // 👉 OPTIONAL: multiple images later
+    // vehicleImages = [vehicle.image_url, vehicle.img2, vehicle.img3]
+
+    currentImageIndex = 0;
+
     const img = document.getElementById('vehicle-image');
     if (img) {
-        img.src = vehicle.image_url || 'https://via.placeholder.com/400x200?text=No+Image';
-        img.classList.remove('hidden');
+        img.src = vehicleImages[0] || 'https://via.placeholder.com/400x200?text=No+Image';
     }
 
-    // NAME
+    // =========================================
+    // VEHICLE INFO
+    // =========================================
     const name = document.getElementById('vehicle-name');
-    if (name) {
-        name.innerText = vehicle.make_model || '';
-    }
+    if (name) name.innerText = vehicle.make_model || '';
 
-    // PRICE
     const price = document.getElementById('vehicle-price');
     if (price) {
         price.innerText = `₭${Number(vehicle.daily_rate || 0).toLocaleString()} / day`;
     }
 
-    // =========================================
-    // ✅ KEEP YOUR CALENDAR
-    // =========================================
+    // CALENDAR
     initCalendar(vehicle.id);
 }
 
-
-// ✅ CLOSE MODAL (UNCHANGED)
 function closeModal() {
-    document.getElementById('booking-modal').classList.add('hidden');
+
+    const modal = document.getElementById('booking-modal');
+    const card = document.getElementById('modal-card');
+
+    modal.classList.add('opacity-0');
+    card.classList.add('scale-95', 'opacity-0');
+
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 300);
 }
 
+    
 
 // ✅ CUSTOMER MODAL
 function openCustomerModal() {
@@ -418,6 +451,28 @@ async function checkAvailability(vehicleId, startDate, days) {
     }
 }
 
+// =========================================
+// 🔥 IMAGE GALLERY STATE
+// =========================================
+let vehicleImages = [];
+let currentImageIndex = 0;
+
+
+// NEXT IMAGE
+function nextImage() {
+    if (vehicleImages.length === 0) return;
+
+    currentImageIndex = (currentImageIndex + 1) % vehicleImages.length;
+    document.getElementById('vehicle-image').src = vehicleImages[currentImageIndex];
+}
+
+// PREV IMAGE
+function prevImage() {
+    if (vehicleImages.length === 0) return;
+
+    currentImageIndex = (currentImageIndex - 1 + vehicleImages.length) % vehicleImages.length;
+    document.getElementById('vehicle-image').src = vehicleImages[currentImageIndex];
+}
 
     
 // ✅ SAVE CUSTOMER + BOOKING
