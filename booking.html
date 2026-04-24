@@ -33,24 +33,40 @@
 
 <!-- BOOKING MODAL -->
 <div id="booking-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center">
-    <div class="bg-white p-8 rounded-2xl w-96">
+    
+    <div class="bg-white p-6 rounded-2xl w-[420px]">
 
-        <h2 class="text-xl font-black mb-4">Book Vehicle</h2>
+        <!-- 🔥 VEHICLE PREVIEW -->
+        <div class="mb-4">
 
-        <!-- ✅ DATE RANGE (NEW) -->
+            <img id="vehicle-image"
+                src=""
+                class="w-full h-44 object-cover rounded-xl mb-3 hidden">
+
+            <h3 id="vehicle-name"
+                class="text-lg font-bold text-slate-800"></h3>
+
+            <p id="vehicle-price"
+                class="text-blue-600 font-bold text-sm"></p>
+
+        </div>
+
+        <h2 class="text-xl font-black mb-3">Book Vehicle</h2>
+
+        <!-- ✅ DATE RANGE -->
         <input id="date-range"
             placeholder="Select booking dates"
             class="w-full p-3 border rounded-xl mb-4">
 
         <!-- NEXT BUTTON -->
         <button onclick="openCustomerModal()"
-            class="w-full bg-blue-600 text-white p-3 rounded-xl font-bold">
+            class="w-full bg-blue-600 text-white p-3 rounded-xl font-bold hover:bg-blue-700 transition">
             Next
         </button>
 
         <!-- CANCEL BUTTON -->
         <button onclick="closeModal()"
-            class="w-full mt-3 text-slate-400">
+            class="w-full mt-3 text-slate-400 hover:text-slate-600">
             Cancel
         </button>
 
@@ -268,15 +284,46 @@ async function initCalendar(vehicleId) {
 
 // ✅ OPEN BOOKING MODAL
 function openModal(vehicle) {
+
+    // =========================================
+    // ✅ KEEP YOUR ORIGINAL LOGIC
+    // =========================================
     selectedVehicle = vehicle.id;
     selectedVehicleData = vehicle;
 
     document.getElementById('booking-modal').classList.remove('hidden');
 
-    // ✅ ADD THIS LINE (Airbnb calendar)
+    // =========================================
+    // 🔥 VEHICLE PREVIEW (NEW)
+    // =========================================
+
+    // IMAGE
+    const img = document.getElementById('vehicle-image');
+    if (img) {
+        img.src = vehicle.image_url || 'https://via.placeholder.com/400x200?text=No+Image';
+        img.classList.remove('hidden');
+    }
+
+    // NAME
+    const name = document.getElementById('vehicle-name');
+    if (name) {
+        name.innerText = vehicle.make_model || '';
+    }
+
+    // PRICE
+    const price = document.getElementById('vehicle-price');
+    if (price) {
+        price.innerText = `₭${Number(vehicle.daily_rate || 0).toLocaleString()} / day`;
+    }
+
+    // =========================================
+    // ✅ KEEP YOUR CALENDAR
+    // =========================================
     initCalendar(vehicle.id);
 }
 
+
+// ✅ CLOSE MODAL (UNCHANGED)
 function closeModal() {
     document.getElementById('booking-modal').classList.add('hidden');
 }
