@@ -296,7 +296,8 @@ async function initCalendar(vehicleId) {
 
 
 // ✅ OPEN BOOKING MODAL
-function openModal(vehicle) {
+
+async function openModal(vehicle) {
 
     selectedVehicle = vehicle.id;
     selectedVehicleData = vehicle;
@@ -306,7 +307,7 @@ function openModal(vehicle) {
 
     modal.classList.remove('hidden');
 
-    // 🔥 SMOOTH ANIMATION
+    // ✨ animation
     setTimeout(() => {
         modal.classList.remove('opacity-0');
         card.classList.remove('scale-95', 'opacity-0');
@@ -314,22 +315,41 @@ function openModal(vehicle) {
     }, 10);
 
     // =========================================
-    // 🔥 IMAGE GALLERY
+    // 🔥 LOAD IMAGES FROM DATABASE
     // =========================================
-    vehicleImages = [];
+    try {
+        const { data: images, error } = await client
+            .from('vehicle_images')
+            .select('image_url')
+            .eq('vehicle_id', vehicle.id)
+            .order('position', { ascending: true });
 
-    if (vehicle.image_url) {
-        vehicleImages.push(vehicle.image_url);
-    }
+        if (error) {
+            console.error("Image load error:", error);
+        }
 
-    // 👉 OPTIONAL: multiple images later
-    // vehicleImages = [vehicle.image_url, vehicle.img2, vehicle.img3]
+        // build gallery
+        vehicleImages = (images || []).map(i => i.image_url);
 
-    currentImageIndex = 0;
+        // fallback to single image
+        if (vehicleImages.length === 0 && vehicle.image_url) {
+            vehicleImages = [vehicle.image_url];
+        }
 
-    const img = document.getElementById('vehicle-image');
-    if (img) {
-        img.src = vehicleImages[0] || 'https://via.placeholder.com/400x200?text=No+Image';
+        // final fallback
+        if (vehicleImages.length === 0) {
+            vehicleImages = ['https://via.placeholder.com/400x200?text=No+Image'];
+        }
+
+        currentImageIndex = 0;
+
+        const img = document.getElementById('vehicle-image');
+        if (img) {
+            img.src = vehicleImages[0];
+        }
+
+    } catch (err) {
+        console.error("Gallery error:", err);
     }
 
     // =========================================
@@ -343,10 +363,13 @@ function openModal(vehicle) {
         price.innerText = `₭${Number(vehicle.daily_rate || 0).toLocaleString()} / day`;
     }
 
+    // =========================================
     // CALENDAR
+    // =========================================
     initCalendar(vehicle.id);
 }
-
+    
+    
 function closeModal() {
 
     const modal = document.getElementById('booking-modal');
