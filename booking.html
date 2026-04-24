@@ -186,8 +186,151 @@ async function initCalendar(vehicleId) {
     
 // ✅ LOAD VEHICLES
 
-    async function loadVehicles() { try { const { data: vehicles, error: vError } = await client .from('vehicles') .select('*'); const { data: rentals } = await client .from('rentals') .select('vehicle_id, start_date, rental_days, status'); // 🔥 NEW: LOAD VEHICLE IMAGES const { data: images, error: imgError } = await client .from('vehicle_images') .select('*'); if (vError) { console.error("Vehicle Load Error:", vError); return; } if (imgError) { console.error("Image Load Error:", imgError); } const vehicleImages = images || []; const today = new Date(); today.setHours(0,0,0,0); const list = document.getElementById('vehicle-list'); if (!list) return; list.innerHTML = (vehicles || []).map(v => { // ========================================= // 🔥 GET IMAGE (FIRST IMAGE) // ========================================= const imgObj = vehicleImages.find(img => String(img.vehicle_id) === String(v.id) ); const imageUrl = imgObj?.image_url || 'https://via.placeholder.com/400x250?text=No+Image'; // ========================================= // ✅ CHECK IF CURRENTLY RENTED (TODAY) // ========================================= const isRentedNow = (rentals || []).some(r => { if (String(r.vehicle_id) !== String(v.id)) return false; if (r.status !== 'booked' && r.status !== 'active') return false; const start = new Date(r.start_date); start.setHours(0,0,0,0); const end = new Date(start); end.setDate(start.getDate() + Number(r.rental_days || 0)); return today >= start && today < end; }); // ========================================= // ✅ CHECK IF HAS FUTURE BOOKINGS // ========================================= const hasFutureBooking = (rentals || []).some(r => { if (String(r.vehicle_id) !== String(v.id)) return false; if (r.status !== 'booked') return false; const start = new Date(r.start_date); start.setHours(0,0,0,0); return start > today; }); // ========================================= // 🎯 FINAL STATUS LOGIC // ========================================= let badgeText = "Available"; let badgeClass = "bg-green-100 text-green-600"; let disabled = false; if (isRentedNow) { badgeText = "Rented"; badgeClass = "bg-red-100 text-red-600"; disabled = true; } else if (hasFutureBooking) { badgeText = "Booked"; badgeClass = "bg-yellow-100 text-yellow-600"; disabled = false; } return <div class="bg-white rounded-2xl shadow relative overflow-hidden group hover:shadow-xl transition"> <!-- 🔥 IMAGE --> <div class="h-[160px] w-full overflow-hidden"> <img src="${imageUrl}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" onerror="this.src='https://via.placeholder.com/400x250?text=No+Image'"> </div> <div class="p-6"> <!-- STATUS BADGE --> <div class="absolute top-4 right-4 text-xs font-bold px-3 py-1 rounded-full ${badgeClass}"> ${badgeText} </div> <!-- VEHICLE NAME --> <h3 class="text-xl font-black mb-1">${v.make_model}</h3> <p class="text-slate-400 mb-3">${v.license_plate || ''}</p> <!-- SPECS --> <div class="grid grid-cols-2 gap-2 text-xs font-bold text-slate-600 mb-4"> <div>Seats: ${v.seats || '-'}</div> <div>Type: ${v.vehicle_type || '-'}</div> <div>Fuel: ${v.fuel_type || '-'}</div> <div>Trans: ${v.transmission || '-'}</div> </div> <!-- PRICE --> <p class="text-blue-600 font-bold mb-4"> ₭${Number(v.daily_rate || 0).toLocaleString()} / day </p> <!-- BUTTON --> <button ${disabled ? 'disabled' : ''} onclick='openModal(${JSON.stringify(v)})' class="w-full p-3 rounded-xl font-bold ${disabled ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-black text-white hover:bg-blue-600'}"> ${disabled ? 'Unavailable' : 'Book Now'} </button> </div> </div> ; }).join(''); } catch (err) { console.error("Load Vehicles Error:", err); } }
-    
+    async function loadVehicles() {
+    try {
+        const { data: vehicles, error: vError } = await client
+            .from('vehicles')
+            .select('*');
+
+        const { data: rentals } = await client
+            .from('rentals')
+            .select('vehicle_id, start_date, rental_days, status');
+
+        // 🔥 NEW: LOAD VEHICLE IMAGES
+        const { data: images, error: imgError } = await client
+            .from('vehicle_images')
+            .select('*');
+
+        if (vError) {
+            console.error("Vehicle Load Error:", vError);
+            return;
+        }
+
+        if (imgError) {
+            console.error("Image Load Error:", imgError);
+        }
+
+        const vehicleImages = images || [];
+
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        const list = document.getElementById('vehicle-list');
+        if (!list) return;
+
+        list.innerHTML = (vehicles || []).map(v => {
+
+            // =========================================
+            // 🔥 GET IMAGE (FIRST IMAGE)
+            // =========================================
+            const imgObj = vehicleImages.find(img =>
+                String(img.vehicle_id) === String(v.id)
+            );
+
+            const imageUrl = imgObj?.image_url
+                || 'https://via.placeholder.com/400x250?text=No+Image';
+
+            // =========================================
+            // ✅ CHECK IF CURRENTLY RENTED (TODAY)
+            // =========================================
+            const isRentedNow = (rentals || []).some(r => {
+                if (String(r.vehicle_id) !== String(v.id)) return false;
+                if (r.status !== 'booked' && r.status !== 'active') return false;
+
+                const start = new Date(r.start_date);
+                start.setHours(0,0,0,0);
+
+                const end = new Date(start);
+                end.setDate(start.getDate() + Number(r.rental_days || 0));
+
+                return today >= start && today < end;
+            });
+
+            // =========================================
+            // ✅ CHECK IF HAS FUTURE BOOKINGS
+            // =========================================
+            const hasFutureBooking = (rentals || []).some(r => {
+                if (String(r.vehicle_id) !== String(v.id)) return false;
+                if (r.status !== 'booked') return false;
+
+                const start = new Date(r.start_date);
+                start.setHours(0,0,0,0);
+
+                return start > today;
+            });
+
+            // =========================================
+            // 🎯 FINAL STATUS LOGIC
+            // =========================================
+            let badgeText = "Available";
+            let badgeClass = "bg-green-100 text-green-600";
+            let disabled = false;
+
+            if (isRentedNow) {
+                badgeText = "Rented";
+                badgeClass = "bg-red-100 text-red-600";
+                disabled = true;
+            } else if (hasFutureBooking) {
+                badgeText = "Booked";
+                badgeClass = "bg-yellow-100 text-yellow-600";
+                disabled = false;
+            }
+
+            return `
+                <div class="bg-white rounded-2xl shadow relative overflow-hidden group hover:shadow-xl transition">
+
+                    <!-- 🔥 IMAGE -->
+                    <div class="h-[160px] w-full overflow-hidden">
+                        <img src="${imageUrl}"
+                            class="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                            onerror="this.src='https://via.placeholder.com/400x250?text=No+Image'">
+                    </div>
+
+                    <div class="p-6">
+
+                        <!-- STATUS BADGE -->
+                        <div class="absolute top-4 right-4 text-xs font-bold px-3 py-1 rounded-full ${badgeClass}">
+                            ${badgeText}
+                        </div>
+
+                        <!-- VEHICLE NAME -->
+                        <h3 class="text-xl font-black mb-1">${v.make_model}</h3>
+                        <p class="text-slate-400 mb-3">${v.license_plate || ''}</p>
+
+                        <!-- SPECS -->
+                        <div class="grid grid-cols-2 gap-2 text-xs font-bold text-slate-600 mb-4">
+                            <div>Seats: ${v.seats || '-'}</div>
+                            <div>Type: ${v.vehicle_type || '-'}</div>
+                            <div>Fuel: ${v.fuel_type || '-'}</div>
+                            <div>Trans: ${v.transmission || '-'}</div>
+                        </div>
+
+                        <!-- PRICE -->
+                        <p class="text-blue-600 font-bold mb-4">
+                            ₭${Number(v.daily_rate || 0).toLocaleString()} / day
+                        </p>
+
+                        <!-- BUTTON -->
+                        <button 
+                            ${disabled ? 'disabled' : ''}
+                            onclick='openModal(${JSON.stringify(v)})'
+                            class="w-full p-3 rounded-xl font-bold
+                                ${disabled 
+                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                                    : 'bg-black text-white hover:bg-blue-600'}">
+                            ${disabled ? 'Unavailable' : 'Book Now'}
+                        </button>
+
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+    } catch (err) {
+        console.error("Load Vehicles Error:", err);
+    }
+}
+
 
 // ✅ OPEN BOOKING MODAL
 
