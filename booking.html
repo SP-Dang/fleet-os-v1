@@ -548,7 +548,7 @@ window.onload = function () {
 };
 
 // =========================================
-// 🔥 REALTIME SYNC (BOOKING PAGE)
+// 🔥 REALTIME SYNC (BOOKING PAGE) - FIXED
 // =========================================
 const bookingChannel = client
     .channel('booking-realtime')
@@ -562,22 +562,22 @@ const bookingChannel = client
         console.log("📡 Booking update received:", payload);
 
         try {
-            // reload latest rentals data
-            if (typeof loadGlobalData === 'function') {
-                await loadGlobalData();
+            // ✅ REFRESH VEHICLE LIST (THIS WAS MISSING)
+            if (typeof loadVehicles === 'function') {
+                await loadVehicles();
             }
 
-            // refresh calendar if user is booking
+            // ✅ REFRESH CALENDAR IF OPEN
             if (typeof initCalendar === 'function' && selectedVehicle) {
                 await initCalendar(selectedVehicle);
             }
 
-            // ✅ ONLY SHOW ALERT IF MODAL IS OPEN
+            // ✅ ALERT ONLY IF MODAL OPEN
             const modal = document.getElementById('booking-modal');
             if (modal && !modal.classList.contains('hidden')) {
-            alert("⚠️ Availability updated. Please re-check dates.");
-    }
-            
+                alert("⚠️ Availability updated. Please re-check dates.");
+            }
+
         } catch (err) {
             console.error("Realtime booking error:", err);
         }
