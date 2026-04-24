@@ -547,6 +547,44 @@ window.onload = function () {
     loadVehicles();
 };
 
+// =========================================
+// 🔥 REALTIME SYNC (BOOKING PAGE)
+// =========================================
+const bookingChannel = client
+    .channel('booking-realtime')
+
+    .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'rentals'
+    }, async (payload) => {
+
+        console.log("📡 Booking update received:", payload);
+
+        try {
+            // reload latest rentals data
+            if (typeof loadGlobalData === 'function') {
+                await loadGlobalData();
+            }
+
+            // refresh calendar if user is booking
+            if (typeof initCalendar === 'function' && selectedVehicle) {
+                await initCalendar(selectedVehicle);
+            }
+
+            // ✅ ONLY SHOW ALERT IF MODAL IS OPEN
+            const modal = document.getElementById('booking-modal');
+            if (modal && !modal.classList.contains('hidden')) {
+            alert("⚠️ Availability updated. Please re-check dates.");
+    }
+            
+        } catch (err) {
+            console.error("Realtime booking error:", err);
+        }
+    })
+
+    .subscribe();
+
     
 </script>
 
