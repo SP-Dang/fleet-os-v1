@@ -582,11 +582,11 @@ function closeWhatsAppModal() {
 function openWhatsAppInvoice(r) {
     const phone = "8562099406665";
 
-    // ✅ SAFETY (avoid undefined crash)
-    const vehicle = r?.vehicles || {};
-    const customer = r?.customers || {};
+    if (!r) {
+        alert("No booking data found");
+        return;
+    }
 
-    // ✅ DATE CALCULATION
     const start = new Date(r.start_date);
     const end = new Date(start);
     end.setDate(start.getDate() + (r.rental_days || 0));
@@ -596,32 +596,29 @@ function openWhatsAppInvoice(r) {
         return d.toLocaleDateString('en-GB');
     };
 
-    // ✅ BUILD MESSAGE (INVOICE STYLE)
-    const message = `
-🚗 *TATA SMILE CAR RENTAL*
+    const message =
+`TATA SMILE CAR RENTAL
 
-📄 *Booking Confirmation*
+Booking Confirmation
 
-🆔 Booking ID: ${r.id || 'N/A'}
+Booking ID: ${r.id}
 
-👤 Customer: ${customer.full_name || 'N/A'}
-📞 Phone: ${customer.phone || 'N/A'}
+Customer: ${r.customer_name}
+Phone: ${r.phone}
 
-🚘 Vehicle: ${vehicle.make_model || 'N/A'}
-🔢 Plate: ${vehicle.license_plate || 'N/A'}
+Vehicle: ${r.vehicle_name}
+Plate: ${r.plate}
 
-📅 Start: ${formatDate(start)}
-📅 End: ${formatDate(end)}
-⏱ Duration: ${r.rental_days || 0} Days
+Start: ${formatDate(start)}
+End: ${formatDate(end)}
+Duration: ${r.rental_days} Days
 
-💰 Total: ₭${Number(r.total_price || 0).toLocaleString()}
+Total: ₭${Number(r.total_price).toLocaleString()}
 
-━━━━━━━━━━━━━━
+----------------------
 Please confirm this booking.
-Thank you 🙏
-    `;
+Thank you.`;
 
-    // ✅ ENCODE + OPEN WHATSAPP
     const encoded = encodeURIComponent(message);
     window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank');
 }
@@ -745,12 +742,18 @@ const days = Math.max(1, Math.round(diff));
 
         // ✅ STORE BOOKING FOR WHATSAPP
         window.latestBooking = {
-        ...rentalData,
+        id: (crypto.randomUUID ? crypto.randomUUID().slice(0, 8) : Date.now().toString().slice(-6)), // short ID
+
+        start_date: start,
+        rental_days: days,
+        total_price: days * (selectedVehicleData?.daily_rate || 0),
+
         customer_name: name,
         phone: phone,
+
         vehicle_name: selectedVehicleData?.make_model || 'Vehicle',
-        price_per_day: selectedVehicleData?.daily_rate || 0
-        };
+        plate: selectedVehicleData?.license_plate || 'N/A'
+};
         showWhatsAppModal(); 
 
         // 🔥 TRIGGER FLEET REFRESH ON INDEX PAGE
