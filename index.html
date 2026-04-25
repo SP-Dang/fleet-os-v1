@@ -1325,35 +1325,36 @@ async function loadRentals() {
             <!-- 🔥 ACTIONS -->
             <td class="p-8 text-right flex justify-end gap-2 flex-wrap">
 
-                ${r.payment_status !== 'paid' ? `
-                    <button onclick="markAsPaid('${r.id}')"
-                        class="bg-emerald-100 text-emerald-600 px-3 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-emerald-600 hover:text-white transition">
-                        Mark Paid
-                    </button>
-                ` : ''}
+    ${r.payment_status !== 'paid' ? `
+        <button onclick="event.stopPropagation(); markAsPaid('${r.id}')"
+            class="bg-emerald-100 text-emerald-600 px-3 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-emerald-600 hover:text-white transition">
+            Mark Paid
+        </button>
+    ` : ''}
 
-                ${r.status === 'booked' ? `
-                    <button onclick='processCheckIn(${JSON.stringify(r)})'
-                        class="bg-blue-600 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-slate-900 transition-all">
-                        Check IN
-                    </button>
-                ` : ''}
-                
-                ${r.status === 'active' ? `
-                    <button onclick='handleManualReturn(${JSON.stringify(r)})'
-                        class="bg-emerald-50 text-emerald-600 px-4 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-emerald-600 hover:text-white transition-all">
-                        Return
-                    </button>
-                ` : ''}
+    ${r.status === 'booked' ? `
+        <button onclick='event.stopPropagation(); processCheckIn(${JSON.stringify(r)})'
+            class="bg-blue-600 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-slate-900 transition-all">
+            Check IN
+        </button>
+    ` : ''}
+    
+    ${r.status === 'active' ? `
+        <button onclick='event.stopPropagation(); handleManualReturn(${JSON.stringify(r)})'
+            class="bg-emerald-50 text-emerald-600 px-4 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-emerald-600 hover:text-white transition-all">
+            Return
+        </button>
+    ` : ''}
 
-                <button onclick='preparePrint(${JSON.stringify(r)})'
-                    class="bg-slate-900 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-blue-600 transition-all">
-                    Print
-                </button>
+    <button onclick='event.stopPropagation(); preparePrint(${JSON.stringify(r)})'
+        class="bg-slate-900 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-blue-600 transition-all">
+        Print
+    </button>
 
-            </td>
-        </tr>`;
-    }).join('');
+</td>
+</tr>`;
+       
+}).join('');
     
 
     // =========================================
