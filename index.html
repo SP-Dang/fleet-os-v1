@@ -1284,7 +1284,11 @@ async function loadRentals() {
             : '<span class="px-3 py-1 rounded-full text-[8px] font-black bg-amber-100 text-amber-600">● Pending</span>';
 
         return `
-        <tr class="border-b hover:bg-slate-50 transition">
+        <tr 
+        class="border-b hover:bg-slate-50 transition cursor-pointer"
+        onclick='openRentalModal(${JSON.stringify(r)})'
+        >
+
             <td class="p-8">
                 <div class="font-black italic uppercase text-slate-900">
                     ${vehicle?.make_model || 'Unknown Vehicle'}
@@ -2108,9 +2112,40 @@ async function uploadVehicleImage() {
         alert("System error");
     }
 }
+
+function openRentalModal(r) {
+
+    const vehicle = Array.isArray(r.vehicles) ? r.vehicles[0] : r.vehicles;
+    const customer = Array.isArray(r.customers) ? r.customers[0] : r.customers;
+
+    const payment = r.payment_status === 'paid'
+        ? '<span class="text-green-600 font-bold">Paid</span>'
+        : '<span class="text-yellow-500 font-bold">Pending</span>';
+
+    const content = `
+        <div><b>Vehicle:</b> ${vehicle?.make_model || '-'}</div>
+        <div><b>Plate:</b> ${vehicle?.license_plate || '-'}</div>
+        <div><b>Customer:</b> ${customer?.full_name || '-'}</div>
+        <div><b>Phone:</b> ${customer?.phone || '-'}</div>
+        <div><b>Days:</b> ${r.rental_days}</div>
+        <div><b>Status:</b> ${r.status}</div>
+        <div><b>Payment:</b> ${payment}</div>
+        <div><b>Total:</b> ₭${Number(r.total_price || 0).toLocaleString()}</div>
+    `;
+
+    document.getElementById('rental-detail-content').innerHTML = content;
+
+    document.getElementById('rental-modal').classList.remove('hidden');
+}
+
+function closeRentalModal() {
+    document.getElementById('rental-modal').classList.add('hidden');
+}
+
         
-    window.onload = init;
-        
+    
+window.onload = init;
+       
 </script>
         
     <div id="scanner-modal" class="modal">
@@ -2129,5 +2164,23 @@ async function uploadVehicleImage() {
         </div>
     </div>
 </div>
+
+<!-- 🔥 ADD THIS RIGHT HERE (NEW MODAL) -->
+<div id="rental-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+
+    <div class="bg-white rounded-3xl p-8 w-[420px] relative">
+
+        <!-- CLOSE -->
+        <button onclick="closeRentalModal()"
+            class="absolute top-4 right-4 text-slate-400 text-xl">×</button>
+
+        <h2 class="text-xl font-black mb-6">Rental Details</h2>
+
+        <!-- 🔥 THIS IS THE EMPTY CONTAINER -->
+        <div id="rental-detail-content" class="space-y-3 text-sm"></div>
+
+    </div>
+</div>
+        
 </body>
 </html>
