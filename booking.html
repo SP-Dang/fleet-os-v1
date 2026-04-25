@@ -340,15 +340,20 @@ async function initCalendar(vehicleId) {
                         </p>
 
                         <!-- BUTTON -->
-                        <button 
-                            ${disabled ? 'disabled' : ''}
-                            onclick='openModal(${JSON.stringify(v)})'
-                            class="w-full p-3 rounded-xl font-bold
-                                ${disabled 
-                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                                    : 'bg-black text-white hover:bg-blue-600'}">
-                            ${disabled ? 'Unavailable' : 'Book Now'}
-                        </button>
+                        
+                <button 
+                    ${disabled ? 'disabled' : ''}
+                    onclick='openModal(${JSON.stringify(v)})'
+                    class="w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-wide
+                    transition-all duration-300 flex items-center justify-center gap-2
+                    ${disabled 
+                    ? 'bg-slate-200 text-slate-400 cursor-not-allowed' 
+                    : 'bg-gradient-to-r from-slate-900 to-slate-700 text-white shadow-lg shadow-slate-300/40 hover:from-blue-600 hover:to-blue-500 hover:shadow-blue-300/40 active:scale-95'}">
+
+                    ${disabled 
+                    ? 'Unavailable' 
+                    : `<span class="text-base">📅</span> Book Now`}
+                </button>
 
                     </div>
                 </div>
