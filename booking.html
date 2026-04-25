@@ -570,7 +570,6 @@ function prevImage() {
 
     
 // ✅ SAVE CUSTOMER + BOOKING
-
  async function saveCustomerAndBook() {
     try {
         // ✅ GET VALUES
@@ -609,8 +608,6 @@ const days = Math.max(1, Math.round(diff));
         if (!nationality) return alert("Nationality is required");
         if (!passport) return alert("Passport / ID is required");
         if (!license) return alert("Driving License is required");
-        
-
         // =========================================
         // 🚨 STEP 1: CHECK AVAILABILITY (NEW SYSTEM)
         // =========================================
@@ -620,7 +617,6 @@ const days = Math.max(1, Math.round(diff));
             alert("❌ This vehicle is not available for selected dates");
             return;
         }
-
         // =========================================
         // 🚨 STEP 2: CHECK EXISTING CUSTOMER
         // =========================================
@@ -668,27 +664,38 @@ const days = Math.max(1, Math.round(diff));
         // =========================================
         // 🚨 STEP 3: CREATE RENTAL
         // =========================================
-        const { error: rError } = await client
-            .from('rentals')
-            .insert([{
-                vehicle_id: selectedVehicle,
-                customer_id: customerId,
-                start_date: start,
-                rental_days: days,
-                total_price: days * (selectedVehicleData?.daily_rate || 0),
-                status: 'booked',
-                payment_status: 'pending'
-            }]);
+       const { data: rentalData, error: rError } = await client
+        .from('rentals')
+        .insert([{
+        vehicle_id: selectedVehicle,
+        customer_id: customerId,
+        start_date: start,
+        rental_days: days,
+        total_price: days * (selectedVehicleData?.daily_rate || 0),
+        status: 'booked',
+        payment_status: 'pending'
+        }])
+        .select()
+        .single();
 
         if (rError) {
             console.error("Rental Error:", rError);
             alert("❌ Booking error: " + rError.message);
             return;
         }
+
+        // ✅ STORE BOOKING FOR WHATSAPP
+        window.latestBooking = {
+    ...rentalData,
+    customer_name: name,
+    phone: phone,
+    vehicle_name: selectedVehicleData?.make_model || 'Vehicle',
+    price_per_day: selectedVehicleData?.daily_rate || 0
+};
+        
         // 🔥 TRIGGER FLEET REFRESH ON INDEX PAGE
            localStorage.setItem('refreshFleet', 'true');
             console.log("✅ refreshFleet flag SET");
-
         // =========================================
         // ✅ SUCCESS MESSAGE (VISIBLE)
         // =========================================
@@ -729,12 +736,71 @@ if (typeof loadVehicles === 'function') {
     loadVehicles();
 }
 
+        
+function showWhatsAppModal() {
+    document.getElementById('whatsapp-modal').classList.remove('hidden');
+    document.getElementById('whatsapp-modal').classList.add('flex');
+}
+
+function closeWhatsAppModal() {
+    document.getElementById('whatsapp-modal').classList.add('hidden');
+    document.getElementById('whatsapp-modal').classList.remove('flex');
+}
+
+// 🔥 WHATSAPP INVOICE FUNCTION (FULL VERSION)
+function openWhatsAppInvoice(r) {
+    const phone = "8562099406665";
+
+    // ✅ SAFETY (avoid undefined crash)
+    const vehicle = r?.vehicles || {};
+    const customer = r?.customers || {};
+
+    // ✅ DATE CALCULATION
+    const start = new Date(r.start_date);
+    const end = new Date(start);
+    end.setDate(start.getDate() + (r.rental_days || 0));
+
+    const formatDate = (d) => {
+        if (!d || isNaN(d)) return 'N/A';
+        return d.toLocaleDateString('en-GB');
+    };
+
+    // ✅ BUILD MESSAGE (INVOICE STYLE)
+    const message = `
+🚗 *TATA SMILE CAR RENTAL*
+
+📄 *Booking Confirmation*
+
+🆔 Booking ID: ${r.id || 'N/A'}
+
+👤 Customer: ${customer.full_name || 'N/A'}
+📞 Phone: ${customer.phone || 'N/A'}
+
+🚘 Vehicle: ${vehicle.make_model || 'N/A'}
+🔢 Plate: ${vehicle.license_plate || 'N/A'}
+
+📅 Start: ${formatDate(start)}
+📅 End: ${formatDate(end)}
+⏱ Duration: ${r.rental_days || 0} Days
+
+💰 Total: ₭${Number(r.total_price || 0).toLocaleString()}
+
+━━━━━━━━━━━━━━
+Please confirm this booking.
+Thank you 🙏
+    `;
+
+    // ✅ ENCODE + OPEN WHATSAPP
+    const encoded = encodeURIComponent(message);
+    window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank');
+}
+        
+        
 } catch (err) {
     console.error("System Error:", err);
     alert("System error occurred");
 }
 }
-
 
 // ✅ SAFE AUTO LOAD
 window.onload = function () {
@@ -782,5 +848,31 @@ const bookingChannel = client
     
 </script>
 
+<!-- 🔥 WHATSAPP MODAL (PUT HERE) -->
+<div id="whatsapp-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+
+    <div class="bg-white rounded-3xl p-8 w-[400px] text-center shadow-xl">
+
+        <h2 class="text-xl font-black mb-4">Booking Confirmed 🎉</h2>
+
+        <p class="text-slate-500 mb-6 text-sm">
+            Would you like to contact us via WhatsApp to confirm your booking?
+        </p>
+
+        <div class="flex gap-3 justify-center">
+
+            <button onclick="openWhatsAppInvoice(window.latestBooking)"
+            class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl font-black text-sm shadow-md">
+            Yes, Contact
+            </button>
+
+            <button onclick="closeWhatsAppModal()"
+                class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-6 py-3 rounded-2xl font-black text-sm">
+                Maybe Later
+            </button>
+        </div>
+    </div>
+</div>
+    
 </body>
 </html>
