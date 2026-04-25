@@ -568,6 +568,65 @@ function prevImage() {
     document.getElementById('vehicle-image').src = vehicleImages[currentImageIndex];
 }
 
+function showWhatsAppModal() {
+    document.getElementById('whatsapp-modal').classList.remove('hidden');
+    document.getElementById('whatsapp-modal').classList.add('flex');
+}
+
+function closeWhatsAppModal() {
+    document.getElementById('whatsapp-modal').classList.add('hidden');
+    document.getElementById('whatsapp-modal').classList.remove('flex');
+}
+
+// 🔥 WHATSAPP INVOICE FUNCTION (FULL VERSION)
+function openWhatsAppInvoice(r) {
+    const phone = "8562099406665";
+
+    // ✅ SAFETY (avoid undefined crash)
+    const vehicle = r?.vehicles || {};
+    const customer = r?.customers || {};
+
+    // ✅ DATE CALCULATION
+    const start = new Date(r.start_date);
+    const end = new Date(start);
+    end.setDate(start.getDate() + (r.rental_days || 0));
+
+    const formatDate = (d) => {
+        if (!d || isNaN(d)) return 'N/A';
+        return d.toLocaleDateString('en-GB');
+    };
+
+    // ✅ BUILD MESSAGE (INVOICE STYLE)
+    const message = `
+🚗 *TATA SMILE CAR RENTAL*
+
+📄 *Booking Confirmation*
+
+🆔 Booking ID: ${r.id || 'N/A'}
+
+👤 Customer: ${customer.full_name || 'N/A'}
+📞 Phone: ${customer.phone || 'N/A'}
+
+🚘 Vehicle: ${vehicle.make_model || 'N/A'}
+🔢 Plate: ${vehicle.license_plate || 'N/A'}
+
+📅 Start: ${formatDate(start)}
+📅 End: ${formatDate(end)}
+⏱ Duration: ${r.rental_days || 0} Days
+
+💰 Total: ₭${Number(r.total_price || 0).toLocaleString()}
+
+━━━━━━━━━━━━━━
+Please confirm this booking.
+Thank you 🙏
+    `;
+
+    // ✅ ENCODE + OPEN WHATSAPP
+    const encoded = encodeURIComponent(message);
+    window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank');
+}
+
+    
     
 // ✅ SAVE CUSTOMER + BOOKING
  async function saveCustomerAndBook() {
@@ -686,13 +745,14 @@ const days = Math.max(1, Math.round(diff));
 
         // ✅ STORE BOOKING FOR WHATSAPP
         window.latestBooking = {
-    ...rentalData,
-    customer_name: name,
-    phone: phone,
-    vehicle_name: selectedVehicleData?.make_model || 'Vehicle',
-    price_per_day: selectedVehicleData?.daily_rate || 0
-};
-        
+        ...rentalData,
+        customer_name: name,
+        phone: phone,
+        vehicle_name: selectedVehicleData?.make_model || 'Vehicle',
+        price_per_day: selectedVehicleData?.daily_rate || 0
+        };
+        showWhatsAppModal(); 
+
         // 🔥 TRIGGER FLEET REFRESH ON INDEX PAGE
            localStorage.setItem('refreshFleet', 'true');
             console.log("✅ refreshFleet flag SET");
@@ -734,65 +794,6 @@ if (typeof closeModal === 'function') closeModal();
 // ✅ REFRESH VEHICLE LIST (IMPORTANT)
 if (typeof loadVehicles === 'function') {
     loadVehicles();
-}
-
-        
-function showWhatsAppModal() {
-    document.getElementById('whatsapp-modal').classList.remove('hidden');
-    document.getElementById('whatsapp-modal').classList.add('flex');
-}
-
-function closeWhatsAppModal() {
-    document.getElementById('whatsapp-modal').classList.add('hidden');
-    document.getElementById('whatsapp-modal').classList.remove('flex');
-}
-
-// 🔥 WHATSAPP INVOICE FUNCTION (FULL VERSION)
-function openWhatsAppInvoice(r) {
-    const phone = "8562099406665";
-
-    // ✅ SAFETY (avoid undefined crash)
-    const vehicle = r?.vehicles || {};
-    const customer = r?.customers || {};
-
-    // ✅ DATE CALCULATION
-    const start = new Date(r.start_date);
-    const end = new Date(start);
-    end.setDate(start.getDate() + (r.rental_days || 0));
-
-    const formatDate = (d) => {
-        if (!d || isNaN(d)) return 'N/A';
-        return d.toLocaleDateString('en-GB');
-    };
-
-    // ✅ BUILD MESSAGE (INVOICE STYLE)
-    const message = `
-🚗 *TATA SMILE CAR RENTAL*
-
-📄 *Booking Confirmation*
-
-🆔 Booking ID: ${r.id || 'N/A'}
-
-👤 Customer: ${customer.full_name || 'N/A'}
-📞 Phone: ${customer.phone || 'N/A'}
-
-🚘 Vehicle: ${vehicle.make_model || 'N/A'}
-🔢 Plate: ${vehicle.license_plate || 'N/A'}
-
-📅 Start: ${formatDate(start)}
-📅 End: ${formatDate(end)}
-⏱ Duration: ${r.rental_days || 0} Days
-
-💰 Total: ₭${Number(r.total_price || 0).toLocaleString()}
-
-━━━━━━━━━━━━━━
-Please confirm this booking.
-Thank you 🙏
-    `;
-
-    // ✅ ENCODE + OPEN WHATSAPP
-    const encoded = encodeURIComponent(message);
-    window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank');
 }
         
         
