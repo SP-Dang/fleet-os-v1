@@ -104,19 +104,74 @@
             <div id="vehicle-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
         </div>
 
-        <div id="view-rentals" class="view-content hidden p-4 md:px-12 md:pt-6 md:pb-6">
+    <div id="view-rentals" class="view-content hidden p-4 md:px-12 md:pt-6 md:pb-6">
+
     <div class="max-w-7xl mx-auto">
+
+        <!-- 🔥 HEADER -->
         <div class="flex flex-col md:flex-row justify-between items-end mb-6 gap-6">
             <div>
-                <h2 class="text-6xl font-black italic uppercase tracking-tighter leading-none mb-4">Rent<br><span class="text-blue-600">History</span></h2>
-                <p class="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Track and manage all vehicle transactions</p>
+                <h2 class="text-5xl md:text-6xl font-black italic uppercase tracking-tighter leading-none mb-2">
+                    Rent<br><span class="text-blue-600">History</span>
+                </h2>
+                <p class="text-slate-400 font-bold uppercase text-[10px] tracking-widest">
+                    Track and manage all vehicle transactions
+                </p>
             </div>
+
             <div class="w-full md:w-96 relative">
-                <input type="text" id="rental-search-input" oninput="resetAndLoadRentals()" placeholder="Search Name or Plate..." 
-                    class="w-full bg-white border border-slate-100 rounded-3xl py-5 px-8 text-[10px] font-black uppercase tracking-widest shadow-sm focus:ring-2 focus:ring-blue-600 outline-none transition-all">
+                <input type="text" id="rental-search-input" oninput="resetAndLoadRentals()"
+                    placeholder="Search Name or Plate..."
+                    class="w-full bg-white border border-slate-100 rounded-3xl py-4 px-6 text-[10px] font-black uppercase tracking-widest shadow-sm focus:ring-2 focus:ring-blue-600 outline-none transition-all">
             </div>
         </div>
 
+        <!-- 🔥 SUMMARY CARDS -->
+        <div id="rental-summary" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+
+            <div class="bg-white p-6 rounded-3xl border shadow-sm">
+                <p class="text-[9px] text-slate-400 font-black uppercase">Total Rentals</p>
+                <h3 id="sum-total" class="text-2xl font-black mt-2">0</h3>
+            </div>
+
+            <div class="bg-white p-6 rounded-3xl border shadow-sm">
+                <p class="text-[9px] text-slate-400 font-black uppercase">Active</p>
+                <h3 id="sum-active" class="text-2xl font-black mt-2 text-blue-600">0</h3>
+            </div>
+
+            <div class="bg-white p-6 rounded-3xl border shadow-sm">
+                <p class="text-[9px] text-slate-400 font-black uppercase">Paid</p>
+                <h3 id="sum-paid" class="text-2xl font-black mt-2 text-emerald-600">0</h3>
+            </div>
+
+            <div class="bg-white p-6 rounded-3xl border shadow-sm">
+                <p class="text-[9px] text-slate-400 font-black uppercase">Pending</p>
+                <h3 id="sum-pending" class="text-2xl font-black mt-2 text-amber-500">0</h3>
+            </div>
+
+        </div>
+
+        <!-- 🔥 TABLE -->
+        <div class="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-slate-50 border-b border-slate-100">
+                    <tr>
+                        <th class="p-6 text-[10px] font-black uppercase text-slate-400">Vehicle</th>
+                        <th class="p-6 text-[10px] font-black uppercase text-slate-400">Customer</th>
+                        <th class="p-6 text-[10px] font-black uppercase text-slate-400">Duration</th>
+                        <th class="p-6 text-[10px] font-black uppercase text-slate-400">Status</th>
+                        <th class="p-6 text-[10px] font-black uppercase text-slate-400">Payment</th>
+                        <th class="p-6 text-right text-[10px] font-black uppercase text-slate-400">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="rental-list" class="divide-y divide-slate-50"></tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+
+        
     <div class="bg-white rounded-[48px] border border-slate-100 shadow-sm overflow-hidden">
         <table class="w-full text-left border-collapse">
 
@@ -1267,6 +1322,25 @@ async function loadRentals() {
                plate.includes(searchTerm) || 
                customerName.includes(searchTerm);
     });
+
+    // =========================================
+    // 🔥 SUMMARY CALCULATIONS (NEW)
+    // =========================================
+    const total = filteredData.length;
+    const active = filteredData.filter(r => r.status === 'active').length;
+    const paid = filteredData.filter(r => r.payment_status === 'paid').length;
+    const pending = filteredData.filter(r => r.payment_status !== 'paid').length;
+
+    // SAFE UI UPDATE (no crash if element missing)
+    const setText = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.innerText = val;
+    };
+
+    setText('sum-total', total);
+    setText('sum-active', active);
+    setText('sum-paid', paid);
+    setText('sum-pending', pending);
 
     // =========================================
     // 🔥 RENDER TABLE
