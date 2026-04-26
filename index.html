@@ -570,7 +570,7 @@
 
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="text-[10px] font-black uppercase text-slate-400 mb-1 block tracking-widest">Daily Rate ($)</label>
+                    <label class="text-[10px] font-black uppercase text-slate-400 mb-1 block tracking-widest">Daily Rate (₭)</label>
                     <input id="e-rate" type="number" placeholder="0.00" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none">
                 </div>
                 <div>
@@ -596,7 +596,7 @@
                 <textarea id="r-description" placeholder="Description of work..." class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none h-24"></textarea>
                 <div class="grid grid-cols-2 gap-4">
                     <input id="r-mileage" type="number" placeholder="Mileage" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none">
-                    <input id="r-cost" type="number" placeholder="Cost ($)" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none">
+                    <input id="r-cost" type="number" placeholder="Cost (₭)" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none">
                 </div>
             </div>
             <div class="p-8 bg-slate-50 flex gap-3">
@@ -837,7 +837,7 @@ function switchView(v) {
                 </h3>
 
                 <p class="text-blue-600 font-black text-xl mb-6">
-                    $${v.daily_rate}
+                    ₭${Number(v.daily_rate).toLocaleString()}
                     <span class="text-[10px] text-slate-300">/day</span>
                 </p>
 
