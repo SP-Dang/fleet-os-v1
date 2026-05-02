@@ -1142,7 +1142,7 @@ async function confirmRental() {
     // FIXED PREPARE PRINT FUNCTION
     async function preparePrint(rental) {
     try {
-        const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
+        const { PDFDocument, rgb } = window.PDFLib;
 
         // 1. DATA EXTRACTION
         const vData = (Array.isArray(rental.vehicles) ? rental.vehicles[0] : rental.vehicles) || {};
@@ -1151,16 +1151,14 @@ async function confirmRental() {
 
         // 2. CREATE PDF DOCUMENT
         const doc = await PDFDocument.create();
-        let page = doc.addPage([612, 792]); // US Letter size
+        let page = doc.addPage([612, 792]);
         const { width, height } = page.getSize();
 
-        // 3. EMBED STANDARD FONTS (supports Lao when viewer falls back)
-        const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
-        const font = await doc.embedFont(StandardFonts.Helvetica);
-        const fontBoldItalic = await doc.embedFont(StandardFonts.HelveticaBoldOblique);
-        const fontItalic = await doc.embedFont(StandardFonts.HelveticaOblique);
+        // 3. LOAD LAO FONT
+        const fontBytes = await fetch('NotoSansLao-Regular.ttf').then(res => res.arrayBuffer());
+        const fontLao = await doc.embedFont(fontBytes);
 
-        // 4. HELPER: Safe text (pass through for PDF — modern viewers render Lao via system fallback)
+        // 4. HELPER: Safe text
         function safeText(str, fallback = 'N/A') {
             if (!str || String(str).trim() === '') return fallback;
             return String(str).trim();
@@ -1169,12 +1167,13 @@ async function confirmRental() {
         function drawText(text, x, y, options = {}) {
             const {
                 size = 10,
-                font: f = font,
                 color = rgb(0, 0, 0),
                 align = 'left',
                 maxWidth = null
             } = options;
 
+            // Always use Lao font for compatibility
+            const f = fontLao;
             const safeStr = safeText(text);
             let xPos = x;
 
@@ -1187,7 +1186,6 @@ async function confirmRental() {
             }
 
             if (maxWidth && f.widthOfTextAtSize(safeStr, size) > maxWidth) {
-                // Truncate with ellipsis if too wide
                 let truncated = safeStr;
                 while (f.widthOfTextAtSize(truncated + '...', size) > maxWidth && truncated.length > 0) {
                     truncated = truncated.slice(0, -1);
@@ -1210,7 +1208,6 @@ async function confirmRental() {
         // 5. HEADER
         drawText('TATA SMILE TRAVEL & CAR RENTAL SOLE CO.,LTD', width / 2, height - 30, {
             size: 14,
-            font: fontBold,
             align: 'center'
         });
 
@@ -1222,7 +1219,7 @@ async function confirmRental() {
         ];
 
         headerLines.forEach((line, i) => {
-            drawText(line, 30, height - 48 - (i * 12), { size: 8, font });
+            drawText(line, 30, height - 48 - (i * 12), { size: 8 });
         });
 
         // 6. QR CODE
@@ -1242,7 +1239,7 @@ async function confirmRental() {
                 height: 100
             });
         }
-        drawText(`INV: ${invId}`, width - 90, height - 146, { size: 8, font: fontBold, align: 'center' });
+        drawText(`INV: ${invId}`, width - 90, height - 146, { size: 8, align: 'center' });
         document.body.removeChild(qrContainer);
 
         // 7. TOP LINE
@@ -1250,7 +1247,7 @@ async function confirmRental() {
         drawLine(30, topLineY, width - 30, topLineY);
 
         // 8. CUSTOMER INFO (LEFT)
-        drawText('CUSTOMER INFORMATION', 30, topLineY - 15, { size: 9, font: fontBold });
+        drawText('CUSTOMER INFORMATION', 30, topLineY - 15, { size: 9 });
 
         const customerFields = [
             `Name: ${safeText(cData.full_name)}`,
@@ -1262,11 +1259,11 @@ async function confirmRental() {
         ];
 
         customerFields.forEach((field, i) => {
-            drawText(field, 30, topLineY - 30 - (i * 14), { size: 9, font });
+            drawText(field, 30, topLineY - 30 - (i * 14), { size: 9 });
         });
 
         // 9. VEHICLE DETAILS (RIGHT)
-        drawText('VEHICLE DETAILS', 320, topLineY - 15, { size: 9, font: fontBold });
+        drawText('VEHICLE DETAILS', 320, topLineY - 15, { size: 9 });
 
         const vehicleFields = [
             `Model: ${safeText(vData.make_model)}`,
@@ -1278,7 +1275,7 @@ async function confirmRental() {
         ];
 
         vehicleFields.forEach((field, i) => {
-            drawText(field, 320, topLineY - 30 - (i * 14), { size: 9, font });
+            drawText(field, 320, topLineY - 30 - (i * 14), { size: 9 });
         });
 
         // 10. RENTAL PERIOD
@@ -1288,19 +1285,17 @@ async function confirmRental() {
         const dateRange = `Rental Period: ${startDate.toLocaleDateString('en-GB')} to ${endDate.toLocaleDateString('en-GB')} (${rental.rental_days} Days)`;
 
         const periodY = topLineY - 120;
-        drawText(dateRange, 30, periodY, { size: 10, font: fontBoldItalic });
+        drawText(dateRange, 30, periodY, { size: 10 });
 
         // 11. SUMMARY TABLE
         const tableStartY = periodY - 30;
-        const colX = [30, 200, 320, 430]; // x positions for each column
-        const colAlign = ['left', 'center', 'center', 'right'];
-
-        // Table header
-        drawLine(colX[0], tableStartY, colX[3] + 80, tableStartY);
+        const colX = [30, 200, 320, 430];
         const headerRowY = tableStartY - 5;
+
+        drawLine(colX[0], tableStartY, colX[3] + 80, tableStartY);
+
         const headers = ['Description', 'Days', 'Daily Rate', 'Subtotal'];
-        const headerAligns = ['center', 'center', 'center', 'center'];
-        const headerXs = [
+        const headerCenterX = [
             (colX[0] + colX[1]) / 2 - 20,
             (colX[1] + colX[2]) / 2,
             (colX[2] + colX[3]) / 2,
@@ -1308,11 +1303,7 @@ async function confirmRental() {
         ];
 
         headers.forEach((h, i) => {
-            drawText(h, headerXs[i], headerRowY, {
-                size: 9,
-                font: fontBold,
-                align: 'center'
-            });
+            drawText(h, headerCenterX[i], headerRowY, { size: 9, align: 'center' });
         });
 
         drawLine(colX[0], headerRowY - 10, colX[3] + 80, headerRowY - 10);
@@ -1320,87 +1311,39 @@ async function confirmRental() {
         // Table body
         const bodyRowY = headerRowY - 25;
         const dailyRate = Number(vData.daily_rate || 0).toLocaleString();
-        const rowData = [
-            `Vehicle Rental - ${safeText(vData.make_model || 'Unit')}`,
-            String(rental.rental_days || 0),
-            dailyRate,
-            Number(rental.total_price || 0).toLocaleString()
-        ];
 
-        const bodyXs = [
-            colX[0] + 10,
-            (colX[1] + colX[2]) / 2,
-            (colX[2] + colX[3]) / 2,
-            colX[3] + 80
-        ];
-        const bodyAligns = ['left', 'center', 'center', 'right'];
-
-        rowData.forEach((val, i) => {
-            drawText(val, bodyXs[i], bodyRowY, {
-                size: 9,
-                font,
-                align: bodyAligns[i]
-            });
-        });
+        drawText(`Vehicle Rental - ${safeText(vData.make_model || 'Unit')}`, 40, bodyRowY, { size: 9, align: 'left' });
+        drawText(String(rental.rental_days || 0), (colX[1] + colX[2]) / 2, bodyRowY, { size: 9, align: 'center' });
+        drawText(dailyRate, (colX[2] + colX[3]) / 2, bodyRowY, { size: 9, align: 'center' });
+        drawText(Number(rental.total_price || 0).toLocaleString(), colX[3] + 80, bodyRowY, { size: 9, align: 'right' });
 
         drawLine(colX[0], bodyRowY - 10, colX[3] + 80, bodyRowY - 10);
 
         // 12. GRAND TOTAL
         const totalY = bodyRowY - 30;
-        drawText('GRAND TOTAL:', colX[3] + 80, totalY, {
-            size: 12,
-            font: fontBold,
-            align: 'right'
-        });
+        drawText('GRAND TOTAL:', colX[3] + 80, totalY, { size: 12, align: 'right' });
+        drawText(Number(rental.total_price || 0).toLocaleString(), colX[3] + 80, totalY - 18, { size: 12, align: 'right' });
 
-        drawText(Number(rental.total_price || 0).toLocaleString(), colX[3] + 80, totalY - 18, {
-            size: 12,
-            font: fontBold,
-            align: 'right'
-        });
+        // Currency
+        drawText('Currency:', colX[3] + 80, totalY - 35, { size: 9, align: 'right' });
+        drawText('[  USD  ]      [  THB  ]      [  LAK  ]', colX[3] + 80, totalY - 47, { size: 8, align: 'right' });
 
-        // Currency options
-        drawText('Currency:', colX[3] + 80, totalY - 35, {
-            size: 9,
-            font: fontBold,
-            align: 'right'
-        });
-
-        drawText('[  USD  ]      [  THB  ]      [  LAK  ]', colX[3] + 80, totalY - 47, {
-            size: 8,
-            font,
-            align: 'right'
-        });
-
-        // 13. EXTRA LINE
         drawLine(30, totalY - 55, width - 30, totalY - 55, 0.2);
 
-        // 14. FOOTER
+        // 13. FOOTER
         const footerY = 80;
 
         drawLine(30, footerY + 15, 200, footerY + 15);
-        drawText('Prepared by:', 30, footerY + 8, { size: 8, font });
-        drawText('TATA SMILE TRAVEL & CAR RENTAL CO.,LTD', 30, footerY - 2, { size: 8, font: fontBold });
+        drawText('Prepared by:', 30, footerY + 8, { size: 8 });
+        drawText('TATA SMILE TRAVEL & CAR RENTAL CO.,LTD', 30, footerY - 2, { size: 8 });
 
         drawLine(width - 230, footerY + 15, width - 30, footerY + 15);
-        drawText("Customer's Signature", width - 130, footerY + 8, {
-            size: 8,
-            font,
-            align: 'center'
-        });
-        drawText(safeText(cData.full_name || 'Guest'), width - 130, footerY - 2, {
-            size: 8,
-            font: fontBold,
-            align: 'center'
-        });
+        drawText("Customer's Signature", width - 130, footerY + 8, { size: 8, align: 'center' });
+        drawText(safeText(cData.full_name || 'Guest'), width - 130, footerY - 2, { size: 8, align: 'center' });
 
-        drawText('Thank you for choosing us!', width / 2, 40, {
-            size: 10,
-            font: fontBoldItalic,
-            align: 'center'
-        });
+        drawText('Thank you for choosing us!', width / 2, 40, { size: 10, align: 'center' });
 
-        // 15. SAVE PDF
+        // 14. SAVE PDF
         const pdfBytes = await doc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
