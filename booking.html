@@ -858,38 +858,57 @@ window.onload = function () {
 };
 
 // =========================================
-// 🔥 REALTIME SYNC (BOOKING PAGE) - FIXED
+// 🔥 REALTIME SYNC (BOOKING PAGE)
+// Listens to BOTH rentals AND vehicles tables.
+// Previously only rentals was watched — so pressing
+// "Set Ready" (vehicles.status update) was invisible here.
 // =========================================
 const bookingChannel = client
     .channel('booking-realtime')
 
+    // 🟢 RENTALS changes (new booking, cancel, etc.)
     .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'rentals'
     }, async (payload) => {
-
-        console.log("📡 Booking update received:", payload);
-
+        console.log("📡 Rentals update received:", payload);
         try {
-            // ✅ REFRESH VEHICLE LIST (THIS WAS MISSING)
-            if (typeof loadVehicles === 'function') {
-                await loadVehicles();
-            }
+            await loadVehicles();
+            if (selectedVehicle) await initCalendar(selectedVehicle);
 
-            // ✅ REFRESH CALENDAR IF OPEN
-            if (typeof initCalendar === 'function' && selectedVehicle) {
-                await initCalendar(selectedVehicle);
-            }
-
-            // ✅ ALERT ONLY IF MODAL OPEN
             const modal = document.getElementById('booking-modal');
             if (modal && !modal.classList.contains('hidden')) {
                 alert("⚠️ Availability updated. Please re-check dates.");
             }
-
         } catch (err) {
-            console.error("Realtime booking error:", err);
+            console.error("Realtime rentals error:", err);
+        }
+    })
+
+    // 🔵 VEHICLES changes — THIS IS THE KEY FIX:
+    // "Set Ready" / "Repair" only updates vehicles table,
+    // so we must listen here to catch maintenance ↔ available transitions.
+    .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'vehicles'
+    }, async (payload) => {
+        console.log("🚗 Vehicle status update received:", payload);
+        try {
+            await loadVehicles();
+
+            // If the booking modal is open for this exact vehicle and it
+            // just became unavailable, close the modal and warn the user.
+            if (selectedVehicle && payload.new && String(payload.new.id) === String(selectedVehicle)) {
+                const newStatus = payload.new.status;
+                if (newStatus === 'maintenance' || newStatus === 'rented') {
+                    closeModal();
+                    alert("⚠️ This vehicle's status just changed. Please select another.");
+                }
+            }
+        } catch (err) {
+            console.error("Realtime vehicles error:", err);
         }
     })
 

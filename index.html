@@ -1151,6 +1151,22 @@ async function confirmRental() {
         const cData = (Array.isArray(rental.customers) ? rental.customers[0] : rental.customers) || {};
         const invId = (rental.id || '0000').toString().substring(0, 8).toUpperCase();
 
+        // 🔥 PDF UNICODE FIX: jsPDF built-in fonts (Helvetica/Courier/Times) only support
+        // Latin characters. Lao script, special symbols, and non-ASCII chars render as
+        // garbage (e.g. "&P&l&a&t&e"). This helper strips non-printable-Latin characters
+        // and flags the field so the PDF clearly shows it needs manual entry.
+        function safePdfText(str) {
+            if (!str) return 'N/A';
+            // Check if string contains any non-Basic-Latin character (code point > 127)
+            const hasNonLatin = /[^ -]/.test(str);
+            if (hasNonLatin) {
+                // Remove non-Latin chars, keep any ASCII parts (e.g. numbers in mixed plates)
+                const asciiPart = str.replace(/[^ -~]/g, '').trim();
+                return asciiPart ? asciiPart + ' [see original]' : '[Lao Script - see original]';
+            }
+            return str;
+        }
+
         // 2. HEADER
         doc.setFontSize(16);
         doc.setFont("helvetica", "bold");
@@ -1183,21 +1199,23 @@ async function confirmRental() {
         
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
+        // 🔥 Use safePdfText() on every field — Lao script plates/names
+        // would otherwise render as "&•&•&3&3&4&5" garbled output.
         doc.text([
-            `Name: ${cData.full_name || 'N/A'}`,
-            `Phone: ${cData.phone || 'N/A'}`,
-            `Email: ${cData.email || 'N/A'}`,
-            `Passport: ${cData.passport_number || 'N/A'}`,
-            `Nationality: ${cData.nationality || 'N/A'}`,
-            `License: ${cData.license_number || 'N/A'}`
+            `Name: ${safePdfText(cData.full_name)}`,
+            `Phone: ${safePdfText(cData.phone)}`,
+            `Email: ${safePdfText(cData.email)}`,
+            `Passport: ${safePdfText(cData.passport_number)}`,
+            `Nationality: ${safePdfText(cData.nationality)}`,
+            `License: ${safePdfText(cData.license_number)}`
         ], 15, 82);
 
         doc.text([
-            `Model: ${vData.make_model || 'N/A'}`,
-            `Plate: ${vData.license_plate || 'N/A'}`,
-            `Type: ${vData.vehicle_type || 'N/A'}`,
-            `Fuel: ${vData.fuel_type || 'N/A'}`,
-            `Transmission: ${vData.transmission || 'N/A'}`,
+            `Model: ${safePdfText(vData.make_model)}`,
+            `Plate: ${safePdfText(vData.license_plate)}`,
+            `Type: ${safePdfText(vData.vehicle_type)}`,
+            `Fuel: ${safePdfText(vData.fuel_type)}`,
+            `Transmission: ${safePdfText(vData.transmission)}`,
             `Daily Rate: ${parseFloat(vData.daily_rate || 0).toLocaleString()}`
         ], 110, 82);
 
@@ -1216,7 +1234,7 @@ async function confirmRental() {
     startY: 125,
     head: [['Description', 'Days', 'Daily Rate', 'Subtotal']],
     body: [[
-        `Vehicle Rental - ${vData.make_model || 'Unit'}`, 
+        `Vehicle Rental - ${safePdfText(vData.make_model || 'Unit')}`, 
         rental.rental_days || 0, 
         parseFloat(vData.daily_rate || 0).toLocaleString(), 
         parseFloat(rental.total_price || 0).toLocaleString()
@@ -1272,7 +1290,7 @@ async function confirmRental() {
 
         doc.line(130, footerY, 195, footerY);
         doc.text("Customer's Signature", 130, footerY + 5);
-        doc.text(cData.full_name || "Guest", 130, footerY + 10);
+        doc.text(safePdfText(cData.full_name || "Guest"), 130, footerY + 10);
 
         doc.setFont("helvetica", "bolditalic");
         doc.setFontSize(10);
