@@ -1161,46 +1161,98 @@ async function confirmRental() {
         const { width, height } = page.getSize();
         const leftMargin = 30;
         const rightMargin = width - 30;
-        const pageWidth = width - 60; // total usable width
 
         // 3. LOAD LAO FONT
-        const fontBytes = await fetch('PhetsarathOT.ttf').then(res => res.arrayBuffer());
-        const fontLao = await doc.embedFont(fontBytes);
+        let fontLao;
+        try {
+            const fontBytes = await fetch('PhetsarathOT.ttf').then(res => res.arrayBuffer());
+            fontLao = await doc.embedFont(fontBytes);
+        } catch (e) {
+            console.warn('Phetsarath not found, using Noto Sans Lao');
+            const fontBytes = await fetch('NotoSansLao-Regular.ttf').then(res => res.arrayBuffer());
+            fontLao = await doc.embedFont(fontBytes);
+        }
 
-        // 4. HELPER FUNCTIONS
+        // 4. HELPER: Render Lao text as canvas image
+        function renderTextAsImage(text, size = 12) {
+            return new Promise((resolve) => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                ctx.font = `${size * 2}px "Noto Sans Lao", "Phetsarath OT", "Saysettha OT", sans-serif`;
+                
+                const metrics = ctx.measureText(text);
+                const textWidth = metrics.width;
+                const textHeight = size * 2 * 1.5;
+                
+                canvas.width = textWidth + 10;
+                canvas.height = textHeight + 10;
+                
+                ctx.font = `${size * 2}px "Noto Sans Lao", "Phetsarath OT", "Saysettha OT", sans-serif`;
+                ctx.fillStyle = 'black';
+                ctx.fillText(text, 5, textHeight - 5);
+                
+                canvas.toBlob(async (blob) => {
+                    const arrayBuffer = await blob.arrayBuffer();
+                    resolve({
+                        imageData: arrayBuffer,
+                        width: canvas.width,
+                        height: canvas.height,
+                        originalWidth: textWidth,
+                        originalHeight: textHeight
+                    });
+                }, 'image/png');
+            });
+        }
+
+        // 5. HELPER FUNCTIONS
         function safeText(str, fallback = 'N/A') {
             if (!str || String(str).trim() === '') return fallback;
             return String(str).trim();
         }
 
-        function drawText(text, x, y, options = {}) {
+        function hasLaoChars(str) {
+            if (!str) return false;
+            return /[\u0E80-\u0EFF]/.test(str);
+        }
+
+        async function drawText(text, x, y, options = {}) {
             const {
                 size = 10,
                 color = rgb(0, 0, 0),
-                align = 'left',
-                maxWidth = null
+                align = 'left'
             } = options;
 
-            const f = fontLao;
             const safeStr = safeText(text);
-            let xPos = x;
-
-            if (align === 'center') {
-                const textWidth = f.widthOfTextAtSize(safeStr, size);
-                xPos = x - textWidth / 2;
-            } else if (align === 'right') {
-                const textWidth = f.widthOfTextAtSize(safeStr, size);
-                xPos = x - textWidth;
-            }
-
-            if (maxWidth && f.widthOfTextAtSize(safeStr, size) > maxWidth) {
-                let truncated = safeStr;
-                while (f.widthOfTextAtSize(truncated + '...', size) > maxWidth && truncated.length > 0) {
-                    truncated = truncated.slice(0, -1);
-                }
-                page.drawText(truncated + '...', { x: xPos, y, size, font: f, color });
+            
+            if (hasLaoChars(safeStr)) {
+                const imgData = await renderTextAsImage(safeStr, size);
+                const pngImage = await doc.embedPng(imgData.imageData);
+                
+                const scaleFactor = 0.5;
+                const imgWidth = imgData.width * scaleFactor;
+                const imgHeight = imgData.height * scaleFactor;
+                
+                let xPos = x;
+                if (align === 'center') xPos = x - imgWidth / 2;
+                if (align === 'right') xPos = x - imgWidth;
+                
+                page.drawImage(pngImage, {
+                    x: xPos,
+                    y: y - imgHeight + (size * 0.5),
+                    width: imgWidth,
+                    height: imgHeight
+                });
             } else {
-                page.drawText(safeStr, { x: xPos, y, size, font: f, color });
+                let xPos = x;
+                if (align === 'center') {
+                    const textWidth = fontLao.widthOfTextAtSize(safeStr, size);
+                    xPos = x - textWidth / 2;
+                } else if (align === 'right') {
+                    const textWidth = fontLao.widthOfTextAtSize(safeStr, size);
+                    xPos = x - textWidth;
+                }
+                page.drawText(safeStr, { x: xPos, y, size, font: fontLao, color });
             }
         }
 
@@ -1213,18 +1265,16 @@ async function confirmRental() {
             });
         }
 
-        // Helper to draw a full-width line
         function drawFullLine(y, thickness = 0.5) {
             drawLine(leftMargin, y, rightMargin, y, thickness);
         }
 
-        // 5. HEADER - Company Name (centered)
-        drawText('TATA SMILE TRAVEL & CAR RENTAL SOLE CO.,LTD', width / 2, height - 30, {
+        // 6. HEADER
+        await drawText('TATA SMILE TRAVEL & CAR RENTAL SOLE CO.,LTD', width / 2, height - 30, {
             size: 14,
             align: 'center'
         });
 
-        // Company Address (left aligned)
         const headerLines = [
             'Nondou Village, Pakse District',
             'Champasack Province, Lao PDR',
@@ -1232,39 +1282,41 @@ async function confirmRental() {
             'Phone: +856 20 9169 7543'
         ];
 
-        headerLines.forEach((line, i) => {
-            drawText(line, leftMargin, height - 50 - (i * 12), { size: 8 });
-        });
+        for (let i = 0; i < headerLines.length; i++) {
+            await drawText(headerLines[i], leftMargin, height - 50 - (i * 12), { size: 8 });
+        }
 
-        // 6. QR CODE (top right)
+        // 7. QR CODE (SMALLER SIZE)
+        const qrSize = 75; // Reduced from 110
+        const qrBoxX = width - qrSize - 35;
+        const qrBoxY = height - qrSize - 40;
+        
         const qrContainer = document.createElement('div');
         qrContainer.style.display = 'none';
         document.body.appendChild(qrContainer);
         new QRCode(qrContainer, { text: invId, width: 128, height: 128 });
         await new Promise(r => setTimeout(r, 200));
         const qrCanvas = qrContainer.querySelector('canvas');
-        const qrBoxX = width - 150;
-        const qrBoxY = height - 165;
         if (qrCanvas) {
             const qrDataUrl = qrCanvas.toDataURL('image/png');
             const qrImage = await doc.embedPng(qrDataUrl);
             page.drawImage(qrImage, {
                 x: qrBoxX,
                 y: qrBoxY,
-                width: 110,
-                height: 110
+                width: qrSize,
+                height: qrSize
             });
         }
-        // INV number BELOW QR with proper spacing
-        drawText(`INV: ${invId}`, qrBoxX + 55, qrBoxY - 18, { size: 8, align: 'center' });
+        // INV number centered below QR with more space
+        await drawText(`INV: ${invId}`, qrBoxX + qrSize / 2, qrBoxY - 18, { size: 7, align: 'center' });
         document.body.removeChild(qrContainer);
 
-        // 7. TOP SEPARATOR LINE (full width from margin to margin)
-        const topLineY = qrBoxY - 32;
+        // 8. TOP SEPARATOR LINE
+        const topLineY = qrBoxY - 35;
         drawFullLine(topLineY, 0.5);
 
-        // 8. CUSTOMER INFORMATION (LEFT SIDE)
-        drawText('CUSTOMER INFORMATION', leftMargin, topLineY - 20, { size: 9 });
+        // 9. CUSTOMER INFORMATION (LEFT)
+        await drawText('CUSTOMER INFORMATION', leftMargin, topLineY - 20, { size: 9 });
 
         const customerFields = [
             `Name: ${safeText(cData.full_name)}`,
@@ -1275,13 +1327,13 @@ async function confirmRental() {
             `License: ${safeText(cData.license_number, '-')}`
         ];
 
-        customerFields.forEach((field, i) => {
-            drawText(field, leftMargin, topLineY - 35 - (i * 14), { size: 9 });
-        });
+        for (let i = 0; i < customerFields.length; i++) {
+            await drawText(customerFields[i], leftMargin, topLineY - 35 - (i * 14), { size: 9 });
+        }
 
-        // 9. VEHICLE DETAILS (RIGHT SIDE)
+        // 10. VEHICLE DETAILS (RIGHT)
         const rightColX = 330;
-        drawText('VEHICLE DETAILS', rightColX, topLineY - 20, { size: 9 });
+        await drawText('VEHICLE DETAILS', rightColX, topLineY - 20, { size: 9 });
 
         const vehicleFields = [
             `Model: ${safeText(vData.make_model)}`,
@@ -1292,91 +1344,76 @@ async function confirmRental() {
             `Daily Rate: ${Number(vData.daily_rate || 0).toLocaleString()}`
         ];
 
-        vehicleFields.forEach((field, i) => {
-            drawText(field, rightColX, topLineY - 35 - (i * 14), { size: 9 });
-        });
+        for (let i = 0; i < vehicleFields.length; i++) {
+            await drawText(vehicleFields[i], rightColX, topLineY - 35 - (i * 14), { size: 9 });
+        }
 
-        // 10. RENTAL PERIOD (full width below both columns)
+        // 11. RENTAL PERIOD
         const startDate = new Date(rental.start_date);
         const endDate = new Date(startDate);
         endDate.setDate(startDate.getDate() + (parseInt(rental.rental_days) || 0));
         const dateRange = `Rental Period: ${startDate.toLocaleDateString('en-GB')} to ${endDate.toLocaleDateString('en-GB')} (${rental.rental_days} Days)`;
 
         const periodY = topLineY - 120;
-        drawText(dateRange, leftMargin, periodY, { size: 10 });
+        await drawText(dateRange, leftMargin, periodY, { size: 10 });
 
-        // 11. SUMMARY TABLE
-        const tableStartY = periodY - 25;
+        // 12. SUMMARY TABLE (FIXED COLUMN WIDTHS)
+        const tableStartY = periodY - 30;
         
-        // Table header positions
-        const descColX = leftMargin + 10;
-        const daysColX = 275;
-        const rateColX = 415;
+        // Column positions (spread out more evenly)
+        const descHeaderX = leftMargin + 10;
+        const daysColX = 260;
+        const rateColX = 370;
         const subtotalColX = rightMargin;
         
-        // Table top border (full width)
         drawFullLine(tableStartY, 0.5);
         
-        // Table headers
+        // Table headers with sufficient space
         const headerRowY = tableStartY - 15;
+        await drawText('Description', descHeaderX, headerRowY, { size: 9, align: 'left' });
+        await drawText('Days', daysColX, headerRowY, { size: 9, align: 'center' });
+        await drawText('Daily Rate', rateColX, headerRowY, { size: 9, align: 'center' });
+        await drawText('Subtotal', subtotalColX, headerRowY, { size: 9, align: 'right' });
         
-        drawText('Description', daysColX - 20, headerRowY, { size: 9, align: 'center' });
-        drawText('Days', daysColX, headerRowY, { size: 9, align: 'center' });
-        drawText('Daily Rate', rateColX, headerRowY, { size: 9, align: 'center' });
-        drawText('Subtotal', subtotalColX, headerRowY, { size: 9, align: 'right' });
-        
-        // Header bottom border (full width)
         drawFullLine(headerRowY - 16, 0.5);
 
-        // Table body row
-        const bodyRowY = headerRowY - 32;
+        // Table body
+        const bodyRowY = headerRowY - 34;
         const dailyRate = Number(vData.daily_rate || 0).toLocaleString();
 
-        // Vehicle description (left aligned, indented from margin)
-        drawText(`Vehicle Rental - ${safeText(vData.make_model || 'Unit')}`, descColX, bodyRowY, { size: 9 });
-        
-        // Days (centered)
-        drawText(String(rental.rental_days || 0), daysColX, bodyRowY, { size: 9, align: 'center' });
-        
-        // Daily Rate (centered)
-        drawText(dailyRate, rateColX, bodyRowY, { size: 9, align: 'center' });
-        
-        // Subtotal (right aligned at right margin)
-        drawText(Number(rental.total_price || 0).toLocaleString(), subtotalColX, bodyRowY, { size: 9, align: 'right' });
+        await drawText(`Vehicle Rental - ${safeText(vData.make_model || 'Unit')}`, descHeaderX, bodyRowY, { size: 9, align: 'left' });
+        await drawText(String(rental.rental_days || 0), daysColX, bodyRowY, { size: 9, align: 'center' });
+        await drawText(dailyRate, rateColX, bodyRowY, { size: 9, align: 'center' });
+        await drawText(Number(rental.total_price || 0).toLocaleString(), subtotalColX, bodyRowY, { size: 9, align: 'right' });
 
-        // Table bottom border (full width)
         drawFullLine(bodyRowY - 14, 0.5);
 
-        // 12. GRAND TOTAL (right-aligned at right margin)
-        const totalY = bodyRowY - 40;
-        drawText('GRAND TOTAL:', subtotalColX, totalY, { size: 12, align: 'right' });
-        drawText(Number(rental.total_price || 0).toLocaleString(), subtotalColX, totalY - 18, { size: 12, align: 'right' });
+        // 13. GRAND TOTAL
+        const totalY = bodyRowY - 45;
+        await drawText('GRAND TOTAL:', subtotalColX, totalY, { size: 12, align: 'right' });
+        await drawText(Number(rental.total_price || 0).toLocaleString(), subtotalColX, totalY - 18, { size: 12, align: 'right' });
 
-        // Currency options (right-aligned)
-        drawText('Currency:', subtotalColX, totalY - 40, { size: 9, align: 'right' });
-        drawText('[  USD  ]      [  THB  ]      [  LAK  ]', subtotalColX, totalY - 55, { size: 8, align: 'right' });
+        await drawText('Currency:', subtotalColX, totalY - 40, { size: 9, align: 'right' });
+        await drawText('[  USD  ]      [  THB  ]      [  LAK  ]', subtotalColX, totalY - 55, { size: 8, align: 'right' });
 
-        // Extra separator line (full width, thin)
         drawFullLine(totalY - 67, 0.2);
 
-        // 13. FOOTER
+        // 14. FOOTER
         const footerY = 85;
-
-        // Prepared by line
         const prepLineWidth = 170;
+
         drawLine(leftMargin, footerY + 15, leftMargin + prepLineWidth, footerY + 15, 0.5);
-        drawText('Prepared by:', leftMargin, footerY + 8, { size: 8 });
-        drawText('TATA SMILE TRAVEL & CAR RENTAL CO.,LTD', leftMargin, footerY - 2, { size: 8 });
+        await drawText('Prepared by:', leftMargin, footerY + 8, { size: 8 });
+        await drawText('TATA SMILE TRAVEL & CAR RENTAL CO.,LTD', leftMargin, footerY - 2, { size: 8 });
 
-        // Customer signature line (right side, same length)
         drawLine(rightMargin - prepLineWidth, footerY + 15, rightMargin, footerY + 15, 0.5);
-        drawText("Customer's Signature", rightMargin - prepLineWidth/2, footerY + 8, { size: 8, align: 'center' });
-        drawText(safeText(cData.full_name || 'Guest'), rightMargin - prepLineWidth/2, footerY - 2, { size: 8, align: 'center' });
+        await drawText("Customer's Signature", rightMargin - prepLineWidth / 2, footerY + 8, { size: 8, align: 'center' });
+        
+        await drawText(safeText(cData.full_name || 'Guest'), rightMargin - prepLineWidth / 2, footerY - 2, { size: 8, align: 'center' });
 
-        // Thank you message
-        drawText('Thank you for choosing us!', width / 2, 40, { size: 10, align: 'center' });
+        await drawText('Thank you for choosing us!', width / 2, 40, { size: 10, align: 'center' });
 
-        // 14. SAVE PDF
+        // 15. SAVE PDF
         const pdfBytes = await doc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
