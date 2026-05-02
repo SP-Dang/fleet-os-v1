@@ -1316,37 +1316,39 @@ async function confirmRental() {
         drawFullLine(topLineY, 0.5);
 
         // 9. CUSTOMER INFORMATION (LEFT)
-        await drawText('CUSTOMER INFORMATION', leftMargin, topLineY - 20, { size: 9 });
+await drawText('CUSTOMER INFORMATION', leftMargin, topLineY - 20, { size: 9 });
 
-        const customerFields = [
-            `Name: ${safeText(cData.full_name)}`,
-            `Phone: ${safeText(cData.phone)}`,
-            `Email: ${safeText(cData.email, '-')}`,
-            `Passport: ${safeText(cData.passport_number, '-')}`,
-            `Nationality: ${safeText(cData.nationality, '-')}`,
-            `License: ${safeText(cData.license_number, '-')}`
-        ];
+const customerFields = [
+    `Name: ${safeText(cData.full_name)}`,
+    `Phone: ${safeText(cData.phone)}`,
+    `Email: ${safeText(cData.email, '-')}`,
+    `Passport: ${safeText(cData.passport_number, '-')}`,
+    `Nationality: ${safeText(cData.nationality, '-')}`,
+    `License: ${safeText(cData.license_number, '-')}`
+];
 
-        for (let i = 0; i < customerFields.length; i++) {
-            await drawText(customerFields[i], leftMargin, topLineY - 35 - (i * 14), { size: 9 });
-        }
+// ✅ Changed: Start at -38 (slightly lower) and spacing of 18 instead of 14
+for (let i = 0; i < customerFields.length; i++) {
+    await drawText(customerFields[i], leftMargin, topLineY - 38 - (i * 18), { size: 9 });
+}
 
         // 10. VEHICLE DETAILS (RIGHT)
         const rightColX = 330;
-        await drawText('VEHICLE DETAILS', rightColX, topLineY - 20, { size: 9 });
+await drawText('VEHICLE DETAILS', rightColX, topLineY - 20, { size: 9 });
 
-        const vehicleFields = [
-            `Model: ${safeText(vData.make_model)}`,
-            `Plate: ${safeText(vData.license_plate)}`,
-            `Type: ${safeText(vData.vehicle_type, '-')}`,
-            `Fuel: ${safeText(vData.fuel_type, '-')}`,
-            `Transmission: ${safeText(vData.transmission, '-')}`,
-            `Daily Rate: ${Number(vData.daily_rate || 0).toLocaleString()}`
-        ];
+const vehicleFields = [
+    `Model: ${safeText(vData.make_model)}`,
+    `Plate: ${safeText(vData.license_plate)}`,
+    `Type: ${safeText(vData.vehicle_type, '-')}`,
+    `Fuel: ${safeText(vData.fuel_type, '-')}`,
+    `Transmission: ${safeText(vData.transmission, '-')}`,
+    `Daily Rate: ${Number(vData.daily_rate || 0).toLocaleString()}`
+];
 
-        for (let i = 0; i < vehicleFields.length; i++) {
-            await drawText(vehicleFields[i], rightColX, topLineY - 35 - (i * 14), { size: 9 });
-        }
+// ✅ Changed: Same spacing as customer section — 18 between lines
+for (let i = 0; i < vehicleFields.length; i++) {
+    await drawText(vehicleFields[i], rightColX, topLineY - 38 - (i * 18), { size: 9 });
+}
 
         // 11. RENTAL PERIOD
         const startDate = new Date(rental.start_date);
