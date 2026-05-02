@@ -868,37 +868,26 @@ const bookingChannel = client
 
     // 🟢 RENTALS changes (new booking, cancel, etc.)
     .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'rentals'
-    }, async (payload) => {
-        console.log("📡 Rentals update received:", payload);
-        try {
-            // Check if the modal is currently open (user is in the middle of booking)
-            const modal = document.getElementById('booking-modal');
-            const modalOpen = modal && !modal.classList.contains('hidden');
-            
-            // Only show alert if:
-            // 1. Modal is open (user was about to book)
-            // 2. AND this is an INSERT event (someone else just booked)
-            // 3. AND we already have a vehicle selected
-            if (modalOpen && payload.eventType === 'INSERT' && selectedVehicle) {
-                // Check if the new booking is for OUR selected vehicle
-                if (payload.new && String(payload.new.vehicle_id) === String(selectedVehicle)) {
-                    alert("⚠️ This vehicle was just booked by someone else. Please select another.");
-                    closeModal();
-                }
-            }
-            
-            // Always refresh the vehicle list
-            await loadVehicles();
-            if (selectedVehicle) await initCalendar(selectedVehicle);
-            
-        } catch (err) {
-            console.error("Realtime rentals error:", err);
-        }
-    })
+    event: '*',
+    schema: 'public',
+    table: 'rentals'
+}, async (payload) => {
+    console.log("📡 Rentals update received:", payload);
+    try {
+        await loadVehicles();
+        if (selectedVehicle) await initCalendar(selectedVehicle);
 
+        // Only show alert for UPDATES or DELETES — NOT inserts (your own booking)
+        const modal = document.getElementById('booking-modal');
+        const modalOpen = modal && !modal.classList.contains('hidden');
+        
+        if (modalOpen && payload.eventType !== 'INSERT') {
+            alert("⚠️ Availability updated. Please re-check dates.");
+        }
+    } catch (err) {
+        console.error("Realtime rentals error:", err);
+    }
+})
     // 🔵 VEHICLES changes
     .on('postgres_changes', {
         event: '*',
