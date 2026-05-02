@@ -314,19 +314,29 @@ async function initCalendar(vehicleId) {
 
             // =========================================
             // 🎯 FINAL STATUS LOGIC
+            // Always trust the vehicle's own status field first.
+            // A vehicle marked 'maintenance' or 'rented' in the DB
+            // must show as unavailable — even if no rental row covers today.
             // =========================================
             let badgeText = "Available";
             let badgeClass = "bg-green-100 text-green-600";
             let disabled = false;
 
-            if (isRentedNow) {
+            if (v.status === 'maintenance') {
+                // Highest priority: physically unavailable for repair
+                badgeText = "Maintenance";
+                badgeClass = "bg-orange-100 text-orange-600";
+                disabled = true;
+            } else if (v.status === 'rented' || isRentedNow) {
+                // Vehicle is currently out on rental
                 badgeText = "Rented";
                 badgeClass = "bg-red-100 text-red-600";
                 disabled = true;
             } else if (hasFutureBooking) {
+                // Has a future booking but is still available today
                 badgeText = "Booked";
                 badgeClass = "bg-yellow-100 text-yellow-600";
-                disabled = false;
+                disabled = false; // customer can still book non-overlapping dates
             }
 
             return `
