@@ -1158,7 +1158,7 @@ async function confirmRental() {
         function safePdfText(str) {
             if (!str) return 'N/A';
             // Check if string contains any non-Basic-Latin character (code point > 127)
-            const hasNonLatin = /[^ -]/.test(str);
+            const hasNonLatin = /[^\u0000-\u007F]/.test(str);
             if (hasNonLatin) {
                 // Remove non-Latin chars, keep any ASCII parts (e.g. numbers in mixed plates)
                 const asciiPart = str.replace(/[^ -~]/g, '').trim();
