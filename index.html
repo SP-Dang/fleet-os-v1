@@ -1164,7 +1164,7 @@ async function confirmRental() {
         const pageWidth = width - 60; // total usable width
 
         // 3. LOAD LAO FONT
-        const fontBytes = await fetch('NotoSansLao-Regular.ttf').then(res => res.arrayBuffer());
+        const fontBytes = await fetch('PhetsarathOT.ttf').then(res => res.arrayBuffer());
         const fontLao = await doc.embedFont(fontBytes);
 
         // 4. HELPER FUNCTIONS
