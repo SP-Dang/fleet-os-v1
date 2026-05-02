@@ -1146,7 +1146,7 @@ async function confirmRental() {
     async function preparePrint(rental) {
     try {
         const { PDFDocument, rgb } = window.PDFLib;
-        const fontkit = window.fontkit; // ✅ Get fontkit from global scope
+        const fontkit = window.fontkit;
 
         // 1. DATA EXTRACTION
         const vData = (Array.isArray(rental.vehicles) ? rental.vehicles[0] : rental.vehicles) || {};
@@ -1155,8 +1155,6 @@ async function confirmRental() {
 
         // 2. CREATE PDF DOCUMENT
         const doc = await PDFDocument.create();
-        
-        // ✅ REGISTER FONTKIT BEFORE EMBEDDING ANY FONT
         doc.registerFontkit(fontkit);
         
         let page = doc.addPage([612, 792]);
@@ -1166,7 +1164,7 @@ async function confirmRental() {
         const fontBytes = await fetch('NotoSansLao-Regular.ttf').then(res => res.arrayBuffer());
         const fontLao = await doc.embedFont(fontBytes);
 
-        // 4. HELPER: Safe text
+        // 4. HELPER FUNCTIONS
         function safeText(str, fallback = 'N/A') {
             if (!str || String(str).trim() === '') return fallback;
             return String(str).trim();
@@ -1212,12 +1210,13 @@ async function confirmRental() {
             });
         }
 
-        // 5. HEADER
+        // 5. HEADER - Company Name (centered)
         drawText('TATA SMILE TRAVEL & CAR RENTAL SOLE CO.,LTD', width / 2, height - 30, {
             size: 14,
             align: 'center'
         });
 
+        // Company Address (left aligned)
         const headerLines = [
             'Nondou Village, Pakse District',
             'Champasack Province, Lao PDR',
@@ -1226,10 +1225,10 @@ async function confirmRental() {
         ];
 
         headerLines.forEach((line, i) => {
-            drawText(line, 30, height - 48 - (i * 12), { size: 8 });
+            drawText(line, 30, height - 50 - (i * 12), { size: 8 });
         });
 
-        // 6. QR CODE
+        // 6. QR CODE (top right)
         const qrContainer = document.createElement('div');
         qrContainer.style.display = 'none';
         document.body.appendChild(qrContainer);
@@ -1249,12 +1248,12 @@ async function confirmRental() {
         drawText(`INV: ${invId}`, width - 90, height - 146, { size: 8, align: 'center' });
         document.body.removeChild(qrContainer);
 
-        // 7. TOP LINE
+        // 7. TOP SEPARATOR LINE
         const topLineY = height - 155;
         drawLine(30, topLineY, width - 30, topLineY);
 
-        // 8. CUSTOMER INFO (LEFT)
-        drawText('CUSTOMER INFORMATION', 30, topLineY - 15, { size: 9 });
+        // 8. CUSTOMER INFORMATION (LEFT SIDE)
+        drawText('CUSTOMER INFORMATION', 30, topLineY - 20, { size: 9 });
 
         const customerFields = [
             `Name: ${safeText(cData.full_name)}`,
@@ -1266,11 +1265,11 @@ async function confirmRental() {
         ];
 
         customerFields.forEach((field, i) => {
-            drawText(field, 30, topLineY - 30 - (i * 14), { size: 9 });
+            drawText(field, 30, topLineY - 35 - (i * 14), { size: 9 });
         });
 
-        // 9. VEHICLE DETAILS (RIGHT)
-        drawText('VEHICLE DETAILS', 320, topLineY - 15, { size: 9 });
+        // 9. VEHICLE DETAILS (RIGHT SIDE)
+        drawText('VEHICLE DETAILS', 330, topLineY - 20, { size: 9 });
 
         const vehicleFields = [
             `Model: ${safeText(vData.make_model)}`,
@@ -1282,10 +1281,10 @@ async function confirmRental() {
         ];
 
         vehicleFields.forEach((field, i) => {
-            drawText(field, 320, topLineY - 30 - (i * 14), { size: 9 });
+            drawText(field, 330, topLineY - 35 - (i * 14), { size: 9 });
         });
 
-        // 10. RENTAL PERIOD
+        // 10. RENTAL PERIOD (full width below both columns)
         const startDate = new Date(rental.start_date);
         const endDate = new Date(startDate);
         endDate.setDate(startDate.getDate() + (parseInt(rental.rental_days) || 0));
@@ -1295,59 +1294,69 @@ async function confirmRental() {
         drawText(dateRange, 30, periodY, { size: 10 });
 
         // 11. SUMMARY TABLE
-        const tableStartY = periodY - 30;
-        const colX = [30, 200, 320, 430];
-        const headerRowY = tableStartY - 5;
-
-        drawLine(colX[0], tableStartY, colX[3] + 80, tableStartY);
-
+        const tableStartY = periodY - 25;
+        const colX = [30, 200, 350, 480]; // x positions for columns
+        
+        // Table top border
+        drawLine(30, tableStartY, 540, tableStartY, 0.5);
+        
+        // Table headers
+        const headerRowY = tableStartY - 15;
         const headers = ['Description', 'Days', 'Daily Rate', 'Subtotal'];
-        const headerCenterX = [
-            (colX[0] + colX[1]) / 2 - 20,
-            (colX[1] + colX[2]) / 2,
-            (colX[2] + colX[3]) / 2,
-            colX[3] + 40
-        ];
-
+        const headerX = [120, 275, 415, 510];
+        
         headers.forEach((h, i) => {
-            drawText(h, headerCenterX[i], headerRowY, { size: 9, align: 'center' });
+            drawText(h, headerX[i], headerRowY, { size: 9, align: 'center' });
         });
+        
+        // Header bottom border
+        drawLine(30, headerRowY - 16, 540, headerRowY - 16, 0.5);
 
-        drawLine(colX[0], headerRowY - 10, colX[3] + 80, headerRowY - 10);
-
-        // Table body
-        const bodyRowY = headerRowY - 25;
+        // Table body row
+        const bodyRowY = headerRowY - 32;
         const dailyRate = Number(vData.daily_rate || 0).toLocaleString();
 
-        drawText(`Vehicle Rental - ${safeText(vData.make_model || 'Unit')}`, 40, bodyRowY, { size: 9, align: 'left' });
-        drawText(String(rental.rental_days || 0), (colX[1] + colX[2]) / 2, bodyRowY, { size: 9, align: 'center' });
-        drawText(dailyRate, (colX[2] + colX[3]) / 2, bodyRowY, { size: 9, align: 'center' });
-        drawText(Number(rental.total_price || 0).toLocaleString(), colX[3] + 80, bodyRowY, { size: 9, align: 'right' });
+        // Vehicle description (left aligned)
+        drawText(`Vehicle Rental - ${safeText(vData.make_model || 'Unit')}`, 40, bodyRowY, { size: 9 });
+        
+        // Days (centered)
+        drawText(String(rental.rental_days || 0), 275, bodyRowY, { size: 9, align: 'center' });
+        
+        // Daily Rate (centered)
+        drawText(dailyRate, 415, bodyRowY, { size: 9, align: 'center' });
+        
+        // Subtotal (right aligned)
+        drawText(Number(rental.total_price || 0).toLocaleString(), 540, bodyRowY, { size: 9, align: 'right' });
 
-        drawLine(colX[0], bodyRowY - 10, colX[3] + 80, bodyRowY - 10);
+        // Table bottom border
+        drawLine(30, bodyRowY - 14, 540, bodyRowY - 14, 0.5);
 
         // 12. GRAND TOTAL
-        const totalY = bodyRowY - 30;
-        drawText('GRAND TOTAL:', colX[3] + 80, totalY, { size: 12, align: 'right' });
-        drawText(Number(rental.total_price || 0).toLocaleString(), colX[3] + 80, totalY - 18, { size: 12, align: 'right' });
+        const totalY = bodyRowY - 40;
+        drawText('GRAND TOTAL:', 540, totalY, { size: 12, align: 'right' });
+        drawText(Number(rental.total_price || 0).toLocaleString(), 540, totalY - 18, { size: 12, align: 'right' });
 
-        // Currency
-        drawText('Currency:', colX[3] + 80, totalY - 35, { size: 9, align: 'right' });
-        drawText('[  USD  ]      [  THB  ]      [  LAK  ]', colX[3] + 80, totalY - 47, { size: 8, align: 'right' });
+        // Currency options
+        drawText('Currency:', 540, totalY - 40, { size: 9, align: 'right' });
+        drawText('[  USD  ]      [  THB  ]      [  LAK  ]', 540, totalY - 55, { size: 8, align: 'right' });
 
-        drawLine(30, totalY - 55, width - 30, totalY - 55, 0.2);
+        // Extra separator line
+        drawLine(30, totalY - 65, width - 30, totalY - 65, 0.2);
 
         // 13. FOOTER
         const footerY = 80;
 
-        drawLine(30, footerY + 15, 200, footerY + 15);
-        drawText('Prepared by:', 30, footerY + 8, { size: 8 });
-        drawText('TATA SMILE TRAVEL & CAR RENTAL CO.,LTD', 30, footerY - 2, { size: 8 });
+        // Prepared by line
+        drawLine(30, footerY + 10, 200, footerY + 10, 0.5);
+        drawText('Prepared by:', 30, footerY + 3, { size: 8 });
+        drawText('TATA SMILE TRAVEL & CAR RENTAL CO.,LTD', 30, footerY - 8, { size: 8 });
 
-        drawLine(width - 230, footerY + 15, width - 30, footerY + 15);
-        drawText("Customer's Signature", width - 130, footerY + 8, { size: 8, align: 'center' });
-        drawText(safeText(cData.full_name || 'Guest'), width - 130, footerY - 2, { size: 8, align: 'center' });
+        // Customer signature line
+        drawLine(width - 230, footerY + 10, width - 30, footerY + 10, 0.5);
+        drawText("Customer's Signature", width - 130, footerY + 3, { size: 8, align: 'center' });
+        drawText(safeText(cData.full_name || 'Guest'), width - 130, footerY - 8, { size: 8, align: 'center' });
 
+        // Thank you message
         drawText('Thank you for choosing us!', width / 2, 40, { size: 10, align: 'center' });
 
         // 14. SAVE PDF
