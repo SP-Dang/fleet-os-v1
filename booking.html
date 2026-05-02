@@ -1,45 +1,43 @@
 <!DOCTYPE html>
-<html lang="lo">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="referrer" content="strict-origin-when-cross-origin">
-    <title>Booking | Tata Smile Car Rental</title>
+    <title>Booking</title>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+    <!-- Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
+
     <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700&display=swap');
-        body { font-family: 'Noto Sans Lao', sans-serif; }
-        /* Smooth modal transitions */
-        .modal-overlay {
-            transition: opacity 0.3s ease;
-        }
-        .modal-card {
-            transition: transform 0.3s ease, opacity 0.3s ease;
-        }
-    </style>
 </head>
 
-<body class="bg-slate-50 p-4 md:p-6">
+<body class="bg-slate-50 p-6">
 
 <!-- HEADER -->
 <div class="max-w-6xl mx-auto mb-12">
+
+    <!-- TOP HEADER -->
     <div class="flex items-center gap-4 mb-4">
-        <div class="w-14 h-14 rounded-full overflow-hidden border border-slate-200 shadow-sm bg-white flex items-center justify-center flex-shrink-0">
-            <img src="logo.png" alt="Logo" class="w-full h-full object-cover" onerror="this.style.display='none'">
+
+        <!-- LOGO -->
+        <div class="w-14 h-14 rounded-full overflow-hidden border border-slate-200 shadow-sm">
+            <img src="logo.png" alt="Logo" class="w-full h-full object-cover">
         </div>
+
+        <!-- TITLE -->
         <div>
-            <h1 class="text-2xl md:text-4xl font-black tracking-tight leading-none">
+            <h1 class="text-3xl md:text-4xl font-black tracking-tight leading-none">
                 <span class="text-slate-900">TATA SMILE CAR RENTAL</span>
                 <span class="text-blue-600"> - BOOK YOUR VEHICLE</span>
             </h1>
+
+            <!-- STATUS -->
             <div class="flex items-center gap-2 mt-1">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                 <span class="text-[10px] font-black uppercase text-slate-400 tracking-widest">
                     Instant Booking Available
                 </span>
@@ -47,333 +45,152 @@
         </div>
     </div>
 
+    <!-- SUBTEXT + POWERED BY -->
     <div class="flex justify-between items-center flex-wrap gap-2">
+
+        <!-- LEFT -->
         <p class="text-slate-500 font-semibold text-sm tracking-wide">
             Select your preferred vehicle and choose your rental dates.
         </p>
+
+        <!-- RIGHT -->
         <p class="font-medium text-[11px] tracking-wide whitespace-nowrap">
-            <span class="text-slate-500">Powered by</span>
-            <span class="text-blue-600"> Somphone · 020 5534 8882</span>
+        <span class="text-slate-500">Powered by</span>
+        <span class="text-blue-600"> Somphone · 020 5534 8882</span>
         </p>
     </div>
 </div>
 
-<!-- GLOBAL SUCCESS MESSAGE -->
-<div id="success-msg"
-     class="hidden max-w-6xl mx-auto mb-6 p-4 bg-emerald-50 text-emerald-700 font-bold rounded-xl text-center border border-emerald-100 text-sm">
-</div>
 
-<!-- ERROR MESSAGE -->
-<div id="error-msg"
-     class="hidden max-w-6xl mx-auto mb-6 p-4 bg-red-50 text-red-600 font-bold rounded-xl text-center border border-red-100 text-sm">
+
+<!-- ✅ GLOBAL SUCCESS MESSAGE (VISIBLE AFTER BOOKING) -->
+<div id="success-msg" 
+     class="hidden max-w-6xl mx-auto mb-6 p-4 bg-green-100 text-green-700 font-bold rounded-xl text-center">
 </div>
 
 <!-- VEHICLE GRID -->
 <div id="vehicle-list" class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6"></div>
 
-<!-- LOADING STATE -->
-<div id="loading-state" class="max-w-6xl mx-auto text-center py-12 text-slate-400 font-bold text-sm">
-    Loading fleet...
-</div>
-
 <!-- BOOKING MODAL -->
 <div id="booking-modal"
-    class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 modal-overlay opacity-0">
+    class="fixed inset-0 bg-black/50 hidden items-center justify-center transition-opacity duration-300 opacity-0">
 
     <div id="modal-card"
-        class="bg-white rounded-2xl w-full max-w-[500px] max-h-[90vh] overflow-hidden shadow-2xl mx-4 modal-card scale-95 opacity-0 flex flex-col">
+        class="bg-white rounded-2xl w-[500px] max-h-[90vh] overflow-hidden transform scale-95 opacity-0 transition-all duration-300 shadow-2xl">
 
-        <!-- IMAGE SECTION -->
-        <div class="relative h-72 bg-slate-100 flex-shrink-0">
-            <img id="vehicle-image" class="w-full h-full object-cover" alt="Vehicle">
-            <div id="gallery-no-image" class="hidden w-full h-full flex items-center justify-center text-slate-400 font-bold text-sm">
-                No Image Available
-            </div>
+        <!-- 🔥 BIG IMAGE SECTION -->
+        <div class="relative">
 
-            <button onclick="prevImage()" id="btn-prev-img"
-                class="absolute left-3 top-1/2 -translate-y-1/2 bg-black/50 text-white px-3 py-1 rounded-full hover:bg-black/70 transition hidden">
+            <img id="vehicle-image"
+                class="w-full h-72 object-cover">
+
+            <!-- LEFT -->
+            <button onclick="prevImage()"
+                class="absolute left-3 top-1/2 -translate-y-1/2 bg-black/50 text-white px-3 py-1 rounded-full">
                 ‹
             </button>
-            <button onclick="nextImage()" id="btn-next-img"
-                class="absolute right-3 top-1/2 -translate-y-1/2 bg-black/50 text-white px-3 py-1 rounded-full hover:bg-black/70 transition hidden">
+
+            <!-- RIGHT -->
+            <button onclick="nextImage()"
+                class="absolute right-3 top-1/2 -translate-y-1/2 bg-black/50 text-white px-3 py-1 rounded-full">
                 ›
             </button>
 
-            <div id="image-counter" class="absolute bottom-3 right-3 bg-black/50 text-white text-xs px-2 py-1 rounded-lg font-bold hidden">
-                1 / 1
-            </div>
         </div>
 
-        <!-- CONTENT AREA -->
-        <div class="p-6 overflow-y-auto flex-1">
+        <!-- 🔥 CONTENT AREA -->
+        <div class="p-6">
+
+            <!-- VEHICLE INFO -->
             <div class="flex justify-between items-center mb-3">
-                <h3 id="vehicle-name" class="text-xl font-bold text-slate-800"></h3>
-                <p id="vehicle-price" class="text-blue-600 font-bold"></p>
+                <h3 id="vehicle-name"
+                    class="text-xl font-bold text-slate-800"></h3>
+
+                <p id="vehicle-price"
+                    class="text-blue-600 font-bold"></p>
             </div>
 
             <h2 class="text-lg font-black mb-3">Select Dates</h2>
 
+            <!-- DATE INPUT -->
             <input id="date-range"
                 placeholder="Select booking dates"
-                class="w-full p-3 border border-slate-200 rounded-xl mb-4 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500">
+                class="w-full p-3 border rounded-xl mb-4">
 
+            <!-- BUTTON -->
             <button onclick="openCustomerModal()"
-                class="w-full bg-blue-600 text-white p-3 rounded-xl font-bold hover:bg-blue-700 transition active:scale-95">
+                class="w-full bg-blue-600 text-white p-3 rounded-xl font-bold hover:bg-blue-700 transition">
                 Next
             </button>
 
-            <button onclick="closeBookingModal()"
-                class="w-full mt-3 text-slate-400 hover:text-slate-600 font-bold text-sm py-2 transition">
+            <button onclick="closeModal()"
+                class="w-full mt-3 text-slate-400 hover:text-slate-600">
                 Cancel
             </button>
+
         </div>
+
     </div>
 </div>
 
-<!-- CUSTOMER MODAL -->
-<div id="customer-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50 modal-overlay opacity-0">
-    <div id="customer-card" class="bg-white p-6 md:p-8 rounded-2xl w-full max-w-[400px] mx-4 shadow-2xl modal-card scale-95 opacity-0">
-        <h2 class="text-xl font-black mb-5">Register Customer</h2>
+    
+<!-- ✅ CUSTOMER MODAL -->
+<div id="customer-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center">
+    <div class="bg-white p-8 rounded-2xl w-[400px]">
 
-        <div class="space-y-3">
-            <input id="c-name" type="text" placeholder="Full Name *"
-                class="w-full p-3 border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <input id="c-phone" type="tel" placeholder="Phone *"
-                class="w-full p-3 border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <input id="c-email" type="email" placeholder="Email"
-                class="w-full p-3 border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <input id="c-nationality" type="text" placeholder="Nationality *"
-                class="w-full p-3 border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <input id="c-passport" type="text" placeholder="Passport / ID *"
-                class="w-full p-3 border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <input id="c-license" type="text" placeholder="Driving License No. *"
-                class="w-full p-3 border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500">
-        </div>
+        <h2 class="text-xl font-black mb-4">Register Customer</h2>
+
+        <input id="c-name" placeholder="Full Name"
+            class="w-full p-3 border rounded-xl mb-3">
+
+        <input id="c-phone" placeholder="Phone"
+            class="w-full p-3 border rounded-xl mb-3">
+
+        <input id="c-email" placeholder="Email"
+            class="w-full p-3 border rounded-xl mb-3">
+
+        <input id="c-nationality" placeholder="Nationality"
+            class="w-full p-3 border rounded-xl mb-3">
+
+        <input id="c-passport" placeholder="Passport / ID"
+            class="w-full p-3 border rounded-xl mb-3">
+
+        <input id="c-license" placeholder="License No"
+            class="w-full p-3 border rounded-xl mb-4">
 
         <button onclick="saveCustomerAndBook()"
-            class="w-full bg-blue-600 text-white p-3 rounded-xl font-bold mt-5 hover:bg-blue-700 transition active:scale-95">
+            class="w-full bg-blue-600 text-white p-3 rounded-xl font-bold">
             Save & Book
         </button>
 
         <button onclick="closeCustomerModal()"
-            class="w-full mt-3 text-slate-400 hover:text-slate-600 font-bold text-sm py-2 transition">
+            class="w-full mt-3 text-slate-400">
             Cancel
         </button>
+
     </div>
 </div>
 
-<!-- WHATSAPP MODAL -->
-<div id="whatsapp-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50 modal-overlay opacity-0">
-    <div id="whatsapp-card" class="bg-white rounded-3xl p-8 w-full max-w-[400px] mx-4 text-center shadow-xl modal-card scale-95 opacity-0">
-        <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span class="text-2xl">&#128172;</span>
-        </div>
-        <h2 class="text-xl font-black mb-2">Booking Confirmed</h2>
-        <p class="text-slate-500 mb-6 text-sm leading-relaxed">
-            Would you like to contact us via WhatsApp to confirm your booking?
-        </p>
-        <div class="flex gap-3 justify-center">
-            <button onclick="openWhatsAppInvoice(window.latestBooking); closeWhatsAppModal();"
-                class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl font-black text-sm shadow-md transition active:scale-95">
-                Yes, Contact
-            </button>
-            <button onclick="closeWhatsAppModal()"
-                class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-6 py-3 rounded-2xl font-black text-sm transition">
-                Maybe Later
-            </button>
-        </div>
-    </div>
-</div>
-
+<!-- SCRIPT -->
 <script>
-// =========================================================
-// SECURITY NOTICE: Enable Row Level Security (RLS) on all
-// Supabase tables. The anon key is visible to all users.
-// =========================================================
-const SUPABASE_URL = 'https://unaeguquzlvjmiebxsvg.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVuYWVndXF1emx2am1pZWJ4c3ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNDk5MTAsImV4cCI6MjA5MTYyNTkxMH0.m6kCJus2-oHlzvmVxfFtbedKPbf8ricpQdIOQeB0fVg';
+const client = supabase.createClient(
+    'https://unaeguquzlvjmiebxsvg.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVuYWVndXF1emx2am1pZWJ4c3ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNDk5MTAsImV4cCI6MjA5MTYyNTkxMH0.m6kCJus2-oHlzvmVxfFtbedKPbf8ricpQdIOQeB0fVg'
+);
 
-const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-// =========================================================
-// XSS PROTECTION
-// =========================================================
-function escapeHtml(text) {
-    if (text == null) return '';
-    return String(text)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
-
-function showSuccess(msg) {
-    const el = document.getElementById('success-msg');
-    if (el) { el.innerText = msg; el.classList.remove('hidden'); setTimeout(() => el.classList.add('hidden'), 4000); }
-}
-
-function showError(msg) {
-    const el = document.getElementById('error-msg');
-    if (el) { el.innerText = msg; el.classList.remove('hidden'); setTimeout(() => el.classList.add('hidden'), 5000); }
-}
-
-let selectedVehicleId = null;
+let selectedVehicle = null;
 let selectedVehicleData = null;
+
 let selectedStart = null;
 let selectedEnd = null;
+
+// =========================================
+// 🔥 IMAGE GALLERY STATE
+// =========================================
+let vehicleImages = [];
 let currentImageIndex = 0;
-let galleryImages = [];
-let datePickerInstance = null;
-let isModalAnimating = false;
+let flatpickrInstance = null; // FIX #2: track instance to destroy before re-init
 
-// =========================================================
-// LOAD VEHICLES
-// =========================================================
-async function loadVehicles() {
-    const list = document.getElementById('vehicle-list');
-    const loading = document.getElementById('loading-state');
-
-    try {
-        if (loading) loading.classList.remove('hidden');
-        if (list) list.innerHTML = '';
-
-        const { data: vehicles, error: vError } = await client
-            .from('vehicles')
-            .select('*');
-
-        if (vError) throw vError;
-
-        const { data: rentals } = await client
-            .from('rentals')
-            .select('vehicle_id, start_date, rental_days, status');
-
-        const { data: images, error: imgError } = await client
-            .from('vehicle_images')
-            .select('*');
-
-        if (imgError) console.error('Image Load Error:', imgError);
-
-        const allImages = images || [];
-
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        if (!list) return;
-        if (!vehicles || vehicles.length === 0) {
-            list.innerHTML = '<div class="col-span-3 text-center text-slate-400 py-12 font-bold">No vehicles available</div>';
-            if (loading) loading.classList.add('hidden');
-            return;
-        }
-
-        list.innerHTML = vehicles.map(v => {
-            const safeId = escapeHtml(v.id);
-            const safeModel = escapeHtml(v.make_model);
-            const safePlate = escapeHtml(v.license_plate);
-            const safeSeats = escapeHtml(v.seats);
-            const safeType = escapeHtml(v.vehicle_type);
-            const safeFuel = escapeHtml(v.fuel_type);
-            const safeTrans = escapeHtml(v.transmission);
-            const dailyRate = Number(v.daily_rate || 0).toLocaleString();
-
-            const imgObj = allImages.find(img => String(img.vehicle_id) === String(v.id));
-            const imageUrl = imgObj?.image_url || 'https://via.placeholder.com/400x250?text=No+Image';
-
-            // Check currently rented
-            const isRentedNow = (rentals || []).some(r => {
-                if (String(r.vehicle_id) !== String(v.id)) return false;
-                if (r.status !== 'booked' && r.status !== 'active') return false;
-                const start = new Date(r.start_date);
-                start.setHours(0, 0, 0, 0);
-                const end = new Date(start);
-                end.setDate(start.getDate() + Number(r.rental_days || 0));
-                return today >= start && today < end;
-            });
-
-            const hasFutureBooking = (rentals || []).some(r => {
-                if (String(r.vehicle_id) !== String(v.id)) return false;
-                if (r.status !== 'booked') return false;
-                const start = new Date(r.start_date);
-                start.setHours(0, 0, 0, 0);
-                return start > today;
-            });
-
-            let badgeText = 'Available';
-            let badgeClass = 'bg-emerald-100 text-emerald-600';
-            let disabled = false;
-
-            if (isRentedNow) {
-                badgeText = 'Rented';
-                badgeClass = 'bg-red-100 text-red-600';
-                disabled = true;
-            } else if (hasFutureBooking) {
-                badgeText = 'Booked';
-                badgeClass = 'bg-amber-100 text-amber-600';
-                disabled = false;
-            }
-
-            return `
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-xl transition-all duration-300">
-                    <div class="h-[160px] w-full overflow-hidden bg-slate-100">
-                        <img src="${escapeHtml(imageUrl)}"
-                            class="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                            onerror="this.src='https://via.placeholder.com/400x250?text=No+Image'" alt="${safeModel}">
-                    </div>
-
-                    <div class="p-6">
-                        <div class="absolute top-4 right-4 text-xs font-bold px-3 py-1 rounded-full ${badgeClass} shadow-sm">
-                            ${badgeText}
-                        </div>
-
-                        <h3 class="text-xl font-black mb-1 text-slate-900">${safeModel}</h3>
-                        <p class="text-slate-400 mb-3 text-sm font-bold">${safePlate}</p>
-
-                        <div class="grid grid-cols-2 gap-2 text-xs font-bold text-slate-600 mb-4">
-                            <div>Seats: ${safeSeats || '-'}</div>
-                            <div>Type: ${safeType || '-'}</div>
-                            <div>Fuel: ${safeFuel || '-'}</div>
-                            <div>Trans: ${safeTrans || '-'}</div>
-                        </div>
-
-                        <p class="text-blue-600 font-black mb-4 text-lg">
-                            &#8365;${dailyRate} <span class="text-xs text-slate-400 font-bold">/ day</span>
-                        </p>
-
-                        <button
-                            ${disabled ? 'disabled' : ''}
-                            data-vid="${safeId}"
-                            class="w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-wide transition-all duration-300 flex items-center justify-center gap-2
-                            ${disabled
-                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                                : 'bg-gradient-to-r from-slate-900 to-slate-700 text-white shadow-lg hover:from-blue-600 hover:to-blue-500 active:scale-95'} open-book-btn">
-                            ${disabled ? 'Unavailable' : '<span class="text-base">&#128197;</span> Book Now'}
-                        </button>
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-        // Attach safe click handlers
-        document.querySelectorAll('.open-book-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const vid = e.currentTarget.getAttribute('data-vid');
-                const v = vehicles.find(x => String(x.id) === vid);
-                if (v) openBookingModal(v);
-            });
-        });
-
-    } catch (err) {
-        console.error('Load Vehicles Error:', err);
-        showError('Failed to load vehicles. Please refresh.');
-        if (list) list.innerHTML = '<div class="col-span-3 text-center text-red-400 py-12 font-bold">Error loading fleet. Please try again.</div>';
-    } finally {
-        if (loading) loading.classList.add('hidden');
-    }
-}
-
-// =========================================================
-// CALENDAR INIT (SAFE, DESTROYS OLD INSTANCE)
-// =========================================================
 async function initCalendar(vehicleId) {
     try {
         const { data: rentals } = await client
@@ -385,31 +202,26 @@ async function initCalendar(vehicleId) {
 
         (rentals || []).forEach(r => {
             if (r.status !== 'booked' && r.status !== 'active') return;
+
             let start = new Date(r.start_date);
-            start.setHours(0, 0, 0, 0);
             let end = new Date(start);
             end.setDate(start.getDate() + Number(r.rental_days || 0));
-            // The end date itself should be available for checkout
-            disabledDates.push({ from: start, to: new Date(end.getTime() - 1) });
+
+            disabledDates.push({ from: start, to: end });
         });
 
-        // Destroy existing instance to prevent memory leaks
-        if (datePickerInstance) {
-            datePickerInstance.destroy();
-            datePickerInstance = null;
+        // FIX #2: Destroy previous flatpickr instance before creating a new one
+        if (flatpickrInstance) {
+            flatpickrInstance.destroy();
+            flatpickrInstance = null;
         }
 
-        const dateInput = document.getElementById('date-range');
-        if (!dateInput) return;
-        dateInput.value = '';
-        selectedStart = null;
-        selectedEnd = null;
-
-        datePickerInstance = flatpickr(dateInput, {
-            mode: 'range',
-            minDate: 'today',
-            dateFormat: 'Y-m-d',
+        flatpickrInstance = flatpickr("#date-range", {
+            mode: "range",
+            minDate: "today",
+            dateFormat: "Y-m-d",
             disable: disabledDates,
+
             onChange: function(dates) {
                 if (dates.length === 2) {
                     selectedStart = dates[0];
@@ -419,255 +231,388 @@ async function initCalendar(vehicleId) {
         });
 
     } catch (err) {
-        console.error('Calendar error:', err);
+        console.error("Calendar error:", err);
     }
 }
 
-// =========================================================
-// MODAL MANAGEMENT (SAFE ANIMATION)
-// =========================================================
-function openBookingModal(vehicle) {
-    if (isModalAnimating) return;
-    isModalAnimating = true;
 
-    selectedVehicleId = vehicle.id;
+    
+// ✅ LOAD VEHICLES
+
+    async function loadVehicles() {
+    try {
+        const { data: vehicles, error: vError } = await client
+            .from('vehicles')
+            .select('*');
+
+        const { data: rentals } = await client
+            .from('rentals')
+            .select('vehicle_id, start_date, rental_days, status');
+
+        // 🔥 NEW: LOAD VEHICLE IMAGES
+        const { data: images, error: imgError } = await client
+            .from('vehicle_images')
+            .select('*');
+
+        if (vError) {
+            console.error("Vehicle Load Error:", vError);
+            return;
+        }
+
+        if (imgError) {
+            console.error("Image Load Error:", imgError);
+        }
+
+        const vehicleImages = images || [];
+
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        const list = document.getElementById('vehicle-list');
+        if (!list) return;
+
+        list.innerHTML = (vehicles || []).map(v => {
+
+            // =========================================
+            // 🔥 GET IMAGE (FIRST IMAGE)
+            // =========================================
+            const imgObj = vehicleImages.find(img =>
+                String(img.vehicle_id) === String(v.id)
+            );
+
+            const imageUrl = imgObj?.image_url
+                || 'https://via.placeholder.com/400x250?text=No+Image';
+
+            // =========================================
+            // ✅ CHECK IF CURRENTLY RENTED (TODAY)
+            // =========================================
+            const isRentedNow = (rentals || []).some(r => {
+                if (String(r.vehicle_id) !== String(v.id)) return false;
+                if (r.status !== 'booked' && r.status !== 'active') return false;
+
+                const start = new Date(r.start_date);
+                start.setHours(0,0,0,0);
+
+                const end = new Date(start);
+                end.setDate(start.getDate() + Number(r.rental_days || 0));
+
+                return today >= start && today < end;
+            });
+
+            // =========================================
+            // ✅ CHECK IF HAS FUTURE BOOKINGS
+            // =========================================
+            const hasFutureBooking = (rentals || []).some(r => {
+                if (String(r.vehicle_id) !== String(v.id)) return false;
+                if (r.status !== 'booked') return false;
+
+                const start = new Date(r.start_date);
+                start.setHours(0,0,0,0);
+
+                return start > today;
+            });
+
+            // =========================================
+            // 🎯 FINAL STATUS LOGIC
+            // =========================================
+            let badgeText = "Available";
+            let badgeClass = "bg-green-100 text-green-600";
+            let disabled = false;
+
+            if (isRentedNow) {
+                badgeText = "Rented";
+                badgeClass = "bg-red-100 text-red-600";
+                disabled = true;
+            } else if (hasFutureBooking) {
+                badgeText = "Booked";
+                badgeClass = "bg-yellow-100 text-yellow-600";
+                disabled = false;
+            }
+
+            return `
+                <div class="bg-white rounded-2xl shadow relative overflow-hidden group hover:shadow-xl transition">
+
+                    <!-- 🔥 IMAGE -->
+                    <div class="h-[160px] w-full overflow-hidden">
+                        <img src="${imageUrl}"
+                            class="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                            onerror="this.src='https://via.placeholder.com/400x250?text=No+Image'">
+                    </div>
+
+                    <div class="p-6">
+
+                        <!-- STATUS BADGE -->
+                        <div class="absolute top-4 right-4 text-xs font-bold px-3 py-1 rounded-full ${badgeClass}">
+                            ${badgeText}
+                        </div>
+
+                        <!-- VEHICLE NAME -->
+                        <h3 class="text-xl font-black mb-1">${v.make_model}</h3>
+                        <p class="text-slate-400 mb-3">${v.license_plate || ''}</p>
+
+                        <!-- SPECS -->
+                        <div class="grid grid-cols-2 gap-2 text-xs font-bold text-slate-600 mb-4">
+                            <div>Seats: ${v.seats || '-'}</div>
+                            <div>Type: ${v.vehicle_type || '-'}</div>
+                            <div>Fuel: ${v.fuel_type || '-'}</div>
+                            <div>Trans: ${v.transmission || '-'}</div>
+                        </div>
+
+                        <!-- PRICE -->
+                        <p class="text-blue-600 font-bold mb-4">
+                            ₭${Number(v.daily_rate || 0).toLocaleString()} / day
+                        </p>
+
+                        <!-- BUTTON -->
+                        
+                <button 
+                    ${disabled ? 'disabled' : ''}
+                    onclick='openModal(${JSON.stringify(v)})'
+                    class="w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-wide
+                    transition-all duration-300 flex items-center justify-center gap-2
+                    ${disabled 
+                    ? 'bg-slate-200 text-slate-400 cursor-not-allowed' 
+                    : 'bg-gradient-to-r from-slate-900 to-slate-700 text-white shadow-lg shadow-slate-300/40 hover:from-blue-600 hover:to-blue-500 hover:shadow-blue-300/40 active:scale-95'}">
+
+                    ${disabled 
+                    ? 'Unavailable' 
+                    : `<span class="text-base">📅</span> Book Now`}
+                </button>
+
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+    } catch (err) {
+        console.error("Load Vehicles Error:", err);
+    }
+}
+
+
+// ✅ OPEN BOOKING MODAL
+
+async function openModal(vehicle) {
+
+    selectedVehicle = vehicle.id;
     selectedVehicleData = vehicle;
 
     const modal = document.getElementById('booking-modal');
     const card = document.getElementById('modal-card');
 
-    if (!modal || !card) { isModalAnimating = false; return; }
-
+    // FIX #6: Must add 'flex' so the modal centers its content
     modal.classList.remove('hidden');
     modal.classList.add('flex');
 
-    requestAnimationFrame(() => {
+    // ✨ animation
+    setTimeout(() => {
         modal.classList.remove('opacity-0');
         card.classList.remove('scale-95', 'opacity-0');
         card.classList.add('scale-100', 'opacity-100');
-    });
+    }, 10);
 
-    loadVehicleGallery(vehicle.id);
-
-    const nameEl = document.getElementById('vehicle-name');
-    const priceEl = document.getElementById('vehicle-price');
-    if (nameEl) nameEl.innerText = vehicle.make_model || '';
-    if (priceEl) priceEl.innerText = '&#8365;' + Number(vehicle.daily_rate || 0).toLocaleString() + ' / day';
-
-    initCalendar(vehicle.id);
-
-    setTimeout(() => { isModalAnimating = false; }, 350);
-}
-
-async function loadVehicleGallery(vehicleId) {
-    currentImageIndex = 0;
-    galleryImages = [];
-
+    // =========================================
+    // 🔥 LOAD IMAGES FROM DATABASE
+    // =========================================
     try {
         const { data: images, error } = await client
             .from('vehicle_images')
             .select('image_url')
-            .eq('vehicle_id', vehicleId)
+            .eq('vehicle_id', vehicle.id)
             .order('position', { ascending: true });
 
-        if (error) console.error('Gallery error:', error);
-
-        galleryImages = (images || []).map(i => i.image_url);
-        if (galleryImages.length === 0 && selectedVehicleData?.image_url) {
-            galleryImages = [selectedVehicleData.image_url];
-        }
-        if (galleryImages.length === 0) {
-            galleryImages = ['https://via.placeholder.com/400x200?text=No+Image'];
+        if (error) {
+            console.error("Image load error:", error);
         }
 
-        updateGalleryUI();
+        // build gallery
+        vehicleImages = (images || []).map(i => i.image_url);
+
+        // fallback to single image
+        if (vehicleImages.length === 0 && vehicle.image_url) {
+            vehicleImages = [vehicle.image_url];
+        }
+
+        // final fallback
+        if (vehicleImages.length === 0) {
+            vehicleImages = ['https://via.placeholder.com/400x200?text=No+Image'];
+        }
+
+        currentImageIndex = 0;
+
+        const img = document.getElementById('vehicle-image');
+        if (img) {
+            img.src = vehicleImages[0];
+        }
+
     } catch (err) {
-        console.error('Gallery load error:', err);
-        galleryImages = ['https://via.placeholder.com/400x200?text=No+Image'];
-        updateGalleryUI();
-    }
-}
-
-function updateGalleryUI() {
-    const img = document.getElementById('vehicle-image');
-    const noImg = document.getElementById('gallery-no-image');
-    const prev = document.getElementById('btn-prev-img');
-    const next = document.getElementById('btn-next-img');
-    const counter = document.getElementById('image-counter');
-
-    if (!img) return;
-
-    if (galleryImages.length === 0) {
-        img.classList.add('hidden');
-        if (noImg) noImg.classList.remove('hidden');
-        if (prev) prev.classList.add('hidden');
-        if (next) next.classList.add('hidden');
-        if (counter) counter.classList.add('hidden');
-        return;
+        console.error("Gallery error:", err);
     }
 
-    img.classList.remove('hidden');
-    if (noImg) noImg.classList.add('hidden');
-    img.src = galleryImages[currentImageIndex];
+    // =========================================
+    // VEHICLE INFO
+    // =========================================
+    const name = document.getElementById('vehicle-name');
+    if (name) name.innerText = vehicle.make_model || '';
 
-    const showNav = galleryImages.length > 1;
-    if (prev) prev.classList.toggle('hidden', !showNav);
-    if (next) next.classList.toggle('hidden', !showNav);
-    if (counter) {
-        counter.classList.toggle('hidden', !showNav);
-        counter.innerText = `${currentImageIndex + 1} / ${galleryImages.length}`;
+    const price = document.getElementById('vehicle-price');
+    if (price) {
+        price.innerText = `₭${Number(vehicle.daily_rate || 0).toLocaleString()} / day`;
     }
-}
 
-function nextImage() {
-    if (galleryImages.length === 0) return;
-    currentImageIndex = (currentImageIndex + 1) % galleryImages.length;
-    updateGalleryUI();
+    // =========================================
+    // CALENDAR
+    // =========================================
+    initCalendar(vehicle.id);
 }
+    
+    
+function closeModal() {
 
-function prevImage() {
-    if (galleryImages.length === 0) return;
-    currentImageIndex = (currentImageIndex - 1 + galleryImages.length) % galleryImages.length;
-    updateGalleryUI();
-}
-
-function closeBookingModal() {
     const modal = document.getElementById('booking-modal');
     const card = document.getElementById('modal-card');
-    if (!modal || !card) return;
 
     modal.classList.add('opacity-0');
     card.classList.add('scale-95', 'opacity-0');
-    card.classList.remove('scale-100', 'opacity-100');
 
     setTimeout(() => {
         modal.classList.add('hidden');
-        modal.classList.remove('flex');
-        if (datePickerInstance) {
-            datePickerInstance.destroy();
-            datePickerInstance = null;
-        }
+        modal.classList.remove('flex'); // FIX #6: remove flex when hiding
     }, 300);
 }
 
-// =========================================================
-// CUSTOMER MODAL
-// =========================================================
+    
+
+// ✅ CUSTOMER MODAL
 function openCustomerModal() {
+
+    // ✅ USE CALENDAR VALUES INSTEAD
     if (!selectedStart || !selectedEnd) {
-        showError('Please select booking dates first');
+        alert("Please select booking dates");
         return;
     }
 
-    const modal = document.getElementById('customer-modal');
-    const card = document.getElementById('customer-card');
-    if (!modal || !card) return;
-
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-    requestAnimationFrame(() => {
-        modal.classList.remove('opacity-0');
-        card.classList.remove('scale-95', 'opacity-0');
-        card.classList.add('scale-100', 'opacity-100');
-    });
+    document.getElementById('customer-modal').classList.remove('hidden');
 }
+
 
 function closeCustomerModal() {
-    const modal = document.getElementById('customer-modal');
-    const card = document.getElementById('customer-card');
-    if (!modal || !card) return;
-
-    modal.classList.add('opacity-0');
-    card.classList.add('scale-95', 'opacity-0');
-    card.classList.remove('scale-100', 'opacity-100');
-
-    setTimeout(() => {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-    }, 300);
+    document.getElementById('customer-modal').classList.add('hidden');
 }
 
-function closeWhatsAppModal() {
-    const modal = document.getElementById('whatsapp-modal');
-    const card = document.getElementById('whatsapp-card');
-    if (!modal || !card) return;
 
-    modal.classList.add('opacity-0');
-    card.classList.add('scale-95', 'opacity-0');
-    card.classList.remove('scale-100', 'opacity-100');
+async function isVehicleAvailable(vehicleId, startDate, days) {
+    const start = new Date(startDate);
+    const end = new Date(start);
+    end.setDate(end.getDate() + days);
 
-    setTimeout(() => {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-    }, 300);
+    // get existing rentals
+    const { data: rentals, error } = await client
+        .from('rentals')
+        .select('*')
+        .eq('vehicle_id', vehicleId)
+        .in('status', ['booked', 'active']);
+
+    if (error) {
+        console.error(error);
+        return false;
+    }
+
+    for (const r of rentals) {
+        const rStart = new Date(r.start_date);
+        const rEnd = new Date(rStart);
+        rEnd.setDate(rEnd.getDate() + Number(r.rental_days));
+
+        // 🚨 OVERLAP CHECK
+        if (start <= rEnd && end >= rStart) {
+            return false; // NOT AVAILABLE
+        }
+    }
+
+    return true; // AVAILABLE
 }
 
-function showWhatsAppModal() {
-    const modal = document.getElementById('whatsapp-modal');
-    const card = document.getElementById('whatsapp-card');
-    if (!modal || !card) return;
 
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-    requestAnimationFrame(() => {
-        modal.classList.remove('opacity-0');
-        card.classList.remove('scale-95', 'opacity-0');
-        card.classList.add('scale-100', 'opacity-100');
-    });
-}
-
-// =========================================================
-// AVAILABILITY CHECK (CONSOLIDATED)
-// =========================================================
 async function checkAvailability(vehicleId, startDate, days) {
     try {
-        const { data: rentals, error } = await client
+        const { data: rentals } = await client
             .from('rentals')
             .select('start_date, rental_days, status')
-            .eq('vehicle_id', vehicleId)
-            .in('status', ['booked', 'active']);
-
-        if (error) {
-            console.error('Availability DB Error:', error);
-            return false;
-        }
+            .eq('vehicle_id', vehicleId);
 
         const start = new Date(startDate);
-        start.setHours(0, 0, 0, 0);
+        start.setHours(0,0,0,0);
 
         const end = new Date(start);
         end.setDate(start.getDate() + Number(days));
 
         for (const r of (rentals || [])) {
+
+            if (r.status !== 'booked' && r.status !== 'active') continue;
+
             const rStart = new Date(r.start_date);
-            rStart.setHours(0, 0, 0, 0);
+            rStart.setHours(0,0,0,0);
 
             const rEnd = new Date(rStart);
             rEnd.setDate(rStart.getDate() + Number(r.rental_days || 0));
 
+            // 🚨 OVERLAP CHECK
             const overlap = start < rEnd && end > rStart;
-            if (overlap) return false;
+
+            if (overlap) {
+                return false;
+            }
         }
 
         return true;
+
     } catch (err) {
-        console.error('Availability Check Error:', err);
+        console.error("Availability Check Error:", err);
         return false;
     }
 }
 
-// =========================================================
-// WHATSAPP INVOICE
-// =========================================================
+// NEXT IMAGE
+function nextImage() {
+    if (vehicleImages.length === 0) return;
+
+    currentImageIndex = (currentImageIndex + 1) % vehicleImages.length;
+    document.getElementById('vehicle-image').src = vehicleImages[currentImageIndex];
+}
+
+// PREV IMAGE
+function prevImage() {
+    if (vehicleImages.length === 0) return;
+
+    currentImageIndex = (currentImageIndex - 1 + vehicleImages.length) % vehicleImages.length;
+    document.getElementById('vehicle-image').src = vehicleImages[currentImageIndex];
+}
+
+function showWhatsAppModal() {
+    document.getElementById('whatsapp-modal').classList.remove('hidden');
+    document.getElementById('whatsapp-modal').classList.add('flex');
+}
+
+function closeWhatsAppModal() {
+    document.getElementById('whatsapp-modal').classList.add('hidden');
+    document.getElementById('whatsapp-modal').classList.remove('flex');
+}
+
+// 🔥 WHATSAPP INVOICE FUNCTION (FULL VERSION)
 function openWhatsAppInvoice(r) {
-    const phone = '8562099406665';
+    const phone = "8562099406665"; 
 
     if (!r) {
-        showError('No booking data found');
+        alert("No booking data found");
         return;
     }
 
-    const bookingId = r.id ? r.id.toString().slice(0, 8).toUpperCase() : 'N/A';
+    // ✅ FORMAT BOOKING ID (MATCH RECEIPT STYLE)
+    const bookingId = r.id 
+        ? r.id.toString().slice(0, 8).toUpperCase() 
+        : 'N/A';
+
+    // ✅ DATE CALCULATION (SAFE)
     const start = new Date(r.start_date);
     const end = new Date(start);
     end.setDate(start.getDate() + (r.rental_days || 0));
@@ -677,6 +622,7 @@ function openWhatsAppInvoice(r) {
         return d.toLocaleDateString('en-GB');
     };
 
+    // ✅ SAFE FALLBACKS (NO MORE N/A BUGS)
     const customer = r.customer_name || 'N/A';
     const phoneNum = r.phone || 'N/A';
     const vehicle = r.vehicle_name || 'N/A';
@@ -684,6 +630,7 @@ function openWhatsAppInvoice(r) {
     const days = r.rental_days || 0;
     const total = Number(r.total_price || 0).toLocaleString();
 
+    // ✅ CLEAN MESSAGE (NO BROKEN EMOJIS)
     const message =
 `TATA SMILE CAR RENTAL
 
@@ -701,21 +648,24 @@ Start: ${formatDate(start)}
 End: ${formatDate(end)}
 Duration: ${days} Days
 
-Total: \u20AD${total}
+Total: ₭${total}
 
 ----------------------
 Please confirm this booking.
 Thank you.`;
 
+    // ✅ OPEN WHATSAPP
     const encoded = encodeURIComponent(message);
-    window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank', 'noopener,noreferrer');
+    window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank');
 }
 
-// =========================================================
-// SAVE CUSTOMER + BOOKING
-// =========================================================
-async function saveCustomerAndBook() {
+
+    
+    
+// ✅ SAVE CUSTOMER + BOOKING
+ async function saveCustomerAndBook() {
     try {
+        // ✅ GET VALUES
         const name = document.getElementById('c-name').value.trim();
         const phone = document.getElementById('c-phone').value.trim();
         const email = document.getElementById('c-email').value.trim();
@@ -723,53 +673,65 @@ async function saveCustomerAndBook() {
         const passport = document.getElementById('c-passport').value.trim();
         const license = document.getElementById('c-license').value.trim();
 
-        if (!selectedStart || !selectedEnd) {
-            showError('Please select booking dates');
-            return;
-        }
+        // ✅ USE CALENDAR VALUES
+if (!selectedStart || !selectedEnd) {
+    alert("Please select booking dates");
+    return;
+}
 
-        const start = selectedStart.getFullYear() + '-' +
-            String(selectedStart.getMonth() + 1).padStart(2, '0') + '-' +
-            String(selectedStart.getDate()).padStart(2, '0');
+const start = selectedStart.getFullYear() + '-' +
+    String(selectedStart.getMonth() + 1).padStart(2, '0') + '-' +
+    String(selectedStart.getDate()).padStart(2, '0');
 
-        const startDate = new Date(selectedStart);
-        startDate.setHours(0, 0, 0, 0);
-        const endDate = new Date(selectedEnd);
-        endDate.setHours(0, 0, 0, 0);
 
-        const diff = (endDate - startDate) / (1000 * 60 * 60 * 24);
-        const days = Math.max(1, Math.round(diff));
+// calculate days automatically
+const startDate = new Date(selectedStart);
+const endDate = new Date(selectedEnd);
 
-        if (!name) return showError('Full Name is required');
-        if (!phone) return showError('Phone Number is required');
-        if (!nationality) return showError('Nationality is required');
-        if (!passport) return showError('Passport / ID is required');
-        if (!license) return showError('Driving License is required');
+// normalize both to midnight
+startDate.setHours(0,0,0,0);
+endDate.setHours(0,0,0,0);
 
-        // Step 1: Check availability
-        const isAvailable = await checkAvailability(selectedVehicleId, start, days);
+const diff = (endDate - startDate) / (1000 * 60 * 60 * 24);
+const days = Math.max(1, Math.round(diff));
+
+        // 🚨 VALIDATION
+        if (!name) return alert("Full Name is required");
+        if (!phone) return alert("Phone Number is required");
+        if (!nationality) return alert("Nationality is required");
+        if (!passport) return alert("Passport / ID is required");
+        if (!license) return alert("Driving License is required");
+        // =========================================
+        // 🚨 STEP 1: CHECK AVAILABILITY (NEW SYSTEM)
+        // =========================================
+        const isAvailable = await checkAvailability(selectedVehicle, start, days);
+
         if (!isAvailable) {
-            showError('This vehicle is not available for selected dates');
+            alert("❌ This vehicle is not available for selected dates");
             return;
         }
-
-        // Step 2: Check existing customer
+        // =========================================
+        // 🚨 STEP 2: CHECK EXISTING CUSTOMER
+        // =========================================
         let customerId = null;
+
         const { data: existingCustomer, error: findError } = await client
             .from('customers')
             .select('*')
             .eq('phone', phone)
-            .maybeSingle();
+            .maybeSingle(); // ✅ safer than .single()
 
         if (findError) {
             console.error(findError);
-            showError('Customer lookup error');
+            alert("Customer lookup error");
             return;
         }
 
         if (existingCustomer) {
+            // ✅ reuse existing customer
             customerId = existingCustomer.id;
         } else {
+            // ✅ create new customer
             const { data: newCustomer, error: cError } = await client
                 .from('customers')
                 .insert([{
@@ -784,106 +746,175 @@ async function saveCustomerAndBook() {
                 .single();
 
             if (cError) {
-                console.error('Customer Error:', cError);
-                showError('Customer error: ' + cError.message);
+                console.error("Customer Error:", cError);
+                alert("❌ Customer error: " + cError.message);
                 return;
             }
+
             customerId = newCustomer.id;
         }
 
-        // Step 3: Create rental
-        const { data: rentalData, error: rError } = await client
-            .from('rentals')
-            .insert([{
-                vehicle_id: selectedVehicleId,
-                customer_id: customerId,
-                start_date: start,
-                rental_days: days,
-                total_price: days * (selectedVehicleData?.daily_rate || 0),
-                status: 'booked',
-                payment_status: 'pending'
-            }])
-            .select()
-            .single();
+        // =========================================
+        // 🚨 STEP 3: CREATE RENTAL
+        // =========================================
+       const { data: rentalData, error: rError } = await client
+        .from('rentals')
+        .insert([{
+        vehicle_id: selectedVehicle,
+        customer_id: customerId,
+        start_date: start,
+        rental_days: days,
+        total_price: days * (selectedVehicleData?.daily_rate || 0),
+        status: 'booked',
+        payment_status: 'pending'
+        }])
+        .select()
+        .single();
 
         if (rError) {
-            console.error('Rental Error:', rError);
-            showError('Booking error: ' + rError.message);
+            console.error("Rental Error:", rError);
+            alert("❌ Booking error: " + rError.message);
             return;
         }
 
+        // ✅ STORE BOOKING FOR WHATSAPP
         window.latestBooking = {
-            id: rentalData.id,
-            start_date: start,
-            rental_days: days,
-            total_price: rentalData.total_price,
-            customer_name: name,
-            phone: phone,
-            vehicle_name: selectedVehicleData?.make_model || 'Vehicle',
-            plate: selectedVehicleData?.license_plate || 'N/A'
-        };
+        id: rentalData.id, // ✅ REAL DATABASE ID
 
-        showWhatsAppModal();
-        showSuccess('Booking confirmed successfully!');
-        localStorage.setItem('refreshFleet', 'true');
+        start_date: start,
+        rental_days: days,
+        total_price: rentalData.total_price,
 
-        // Clear forms
-        document.getElementById('c-name').value = '';
-        document.getElementById('c-phone').value = '';
-        document.getElementById('c-email').value = '';
-        document.getElementById('c-nationality').value = '';
-        document.getElementById('c-passport').value = '';
-        document.getElementById('c-license').value = '';
-        selectedStart = null;
-        selectedEnd = null;
-        if (datePickerInstance) {
-            datePickerInstance.clear();
+        customer_name: name,
+        phone: phone,
+
+        vehicle_name: selectedVehicleData?.make_model || 'Vehicle',
+        plate: selectedVehicleData?.license_plate || 'N/A'
+};
+
+        // FIX #4: Close modals FIRST so WhatsApp modal appears on top cleanly
+        if (typeof closeCustomerModal === 'function') closeCustomerModal();
+        if (typeof closeModal === 'function') closeModal();
+
+        // ✅ CLEAR CUSTOMER FORM
+document.getElementById('c-name').value = '';
+document.getElementById('c-phone').value = '';
+document.getElementById('c-email').value = '';
+document.getElementById('c-nationality').value = '';
+document.getElementById('c-passport').value = '';
+document.getElementById('c-license').value = '';
+
+// ✅ CLEAR CALENDAR (NEW SYSTEM)
+selectedStart = null;
+selectedEnd = null;
+
+const dateInput = document.getElementById('date-range');
+if (dateInput) dateInput.value = '';
+
+        // ✅ SUCCESS MESSAGE (VISIBLE)
+        const msg = document.getElementById('success-msg');
+
+        if (msg) {
+            msg.innerText = "🎉 Booking confirmed successfully!";
+            msg.classList.remove('hidden');
+
+            setTimeout(() => {
+                msg.classList.add('hidden');
+            }, 4000);
         }
 
-        closeCustomerModal();
-        closeBookingModal();
-        loadVehicles();
+        // 🔥 TRIGGER FLEET REFRESH ON INDEX PAGE
+           localStorage.setItem('refreshFleet', 'true');
+            console.log("✅ refreshFleet flag SET");
 
-    } catch (err) {
-        console.error('System Error:', err);
-        showError('System error occurred. Please try again.');
-    }
+        // ✅ REFRESH VEHICLE LIST (IMPORTANT)
+if (typeof loadVehicles === 'function') {
+    loadVehicles();
 }
 
-// =========================================================
-// REALTIME SYNC
-// =========================================================
+        // FIX #4: Show WhatsApp modal after everything else is cleaned up
+        showWhatsAppModal();
+        
+        
+} catch (err) {
+    console.error("System Error:", err);
+    alert("System error occurred");
+}
+}
+
+// ✅ SAFE AUTO LOAD
+window.onload = function () {
+    loadVehicles();
+};
+
+// =========================================
+// 🔥 REALTIME SYNC (BOOKING PAGE) - FIXED
+// =========================================
 const bookingChannel = client
     .channel('booking-realtime')
+
     .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'rentals'
-    }, async () => {
-        try {
-            if (typeof loadVehicles === 'function') await loadVehicles();
-            if (typeof initCalendar === 'function' && selectedVehicleId) await initCalendar(selectedVehicleId);
+    }, async (payload) => {
 
+        console.log("📡 Booking update received:", payload);
+
+        try {
+            // ✅ REFRESH VEHICLE LIST (THIS WAS MISSING)
+            if (typeof loadVehicles === 'function') {
+                await loadVehicles();
+            }
+
+            // ✅ REFRESH CALENDAR IF OPEN
+            if (typeof initCalendar === 'function' && selectedVehicle) {
+                await initCalendar(selectedVehicle);
+            }
+
+            // ✅ ALERT ONLY IF MODAL OPEN
             const modal = document.getElementById('booking-modal');
             if (modal && !modal.classList.contains('hidden')) {
-                showError('Availability updated. Please re-check dates.');
+                alert("⚠️ Availability updated. Please re-check dates.");
             }
+
         } catch (err) {
-            console.error('Realtime booking error:', err);
+            console.error("Realtime booking error:", err);
         }
     })
+
     .subscribe();
 
-// Cleanup on page unload
-window.addEventListener('beforeunload', () => {
-    if (bookingChannel) client.removeChannel(bookingChannel);
-    if (datePickerInstance) datePickerInstance.destroy();
-});
-
-// =========================================================
-// INIT
-// =========================================================
-window.addEventListener('DOMContentLoaded', loadVehicles);
+    
 </script>
+
+<!-- 🔥 WHATSAPP MODAL (PUT HERE) -->
+<div id="whatsapp-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+
+    <div class="bg-white rounded-3xl p-8 w-[400px] text-center shadow-xl">
+
+        <h2 class="text-xl font-black mb-4">Booking Confirmed 🎉</h2>
+
+        <p class="text-slate-500 mb-6 text-sm">
+            Would you like to contact us via WhatsApp to confirm your booking?
+        </p>
+
+        <div class="flex gap-3 justify-center">
+
+            <button 
+        onclick="openWhatsAppInvoice(window.latestBooking); closeWhatsAppModal();"
+        class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl font-black text-sm shadow-md">
+        Yes, Contact
+        </button>
+
+
+            <button onclick="closeWhatsAppModal()"
+                class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-6 py-3 rounded-2xl font-black text-sm">
+                Maybe Later
+            </button>
+        </div>
+    </div>
+</div>
+    
 </body>
 </html>
