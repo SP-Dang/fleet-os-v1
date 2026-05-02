@@ -14,6 +14,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700&display=swap');
@@ -1143,6 +1145,7 @@ async function confirmRental() {
     async function preparePrint(rental) {
     try {
         const { PDFDocument, rgb } = window.PDFLib;
+        const fontkit = window.fontkit; // ✅ Get fontkit from global scope
 
         // 1. DATA EXTRACTION
         const vData = (Array.isArray(rental.vehicles) ? rental.vehicles[0] : rental.vehicles) || {};
@@ -1151,6 +1154,10 @@ async function confirmRental() {
 
         // 2. CREATE PDF DOCUMENT
         const doc = await PDFDocument.create();
+        
+        // ✅ REGISTER FONTKIT BEFORE EMBEDDING ANY FONT
+        doc.registerFontkit(fontkit);
+        
         let page = doc.addPage([612, 792]);
         const { width, height } = page.getSize();
 
@@ -1172,7 +1179,6 @@ async function confirmRental() {
                 maxWidth = null
             } = options;
 
-            // Always use Lao font for compatibility
             const f = fontLao;
             const safeStr = safeText(text);
             let xPos = x;
