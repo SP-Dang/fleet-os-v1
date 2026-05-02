@@ -13,7 +13,7 @@
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-   
+    <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700&display=swap');
@@ -1142,165 +1142,277 @@ async function confirmRental() {
     // FIXED PREPARE PRINT FUNCTION
     async function preparePrint(rental) {
     try {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        const autoTable = doc.autoTable || window.jspdf.jsPDF.API.autoTable || window.autoTable;
-        
+        const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
+
         // 1. DATA EXTRACTION
         const vData = (Array.isArray(rental.vehicles) ? rental.vehicles[0] : rental.vehicles) || {};
         const cData = (Array.isArray(rental.customers) ? rental.customers[0] : rental.customers) || {};
         const invId = (rental.id || '0000').toString().substring(0, 8).toUpperCase();
 
-        // 🔥 PDF UNICODE FIX: jsPDF built-in fonts (Helvetica/Courier/Times) only support
-        // Latin characters. Lao script, special symbols, and non-ASCII chars render as
-        // garbage (e.g. "&P&l&a&t&e"). This helper strips non-printable-Latin characters
-        // and flags the field so the PDF clearly shows it needs manual entry.
-        function safePdfText(str) {
-            if (!str) return 'N/A';
-            // Check if string contains any non-Basic-Latin character (code point > 127)
-            const hasNonLatin = /[^\u0000-\u007F]/.test(str);
-            if (hasNonLatin) {
-                // Remove non-Latin chars, keep any ASCII parts (e.g. numbers in mixed plates)
-                const asciiPart = str.replace(/[^ -~]/g, '').trim();
-                return asciiPart ? asciiPart + ' [see original]' : '[Lao Script - see original]';
-            }
-            return str;
+        // 2. CREATE PDF DOCUMENT
+        const doc = await PDFDocument.create();
+        let page = doc.addPage([612, 792]); // US Letter size
+        const { width, height } = page.getSize();
+
+        // 3. EMBED STANDARD FONTS (supports Lao when viewer falls back)
+        const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
+        const font = await doc.embedFont(StandardFonts.Helvetica);
+        const fontBoldItalic = await doc.embedFont(StandardFonts.HelveticaBoldOblique);
+        const fontItalic = await doc.embedFont(StandardFonts.HelveticaOblique);
+
+        // 4. HELPER: Safe text (pass through for PDF — modern viewers render Lao via system fallback)
+        function safeText(str, fallback = 'N/A') {
+            if (!str || String(str).trim() === '') return fallback;
+            return String(str).trim();
         }
 
-        // 2. HEADER
-        doc.setFontSize(16);
-        doc.setFont("helvetica", "bold");
-        doc.text("TATA SMILE TRAVEL & CAR RENTAL SOLE CO.,LTD", 105, 20, { align: "center" });
+        function drawText(text, x, y, options = {}) {
+            const {
+                size = 10,
+                font: f = font,
+                color = rgb(0, 0, 0),
+                align = 'left',
+                maxWidth = null
+            } = options;
 
-        doc.setFontSize(9);
-        doc.setFont("helvetica", "normal");
-        doc.text(["Nondou Village, Pakse District", "Champasack Province, Lao PDR", "Email: phouth2226@gmail.com", "Phone: +856 20 9169 7543"], 15, 30);
+            const safeStr = safeText(text);
+            let xPos = x;
 
-        // 3. QR CODE
+            if (align === 'center') {
+                const textWidth = f.widthOfTextAtSize(safeStr, size);
+                xPos = x - textWidth / 2;
+            } else if (align === 'right') {
+                const textWidth = f.widthOfTextAtSize(safeStr, size);
+                xPos = x - textWidth;
+            }
+
+            if (maxWidth && f.widthOfTextAtSize(safeStr, size) > maxWidth) {
+                // Truncate with ellipsis if too wide
+                let truncated = safeStr;
+                while (f.widthOfTextAtSize(truncated + '...', size) > maxWidth && truncated.length > 0) {
+                    truncated = truncated.slice(0, -1);
+                }
+                page.drawText(truncated + '...', { x: xPos, y, size, font: f, color });
+            } else {
+                page.drawText(safeStr, { x: xPos, y, size, font: f, color });
+            }
+        }
+
+        function drawLine(x1, y1, x2, y2, thickness = 0.5) {
+            page.drawLine({
+                start: { x: x1, y: y1 },
+                end: { x: x2, y: y2 },
+                thickness,
+                color: rgb(0, 0, 0)
+            });
+        }
+
+        // 5. HEADER
+        drawText('TATA SMILE TRAVEL & CAR RENTAL SOLE CO.,LTD', width / 2, height - 30, {
+            size: 14,
+            font: fontBold,
+            align: 'center'
+        });
+
+        const headerLines = [
+            'Nondou Village, Pakse District',
+            'Champasack Province, Lao PDR',
+            'Email: phouth2226@gmail.com',
+            'Phone: +856 20 9169 7543'
+        ];
+
+        headerLines.forEach((line, i) => {
+            drawText(line, 30, height - 48 - (i * 12), { size: 8, font });
+        });
+
+        // 6. QR CODE
         const qrContainer = document.createElement('div');
         qrContainer.style.display = 'none';
         document.body.appendChild(qrContainer);
         new QRCode(qrContainer, { text: invId, width: 128, height: 128 });
-        await new Promise(r => setTimeout(r, 150));
+        await new Promise(r => setTimeout(r, 200));
         const qrCanvas = qrContainer.querySelector('canvas');
-        if (qrCanvas) doc.addImage(qrCanvas.toDataURL("image/png"), 'PNG', 165, 25, 30, 30);
-        doc.setFontSize(8);
-        doc.text(`INV: ${invId}`, 180, 58, { align: "center" });
+        if (qrCanvas) {
+            const qrDataUrl = qrCanvas.toDataURL('image/png');
+            const qrImage = await doc.embedPng(qrDataUrl);
+            page.drawImage(qrImage, {
+                x: width - 140,
+                y: height - 140,
+                width: 100,
+                height: 100
+            });
+        }
+        drawText(`INV: ${invId}`, width - 90, height - 146, { size: 8, font: fontBold, align: 'center' });
         document.body.removeChild(qrContainer);
 
-        // 4. TOP LINE & INFO BLOCKS
-        doc.setLineWidth(0.5);
-        doc.line(15, 65, 195, 65);
+        // 7. TOP LINE
+        const topLineY = height - 155;
+        drawLine(30, topLineY, width - 30, topLineY);
 
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "bold");
-        doc.text("CUSTOMER INFORMATION", 15, 75);
-        doc.text("VEHICLE DETAILS", 110, 75);
-        
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(9);
-        // 🔥 Use safePdfText() on every field — Lao script plates/names
-        // would otherwise render as "&•&•&3&3&4&5" garbled output.
-        doc.text([
-            `Name: ${safePdfText(cData.full_name)}`,
-            `Phone: ${safePdfText(cData.phone)}`,
-            `Email: ${safePdfText(cData.email)}`,
-            `Passport: ${safePdfText(cData.passport_number)}`,
-            `Nationality: ${safePdfText(cData.nationality)}`,
-            `License: ${safePdfText(cData.license_number)}`
-        ], 15, 82);
+        // 8. CUSTOMER INFO (LEFT)
+        drawText('CUSTOMER INFORMATION', 30, topLineY - 15, { size: 9, font: fontBold });
 
-        doc.text([
-            `Model: ${safePdfText(vData.make_model)}`,
-            `Plate: ${safePdfText(vData.license_plate)}`,
-            `Type: ${safePdfText(vData.vehicle_type)}`,
-            `Fuel: ${safePdfText(vData.fuel_type)}`,
-            `Transmission: ${safePdfText(vData.transmission)}`,
-            `Daily Rate: ${parseFloat(vData.daily_rate || 0).toLocaleString()}`
-        ], 110, 82);
+        const customerFields = [
+            `Name: ${safeText(cData.full_name)}`,
+            `Phone: ${safeText(cData.phone)}`,
+            `Email: ${safeText(cData.email, '-')}`,
+            `Passport: ${safeText(cData.passport_number, '-')}`,
+            `Nationality: ${safeText(cData.nationality, '-')}`,
+            `License: ${safeText(cData.license_number, '-')}`
+        ];
 
-        // 5. RENTAL PERIOD
+        customerFields.forEach((field, i) => {
+            drawText(field, 30, topLineY - 30 - (i * 14), { size: 9, font });
+        });
+
+        // 9. VEHICLE DETAILS (RIGHT)
+        drawText('VEHICLE DETAILS', 320, topLineY - 15, { size: 9, font: fontBold });
+
+        const vehicleFields = [
+            `Model: ${safeText(vData.make_model)}`,
+            `Plate: ${safeText(vData.license_plate)}`,
+            `Type: ${safeText(vData.vehicle_type, '-')}`,
+            `Fuel: ${safeText(vData.fuel_type, '-')}`,
+            `Transmission: ${safeText(vData.transmission, '-')}`,
+            `Daily Rate: ${Number(vData.daily_rate || 0).toLocaleString()}`
+        ];
+
+        vehicleFields.forEach((field, i) => {
+            drawText(field, 320, topLineY - 30 - (i * 14), { size: 9, font });
+        });
+
+        // 10. RENTAL PERIOD
         const startDate = new Date(rental.start_date);
         const endDate = new Date(startDate);
         endDate.setDate(startDate.getDate() + (parseInt(rental.rental_days) || 0));
         const dateRange = `Rental Period: ${startDate.toLocaleDateString('en-GB')} to ${endDate.toLocaleDateString('en-GB')} (${rental.rental_days} Days)`;
-        
-        doc.setFont("helvetica", "bolditalic");
-        doc.setFontSize(10);
-        doc.text(dateRange, 15, 120);
 
-        // 6. SUMMARY TABLE (B&W High-Contrast)
-        autoTable.call(doc, {
-    startY: 125,
-    head: [['Description', 'Days', 'Daily Rate', 'Subtotal']],
-    body: [[
-        `Vehicle Rental - ${safePdfText(vData.make_model || 'Unit')}`, 
-        rental.rental_days || 0, 
-        parseFloat(vData.daily_rate || 0).toLocaleString(), 
-        parseFloat(rental.total_price || 0).toLocaleString()
-    ]],
-    headStyles: { 
-        fillColor: [255, 255, 255], 
-        textColor: [0, 0, 0], 
-        lineColor: [0, 0, 0], 
-        lineWidth: 0.2,
-        halign: 'center' // Centers the Header text
-    },
-    // Removed the right-alignment for columns 2 and 3 to keep everything centered
-    columnStyles: {
-        0: { halign: 'center' },
-        1: { halign: 'center' },
-        2: { halign: 'center' },
-        3: { halign: 'center' }
-    },
-    theme: 'grid', 
-    styles: { 
-        fontSize: 9, 
-        textColor: [0, 0, 0],
-        halign: 'center' // This centers all data in the body rows
-    }
-});
-        // 7. GRAND TOTAL & CURRENCY (Right Aligned)
-        const finalY = doc.lastAutoTable.finalY + 12;
-        doc.setFontSize(14);
-        doc.setFont("helvetica", "bold");
-        doc.text("GRAND TOTAL:", 155, finalY, { align: "right" });
-        
-        const totalAmount = parseFloat(rental.total_price || 0).toLocaleString();
-        doc.text(totalAmount, 195, finalY, { align: "right" });
+        const periodY = topLineY - 120;
+        drawText(dateRange, 30, periodY, { size: 10, font: fontBoldItalic });
 
-        doc.setFontSize(9);
-        doc.setFont("helvetica", "bold");
-        doc.text("Currency:", 195, finalY + 8, { align: "right" });
-        
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(9);
-        doc.text("[  USD  ]      [  THB  ]      [  LAK  ]", 195, finalY + 15, { align: "right" });
+        // 11. SUMMARY TABLE
+        const tableStartY = periodY - 30;
+        const colX = [30, 200, 320, 430]; // x positions for each column
+        const colAlign = ['left', 'center', 'center', 'right'];
 
-        // 8. EXTRA LINE
-        doc.setLineWidth(0.2);
-        doc.line(15, finalY + 22, 195, finalY + 22);
+        // Table header
+        drawLine(colX[0], tableStartY, colX[3] + 80, tableStartY);
+        const headerRowY = tableStartY - 5;
+        const headers = ['Description', 'Days', 'Daily Rate', 'Subtotal'];
+        const headerAligns = ['center', 'center', 'center', 'center'];
+        const headerXs = [
+            (colX[0] + colX[1]) / 2 - 20,
+            (colX[1] + colX[2]) / 2,
+            (colX[2] + colX[3]) / 2,
+            colX[3] + 40
+        ];
 
-        // 9. FOOTER
-        const footerY = 265;
-        doc.line(15, footerY, 80, footerY);
-        doc.setFontSize(8);
-        doc.text("Prepared by:", 15, footerY + 5);
-        doc.text("TATA SMILE TRAVEL & CAR RENTAL CO.,LTD", 15, footerY + 10);
+        headers.forEach((h, i) => {
+            drawText(h, headerXs[i], headerRowY, {
+                size: 9,
+                font: fontBold,
+                align: 'center'
+            });
+        });
 
-        doc.line(130, footerY, 195, footerY);
-        doc.text("Customer's Signature", 130, footerY + 5);
-        doc.text(safePdfText(cData.full_name || "Guest"), 130, footerY + 10);
+        drawLine(colX[0], headerRowY - 10, colX[3] + 80, headerRowY - 10);
 
-        doc.setFont("helvetica", "bolditalic");
-        doc.setFontSize(10);
-        doc.text("Thank you for choosing us!", 105, footerY + 20, { align: "center" });
+        // Table body
+        const bodyRowY = headerRowY - 25;
+        const dailyRate = Number(vData.daily_rate || 0).toLocaleString();
+        const rowData = [
+            `Vehicle Rental - ${safeText(vData.make_model || 'Unit')}`,
+            String(rental.rental_days || 0),
+            dailyRate,
+            Number(rental.total_price || 0).toLocaleString()
+        ];
 
-        doc.save(`Invoice_${invId}.pdf`);
+        const bodyXs = [
+            colX[0] + 10,
+            (colX[1] + colX[2]) / 2,
+            (colX[2] + colX[3]) / 2,
+            colX[3] + 80
+        ];
+        const bodyAligns = ['left', 'center', 'center', 'right'];
 
-    } catch (err) { 
-        console.error("PDF Printing Error:", err); 
-        alert("Print Error: " + err.message);
+        rowData.forEach((val, i) => {
+            drawText(val, bodyXs[i], bodyRowY, {
+                size: 9,
+                font,
+                align: bodyAligns[i]
+            });
+        });
+
+        drawLine(colX[0], bodyRowY - 10, colX[3] + 80, bodyRowY - 10);
+
+        // 12. GRAND TOTAL
+        const totalY = bodyRowY - 30;
+        drawText('GRAND TOTAL:', colX[3] + 80, totalY, {
+            size: 12,
+            font: fontBold,
+            align: 'right'
+        });
+
+        drawText(Number(rental.total_price || 0).toLocaleString(), colX[3] + 80, totalY - 18, {
+            size: 12,
+            font: fontBold,
+            align: 'right'
+        });
+
+        // Currency options
+        drawText('Currency:', colX[3] + 80, totalY - 35, {
+            size: 9,
+            font: fontBold,
+            align: 'right'
+        });
+
+        drawText('[  USD  ]      [  THB  ]      [  LAK  ]', colX[3] + 80, totalY - 47, {
+            size: 8,
+            font,
+            align: 'right'
+        });
+
+        // 13. EXTRA LINE
+        drawLine(30, totalY - 55, width - 30, totalY - 55, 0.2);
+
+        // 14. FOOTER
+        const footerY = 80;
+
+        drawLine(30, footerY + 15, 200, footerY + 15);
+        drawText('Prepared by:', 30, footerY + 8, { size: 8, font });
+        drawText('TATA SMILE TRAVEL & CAR RENTAL CO.,LTD', 30, footerY - 2, { size: 8, font: fontBold });
+
+        drawLine(width - 230, footerY + 15, width - 30, footerY + 15);
+        drawText("Customer's Signature", width - 130, footerY + 8, {
+            size: 8,
+            font,
+            align: 'center'
+        });
+        drawText(safeText(cData.full_name || 'Guest'), width - 130, footerY - 2, {
+            size: 8,
+            font: fontBold,
+            align: 'center'
+        });
+
+        drawText('Thank you for choosing us!', width / 2, 40, {
+            size: 10,
+            font: fontBoldItalic,
+            align: 'center'
+        });
+
+        // 15. SAVE PDF
+        const pdfBytes = await doc.save();
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `Invoice_${invId}.pdf`;
+        link.click();
+        URL.revokeObjectURL(url);
+
+    } catch (err) {
+        console.error('PDF Printing Error:', err);
+        alert('Print Error: ' + err.message);
     }
 }
     
