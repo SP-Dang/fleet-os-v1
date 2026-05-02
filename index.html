@@ -1316,37 +1316,41 @@ async function confirmRental() {
         drawFullLine(topLineY, 0.5);
 
         // 9. CUSTOMER INFORMATION (LEFT)
-        await drawText('CUSTOMER INFORMATION', leftMargin, topLineY - 20, { size: 9 });
+const sectionHeaderY = topLineY - 22;
+await drawText('CUSTOMER INFORMATION', leftMargin, sectionHeaderY, { size: 8 });
 
-        const customerFields = [
-            `Name: ${safeText(cData.full_name)}`,
-            `Phone: ${safeText(cData.phone)}`,
-            `Email: ${safeText(cData.email, '-')}`,
-            `Passport: ${safeText(cData.passport_number, '-')}`,
-            `Nationality: ${safeText(cData.nationality, '-')}`,
-            `License: ${safeText(cData.license_number, '-')}`
-        ];
+const customerFields = [
+    `Name: ${safeText(cData.full_name)}`,
+    `Phone: ${safeText(cData.phone)}`,
+    `Email: ${safeText(cData.email, '-')}`,
+    `Passport: ${safeText(cData.passport_number, '-')}`,
+    `Nationality: ${safeText(cData.nationality, '-')}`,
+    `License: ${safeText(cData.license_number, '-')}`
+];
 
-        for (let i = 0; i < customerFields.length; i++) {
-            await drawText(customerFields[i], leftMargin, topLineY - 35 - (i * 14), { size: 9 });
-        }
+const fieldStartY = sectionHeaderY - 16;
+const fieldSpacing = 16;
 
-        // 10. VEHICLE DETAILS (RIGHT)
-        const rightColX = 330;
-        await drawText('VEHICLE DETAILS', rightColX, topLineY - 20, { size: 9 });
+for (let i = 0; i < customerFields.length; i++) {
+    await drawText(customerFields[i], leftMargin, fieldStartY - (i * fieldSpacing), { size: 9 });
+}
 
-        const vehicleFields = [
-            `Model: ${safeText(vData.make_model)}`,
-            `Plate: ${safeText(vData.license_plate)}`,
-            `Type: ${safeText(vData.vehicle_type, '-')}`,
-            `Fuel: ${safeText(vData.fuel_type, '-')}`,
-            `Transmission: ${safeText(vData.transmission, '-')}`,
-            `Daily Rate: ${Number(vData.daily_rate || 0).toLocaleString()}`
-        ];
+// 10. VEHICLE DETAILS (RIGHT)
+const rightColX = 320;
+await drawText('VEHICLE DETAILS', rightColX, sectionHeaderY, { size: 8 });
 
-        for (let i = 0; i < vehicleFields.length; i++) {
-            await drawText(vehicleFields[i], rightColX, topLineY - 35 - (i * 14), { size: 9 });
-        }
+const vehicleFields = [
+    `Model: ${safeText(vData.make_model)}`,
+    `Plate: ${safeText(vData.license_plate)}`,
+    `Type: ${safeText(vData.vehicle_type, '-')}`,
+    `Fuel: ${safeText(vData.fuel_type, '-')}`,
+    `Transmission: ${safeText(vData.transmission, '-')}`,
+    `Daily Rate: ${Number(vData.daily_rate || 0).toLocaleString()}`
+];
+
+for (let i = 0; i < vehicleFields.length; i++) {
+    await drawText(vehicleFields[i], rightColX, fieldStartY - (i * fieldSpacing), { size: 9 });
+}
 
         // 11. RENTAL PERIOD
         const startDate = new Date(rental.start_date);
@@ -1354,7 +1358,7 @@ async function confirmRental() {
         endDate.setDate(startDate.getDate() + (parseInt(rental.rental_days) || 0));
         const dateRange = `Rental Period: ${startDate.toLocaleDateString('en-GB')} to ${endDate.toLocaleDateString('en-GB')} (${rental.rental_days} Days)`;
 
-        const periodY = topLineY - 120;
+        const periodY = fieldStartY - (fieldSpacing * 7);
         await drawText(dateRange, leftMargin, periodY, { size: 10 });
 
         // 12. SUMMARY TABLE (FIXED COLUMN WIDTHS)
