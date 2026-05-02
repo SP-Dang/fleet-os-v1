@@ -1159,6 +1159,9 @@ async function confirmRental() {
         
         let page = doc.addPage([612, 792]);
         const { width, height } = page.getSize();
+        const leftMargin = 30;
+        const rightMargin = width - 30;
+        const pageWidth = width - 60; // total usable width
 
         // 3. LOAD LAO FONT
         const fontBytes = await fetch('NotoSansLao-Regular.ttf').then(res => res.arrayBuffer());
@@ -1210,6 +1213,11 @@ async function confirmRental() {
             });
         }
 
+        // Helper to draw a full-width line
+        function drawFullLine(y, thickness = 0.5) {
+            drawLine(leftMargin, y, rightMargin, y, thickness);
+        }
+
         // 5. HEADER - Company Name (centered)
         drawText('TATA SMILE TRAVEL & CAR RENTAL SOLE CO.,LTD', width / 2, height - 30, {
             size: 14,
@@ -1225,7 +1233,7 @@ async function confirmRental() {
         ];
 
         headerLines.forEach((line, i) => {
-            drawText(line, 30, height - 50 - (i * 12), { size: 8 });
+            drawText(line, leftMargin, height - 50 - (i * 12), { size: 8 });
         });
 
         // 6. QR CODE (top right)
@@ -1235,25 +1243,28 @@ async function confirmRental() {
         new QRCode(qrContainer, { text: invId, width: 128, height: 128 });
         await new Promise(r => setTimeout(r, 200));
         const qrCanvas = qrContainer.querySelector('canvas');
+        const qrBoxX = width - 150;
+        const qrBoxY = height - 165;
         if (qrCanvas) {
             const qrDataUrl = qrCanvas.toDataURL('image/png');
             const qrImage = await doc.embedPng(qrDataUrl);
             page.drawImage(qrImage, {
-                x: width - 140,
-                y: height - 140,
-                width: 100,
-                height: 100
+                x: qrBoxX,
+                y: qrBoxY,
+                width: 110,
+                height: 110
             });
         }
-        drawText(`INV: ${invId}`, width - 90, height - 146, { size: 8, align: 'center' });
+        // INV number BELOW QR with proper spacing
+        drawText(`INV: ${invId}`, qrBoxX + 55, qrBoxY - 18, { size: 8, align: 'center' });
         document.body.removeChild(qrContainer);
 
-        // 7. TOP SEPARATOR LINE
-        const topLineY = height - 155;
-        drawLine(30, topLineY, width - 30, topLineY);
+        // 7. TOP SEPARATOR LINE (full width from margin to margin)
+        const topLineY = qrBoxY - 32;
+        drawFullLine(topLineY, 0.5);
 
         // 8. CUSTOMER INFORMATION (LEFT SIDE)
-        drawText('CUSTOMER INFORMATION', 30, topLineY - 20, { size: 9 });
+        drawText('CUSTOMER INFORMATION', leftMargin, topLineY - 20, { size: 9 });
 
         const customerFields = [
             `Name: ${safeText(cData.full_name)}`,
@@ -1265,11 +1276,12 @@ async function confirmRental() {
         ];
 
         customerFields.forEach((field, i) => {
-            drawText(field, 30, topLineY - 35 - (i * 14), { size: 9 });
+            drawText(field, leftMargin, topLineY - 35 - (i * 14), { size: 9 });
         });
 
         // 9. VEHICLE DETAILS (RIGHT SIDE)
-        drawText('VEHICLE DETAILS', 330, topLineY - 20, { size: 9 });
+        const rightColX = 330;
+        drawText('VEHICLE DETAILS', rightColX, topLineY - 20, { size: 9 });
 
         const vehicleFields = [
             `Model: ${safeText(vData.make_model)}`,
@@ -1281,7 +1293,7 @@ async function confirmRental() {
         ];
 
         vehicleFields.forEach((field, i) => {
-            drawText(field, 330, topLineY - 35 - (i * 14), { size: 9 });
+            drawText(field, rightColX, topLineY - 35 - (i * 14), { size: 9 });
         });
 
         // 10. RENTAL PERIOD (full width below both columns)
@@ -1291,70 +1303,75 @@ async function confirmRental() {
         const dateRange = `Rental Period: ${startDate.toLocaleDateString('en-GB')} to ${endDate.toLocaleDateString('en-GB')} (${rental.rental_days} Days)`;
 
         const periodY = topLineY - 120;
-        drawText(dateRange, 30, periodY, { size: 10 });
+        drawText(dateRange, leftMargin, periodY, { size: 10 });
 
         // 11. SUMMARY TABLE
         const tableStartY = periodY - 25;
-        const colX = [30, 200, 350, 480]; // x positions for columns
         
-        // Table top border
-        drawLine(30, tableStartY, 540, tableStartY, 0.5);
+        // Table header positions
+        const descColX = leftMargin + 10;
+        const daysColX = 275;
+        const rateColX = 415;
+        const subtotalColX = rightMargin;
+        
+        // Table top border (full width)
+        drawFullLine(tableStartY, 0.5);
         
         // Table headers
         const headerRowY = tableStartY - 15;
-        const headers = ['Description', 'Days', 'Daily Rate', 'Subtotal'];
-        const headerX = [120, 275, 415, 510];
         
-        headers.forEach((h, i) => {
-            drawText(h, headerX[i], headerRowY, { size: 9, align: 'center' });
-        });
+        drawText('Description', daysColX - 20, headerRowY, { size: 9, align: 'center' });
+        drawText('Days', daysColX, headerRowY, { size: 9, align: 'center' });
+        drawText('Daily Rate', rateColX, headerRowY, { size: 9, align: 'center' });
+        drawText('Subtotal', subtotalColX, headerRowY, { size: 9, align: 'right' });
         
-        // Header bottom border
-        drawLine(30, headerRowY - 16, 540, headerRowY - 16, 0.5);
+        // Header bottom border (full width)
+        drawFullLine(headerRowY - 16, 0.5);
 
         // Table body row
         const bodyRowY = headerRowY - 32;
         const dailyRate = Number(vData.daily_rate || 0).toLocaleString();
 
-        // Vehicle description (left aligned)
-        drawText(`Vehicle Rental - ${safeText(vData.make_model || 'Unit')}`, 40, bodyRowY, { size: 9 });
+        // Vehicle description (left aligned, indented from margin)
+        drawText(`Vehicle Rental - ${safeText(vData.make_model || 'Unit')}`, descColX, bodyRowY, { size: 9 });
         
         // Days (centered)
-        drawText(String(rental.rental_days || 0), 275, bodyRowY, { size: 9, align: 'center' });
+        drawText(String(rental.rental_days || 0), daysColX, bodyRowY, { size: 9, align: 'center' });
         
         // Daily Rate (centered)
-        drawText(dailyRate, 415, bodyRowY, { size: 9, align: 'center' });
+        drawText(dailyRate, rateColX, bodyRowY, { size: 9, align: 'center' });
         
-        // Subtotal (right aligned)
-        drawText(Number(rental.total_price || 0).toLocaleString(), 540, bodyRowY, { size: 9, align: 'right' });
+        // Subtotal (right aligned at right margin)
+        drawText(Number(rental.total_price || 0).toLocaleString(), subtotalColX, bodyRowY, { size: 9, align: 'right' });
 
-        // Table bottom border
-        drawLine(30, bodyRowY - 14, 540, bodyRowY - 14, 0.5);
+        // Table bottom border (full width)
+        drawFullLine(bodyRowY - 14, 0.5);
 
-        // 12. GRAND TOTAL
+        // 12. GRAND TOTAL (right-aligned at right margin)
         const totalY = bodyRowY - 40;
-        drawText('GRAND TOTAL:', 540, totalY, { size: 12, align: 'right' });
-        drawText(Number(rental.total_price || 0).toLocaleString(), 540, totalY - 18, { size: 12, align: 'right' });
+        drawText('GRAND TOTAL:', subtotalColX, totalY, { size: 12, align: 'right' });
+        drawText(Number(rental.total_price || 0).toLocaleString(), subtotalColX, totalY - 18, { size: 12, align: 'right' });
 
-        // Currency options
-        drawText('Currency:', 540, totalY - 40, { size: 9, align: 'right' });
-        drawText('[  USD  ]      [  THB  ]      [  LAK  ]', 540, totalY - 55, { size: 8, align: 'right' });
+        // Currency options (right-aligned)
+        drawText('Currency:', subtotalColX, totalY - 40, { size: 9, align: 'right' });
+        drawText('[  USD  ]      [  THB  ]      [  LAK  ]', subtotalColX, totalY - 55, { size: 8, align: 'right' });
 
-        // Extra separator line
-        drawLine(30, totalY - 65, width - 30, totalY - 65, 0.2);
+        // Extra separator line (full width, thin)
+        drawFullLine(totalY - 67, 0.2);
 
         // 13. FOOTER
-        const footerY = 80;
+        const footerY = 85;
 
         // Prepared by line
-        drawLine(30, footerY + 10, 200, footerY + 10, 0.5);
-        drawText('Prepared by:', 30, footerY + 3, { size: 8 });
-        drawText('TATA SMILE TRAVEL & CAR RENTAL CO.,LTD', 30, footerY - 8, { size: 8 });
+        const prepLineWidth = 170;
+        drawLine(leftMargin, footerY + 15, leftMargin + prepLineWidth, footerY + 15, 0.5);
+        drawText('Prepared by:', leftMargin, footerY + 8, { size: 8 });
+        drawText('TATA SMILE TRAVEL & CAR RENTAL CO.,LTD', leftMargin, footerY - 2, { size: 8 });
 
-        // Customer signature line
-        drawLine(width - 230, footerY + 10, width - 30, footerY + 10, 0.5);
-        drawText("Customer's Signature", width - 130, footerY + 3, { size: 8, align: 'center' });
-        drawText(safeText(cData.full_name || 'Guest'), width - 130, footerY - 8, { size: 8, align: 'center' });
+        // Customer signature line (right side, same length)
+        drawLine(rightMargin - prepLineWidth, footerY + 15, rightMargin, footerY + 15, 0.5);
+        drawText("Customer's Signature", rightMargin - prepLineWidth/2, footerY + 8, { size: 8, align: 'center' });
+        drawText(safeText(cData.full_name || 'Guest'), rightMargin - prepLineWidth/2, footerY - 2, { size: 8, align: 'center' });
 
         // Thank you message
         drawText('Thank you for choosing us!', width / 2, 40, { size: 10, align: 'center' });
