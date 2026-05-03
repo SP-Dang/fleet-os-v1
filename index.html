@@ -1548,10 +1548,9 @@ async function loadRentals() {
         // =========================================
         // 🔥 PAYMENT BADGE (NEW)
         // =========================================
-        const paymentBadge = r.payment_status === 'paid'
-            ? '<span class="px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-100 text-emerald-600">● Paid</span>'
-            : '<span class="px-2 py-0.5 rounded-full text-[9px] font-black bg-amber-100 text-amber-600">● Pending</span>';
-
+                const paymentBadge = r.payment_status === 'paid'
+            ? '<span style="font-size:9px;" class="px-2 py-0.5 rounded-full font-black bg-emerald-100 text-emerald-600">● Paid</span>'
+            : '<span style="font-size:9px;" class="px-2 py-0.5 rounded-full font-black bg-amber-100 text-amber-600">● Pending</span>';
         return `
         <tr 
         class="border-b hover:bg-slate-50 transition cursor-pointer"
