@@ -83,6 +83,14 @@
             visibility: visible;
             opacity: 1;
         }
+            @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+    
     </style>
     
 </head>
@@ -896,13 +904,11 @@ function switchView(v) {
 }
 
 async function loadVehicles() {
-    showLoading();
     const { data } = await client.from('vehicles').select('*').order('created_at', {ascending: false});
     allVehicles = data || [];
     renderGrid(allVehicles);
-    hideLoading();
 }
-
+        
  function renderGrid(list) {
     document.getElementById('vehicle-grid').innerHTML = list.map(v => {
 
