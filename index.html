@@ -1854,7 +1854,7 @@ async function loadSummary() {
                     await client
                         .from('vehicles')
                         .update({ status: 'rented' })
-                        .eq('id', r.vehicle_id);
+                        .eq('id', r.vehicle_id)
                         .eq('status', 'available');
 
                     hasUpdate = true;
