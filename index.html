@@ -83,12 +83,18 @@
             visibility: visible;
             opacity: 1;
         }
-            @keyframes spin {
+             @keyframes spin {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
         }
         .animate-spin {
             animation: spin 1s linear infinite;
+        }
+        
+        /* Force vehicle grid to be visible */
+        #vehicle-grid {
+            min-height: 200px;
+            display: grid !important;
         }
     
     </style>
@@ -924,12 +930,14 @@ function switchView(v) {
 
 async function loadVehicles() {
     console.log("✅ loadVehicles() started");
+    showLoading();
     const { data, error } = await client.from('vehicles').select('*').order('created_at', {ascending: false});
     console.log("✅ Data received:", data);
     console.log("❌ Error:", error);
     allVehicles = data || [];
     renderGrid(allVehicles);
     console.log("✅ renderGrid() called");
+    hideLoading();
 }
         
  function renderGrid(list) {
