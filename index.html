@@ -25,7 +25,7 @@
         .modal.active { display: flex; }
         .view-content.hidden { display: none; }
         .day-cell { 
-    min-width: 45px;
+    min-width: 45px; /* Increased slightly for 21-day readability */
     height: 45px; 
     border: 1px solid #f1f5f9; 
     display: flex; 
@@ -36,17 +36,18 @@
     flex-shrink: 0; 
 }
         .vehicle-label {
-    font-size: 14px;
+    font-size: 14px; /* Adjust this value (14px = text-sm, 16px = text-base) */
     line-height: 1.2;
 }
         
         .rented-cell { background: #3b82f6; color: white; border-radius: 4px; border: 2px solid #fff; }
         
-        /* Tooltip */
+        /* ─────────── ✨ CUSTOM TOOLTIP ✨ ─────────── */
         .tooltip-cell {
             position: relative;
             cursor: pointer;
         }
+
         .tooltip-cell .tooltip-text {
             visibility: hidden;
             opacity: 0;
@@ -67,6 +68,7 @@
             transition: opacity 0.15s ease, visibility 0.15s ease;
             line-height: 1.5;
         }
+
         .tooltip-cell .tooltip-text::after {
             content: "";
             position: absolute;
@@ -76,15 +78,15 @@
             border: 6px solid transparent;
             border-top-color: #0f172a;
         }
+
         .tooltip-cell:hover .tooltip-text {
             visibility: visible;
             opacity: 1;
         }
-    </style>    
+    </style>
+    
 </head>
 <body class="bg-[#F8FAFC] text-slate-900">
-<!-- 🔥 Force Tailwind CDN to include grid classes -->
-<div class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
 <!-- 🔥 LOADING OVERLAY -->
 <div id="loading-overlay" class="fixed inset-0 bg-black/20 hidden items-center justify-center z-[100]">
     <div class="bg-white p-6 rounded-2xl shadow-xl text-center">
@@ -106,7 +108,8 @@
                 <span class="text-[9px] font-black uppercase text-slate-400">System Online</span>
             </div>
         </div>
-    </div>    
+    </div>
+    
   <nav class="flex bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
     <button onclick="switchView('dashboard')" class="px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all hover:bg-white">Fleet</button>
     <button onclick="switchView('rentals')" class="px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all hover:bg-white">Rent History</button>
@@ -149,8 +152,9 @@
 
 </div>
 
-         <div id="vehicle-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>     
-           </div>
+            
+            <div id="vehicle-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </div>
 
 <!-- ================= RENTALS ================= -->
 <div id="view-rentals" class="view-content hidden px-4 md:px-12 pt-6 pb-6">
@@ -766,51 +770,35 @@ async function cancelBooking(rentalId, vehicleId) {
         
 async function init() {
 
-    console.log("🔵 init() started");
-
     // =========================================
     // 🔥 1. LOAD GLOBAL DATA FIRST (CRITICAL)
     // =========================================
-    console.log("🔵 Calling loadGlobalData()...");
     await loadGlobalData();
-    console.log("✅ loadGlobalData() done");
 
     // =========================================
     // 🔥 2. AUTO ACTIVATE BOOKINGS
     // =========================================
-    console.log("🔵 Calling autoActivateBookings()...");
     try {
         await autoActivateBookings();
-        console.log("✅ autoActivateBookings() done");
     } catch (err) {
-        console.error("❌ Auto Activate Error:", err);
+        console.error("Auto Activate Error:", err);
     }
 
     // =========================================
     // 🔥 3. LOAD ALL UI
     // =========================================
-    console.log("🔵 Calling loadVehicles()...");
     await loadVehicles();
-    console.log("✅ loadVehicles() done");
 
     if (typeof loadCustomers === 'function') {
-        console.log("🔵 Calling loadCustomers()...");
         await loadCustomers();
-        console.log("✅ loadCustomers() done");
     }
 
-    console.log("🔵 Calling loadRentals()...");
     await loadRentals();
-    console.log("✅ loadRentals() done");
-
-    console.log("🔵 Calling loadSummary()...");
     await loadSummary();
-    console.log("✅ loadSummary() done");
 
     // =========================================
     // 🔥 4. REALTIME SYNC (MAIN FIX 🚀)
     // =========================================
-    console.log("🔵 Setting up realtime...");
     const channel = client
         .channel('fleet-realtime')
 
@@ -851,7 +839,6 @@ async function init() {
         })
 
         .subscribe();
-    console.log("✅ Realtime setup done");
 
     // =========================================
     // 🔥 5. AUTO REFRESH (BACKUP ONLY)
@@ -879,10 +866,8 @@ async function init() {
     if (dateInput) {
         dateInput.valueAsDate = new Date();
     }
-    
-    console.log("✅ init() complete");
 }
-        
+
 function showLoading() {
     const overlay = document.getElementById('loading-overlay');
     if (overlay) {
@@ -911,11 +896,13 @@ function switchView(v) {
 }
 
 async function loadVehicles() {
+    showLoading();
     const { data } = await client.from('vehicles').select('*').order('created_at', {ascending: false});
     allVehicles = data || [];
     renderGrid(allVehicles);
+    hideLoading();
 }
-        
+
  function renderGrid(list) {
     document.getElementById('vehicle-grid').innerHTML = list.map(v => {
 
