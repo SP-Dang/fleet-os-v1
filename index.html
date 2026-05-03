@@ -25,7 +25,7 @@
         .modal.active { display: flex; }
         .view-content.hidden { display: none; }
         .day-cell { 
-    min-width: 45px; /* Increased slightly for 21-day readability */
+    min-width: 45px;
     height: 45px; 
     border: 1px solid #f1f5f9; 
     display: flex; 
@@ -36,18 +36,17 @@
     flex-shrink: 0; 
 }
         .vehicle-label {
-    font-size: 14px; /* Adjust this value (14px = text-sm, 16px = text-base) */
+    font-size: 14px;
     line-height: 1.2;
 }
         
         .rented-cell { background: #3b82f6; color: white; border-radius: 4px; border: 2px solid #fff; }
         
-        /* ─────────── ✨ CUSTOM TOOLTIP ✨ ─────────── */
+        /* Tooltip */
         .tooltip-cell {
             position: relative;
             cursor: pointer;
         }
-
         .tooltip-cell .tooltip-text {
             visibility: hidden;
             opacity: 0;
@@ -68,7 +67,6 @@
             transition: opacity 0.15s ease, visibility 0.15s ease;
             line-height: 1.5;
         }
-
         .tooltip-cell .tooltip-text::after {
             content: "";
             position: absolute;
@@ -78,40 +76,11 @@
             border: 6px solid transparent;
             border-top-color: #0f172a;
         }
-
         .tooltip-cell:hover .tooltip-text {
             visibility: visible;
             opacity: 1;
         }
-
-            @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        .animate-spin {
-            animation: spin 1s linear infinite;
-        }
-        
-        /* Fix vehicle grid layout */
-               #vehicle-grid {
-            display: grid;
-            grid-template-columns: repeat(1, 1fr);
-            gap: 1.5rem;
-        }
-        @media (min-width: 768px) {
-            #vehicle-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-        @media (min-width: 1024px) {
-            #vehicle-grid {
-                grid-template-columns: repeat(3, 1fr);
-            }
-        }
-        
-    
-    </style>
-    
+    </style>    
 </head>
 <body class="bg-[#F8FAFC] text-slate-900">
 <!-- 🔥 Force Tailwind CDN to include grid classes -->
@@ -180,7 +149,7 @@
 
 </div>
 
-         <div id="vehicle-grid"></div>      
+         <div id="vehicle-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>     
            </div>
 
 <!-- ================= RENTALS ================= -->
@@ -942,11 +911,9 @@ function switchView(v) {
 }
 
 async function loadVehicles() {
-    showLoading();
     const { data } = await client.from('vehicles').select('*').order('created_at', {ascending: false});
     allVehicles = data || [];
     renderGrid(allVehicles);
-    hideLoading();
 }
         
  function renderGrid(list) {
