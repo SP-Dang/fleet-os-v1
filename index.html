@@ -663,10 +663,11 @@ async function autoActivateBookings() {
                     .update({ status: 'active' })
                     .eq('id', r.id);
 
-                await client
+                     await client
                     .from('vehicles')
                     .update({ status: 'rented' })
-                    .eq('id', r.vehicle_id);
+                    .eq('id', r.vehicle_id)
+                    .eq('status', 'available');
             }
         }
 
@@ -1047,7 +1048,7 @@ async function processCheckIn(rental) {
     async function openBooking(v) {
         activeV = v;
         document.getElementById('b-title').innerText = v.make_model;
-        document.getElementById('b-subtitle').innerText = `Plate: ${v.license_plate} | $${v.daily_rate}/day`;
+        document.getElementById('b-subtitle').innerText = `Plate: ${v.license_plate} | ₭${v.daily_rate}/day`;
         updateBookingTotal();
         document.getElementById('booking-modal').classList.add('active');
     }
@@ -1138,6 +1139,8 @@ async function confirmRental() {
     // ✅ Success UI
     alert("Booking Confirmed!");
     closeModal('booking-modal');
+    // 🔥 TRIGGER FLEET REFRESH ON BOOKING PAGE
+    localStorage.setItem('refreshFleet', 'true');
     loadVehicles();
 }
 
