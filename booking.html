@@ -205,7 +205,7 @@ async function initCalendar(vehicleId) {
 
             let start = new Date(r.start_date);
             let end = new Date(start);
-            end.setDate(start.getDate() + Number(r.rental_days || 0));
+            end.setDate(start.getDate() + Number(r.rental_days || 0) - 1); // ✅ FIX: Last rental day is return day
 
             disabledDates.push({ from: start, to: end });
         });
