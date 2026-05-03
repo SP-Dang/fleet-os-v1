@@ -1549,8 +1549,8 @@ async function loadRentals() {
         // 🔥 PAYMENT BADGE (NEW)
         // =========================================
                 const paymentBadge = r.payment_status === 'paid'
-            ? '<span style="font-size:9px;" class="px-2 py-0.5 rounded-full font-black bg-emerald-100 text-emerald-600">● Paid</span>'
-            : '<span style="font-size:9px;" class="px-2 py-0.5 rounded-full font-black bg-amber-100 text-amber-600">● Pending</span>';
+            ? '<span style="font-size:11px;" class="px-2 py-0.5 rounded-full font-black bg-emerald-100 text-emerald-600">● Paid</span>'
+            : '<span style="font-size:11px;" class="px-2 py-0.5 rounded-full font-black bg-amber-100 text-amber-600">● Pending</span>';
         return `
         <tr 
         class="border-b hover:bg-slate-50 transition cursor-pointer"
@@ -1576,7 +1576,7 @@ async function loadRentals() {
 
             <!-- 🔥 STATUS -->
             <td class="p-3">
-                <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                <span class="px-2 py-0.5 rounded-full text-[11px] font-black uppercase ${
                     r.status === 'booked' ? 'bg-amber-100 text-amber-600' : 
                     r.status === 'active' ? 'bg-blue-100 text-blue-600' : 
                     'bg-slate-100 text-slate-400'
@@ -1596,34 +1596,34 @@ async function loadRentals() {
 
     ${r.payment_status !== 'paid' ? `
         <button onclick="event.stopPropagation(); markAsPaid('${r.id}')"
-            class="bg-emerald-100 text-emerald-600 px-2 py-1 rounded-lg text-[9px] font-black uppercase hover:bg-emerald-600 hover:text-white transition whitespace-nowrap">
+            class="bg-emerald-100 text-emerald-600 px-2 py-1 rounded-lg text-[11px] font-black uppercase hover:bg-emerald-600 hover:text-white transition whitespace-nowrap">
             Mark Paid
         </button>
     ` : ''}
 
         ${r.status === 'booked' ? `
         <button onclick='event.stopPropagation(); cancelBooking("${r.id}", "${r.vehicle_id}")'
-            class="bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[9px] font-black uppercase hover:bg-red-600 hover:text-white transition whitespace-nowrap">
+            class="bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[11px] font-black uppercase hover:bg-red-600 hover:text-white transition whitespace-nowrap">
             Cancel
         </button>
     ` : ''}
 
     ${r.status === 'booked' ? `
         <button onclick='event.stopPropagation(); processCheckIn(${JSON.stringify(r)})'
-            class="bg-blue-600 text-white px-2 py-1 rounded-lg text-[9px] font-black uppercase hover:bg-slate-900 transition-all whitespace-nowrap">
+            class="bg-blue-600 text-white px-2 py-1 rounded-lg text-[11px] font-black uppercase hover:bg-slate-900 transition-all whitespace-nowrap">
             Check IN
         </button>
     ` : ''}
     
     ${r.status === 'active' ? `
         <button onclick='event.stopPropagation(); handleManualReturn(${JSON.stringify(r)})'
-            class="bg-emerald-50 text-emerald-600 px-2 py-1 rounded-lg text-[9px] font-black uppercase hover:bg-emerald-600 hover:text-white transition-all whitespace-nowrap">
+            class="bg-emerald-50 text-emerald-600 px-2 py-1 rounded-lg text-[11px] font-black uppercase hover:bg-emerald-600 hover:text-white transition-all whitespace-nowrap">
             Return
         </button>
     ` : ''}
 
     <button onclick='event.stopPropagation(); preparePrint(${JSON.stringify(r)})'
-        class="bg-slate-900 text-white px-2 py-1 rounded-lg text-[9px] font-black uppercase hover:bg-blue-600 transition-all whitespace-nowrap">
+        class="bg-slate-900 text-white px-2 py-1 rounded-lg text-[11px] font-black uppercase hover:bg-blue-600 transition-all whitespace-nowrap">
         Print
     </button>
 
