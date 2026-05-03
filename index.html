@@ -689,6 +689,22 @@ async function logout() {
     let activeScannedRental = null;
 
 
+async function cancelBooking(rentalId, vehicleId) {
+    if (!confirm("Cancel this booking? This cannot be undone.")) return;
+    try {
+        const { error } = await client.from('rentals').update({ status: 'cancelled' }).eq('id', rentalId);
+        if (error) { alert("Error: " + error.message); return; }
+        await client.from('vehicles').update({ status: 'available' }).eq('id', vehicleId).eq('status', 'rented');
+        await loadRentals();
+        await loadVehicles();
+        await loadSummary();
+        alert("✅ Booking cancelled");
+    } catch (err) {
+        console.error(err);
+        alert("System error");
+    }
+}
+        
 // =========================================
 // 🔥 AUTO ACTIVATE BOOKINGS (SAFE VERSION)
 // =========================================
@@ -1578,6 +1594,13 @@ async function loadRentals() {
         <button onclick="event.stopPropagation(); markAsPaid('${r.id}')"
             class="bg-emerald-100 text-emerald-600 px-3 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-emerald-600 hover:text-white transition">
             Mark Paid
+        </button>
+    ` : ''}
+
+        ${r.status === 'booked' ? `
+        <button onclick='event.stopPropagation(); cancelBooking("${r.id}", "${r.vehicle_id}")'
+            class="bg-red-100 text-red-600 px-3 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-red-600 hover:text-white transition">
+            Cancel
         </button>
     ` : ''}
 
