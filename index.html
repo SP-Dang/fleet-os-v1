@@ -83,12 +83,30 @@
             visibility: visible;
             opacity: 1;
         }
-             @keyframes spin {
+
+            @keyframes spin {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
         }
         .animate-spin {
             animation: spin 1s linear infinite;
+        }
+        
+        /* Fix vehicle grid layout */
+        #vehicle-grid {
+            display: grid;
+            grid-template-columns: repeat(1, 1fr);
+            gap: 1.5rem;
+        }
+        @media (min-width: 768px) {
+            #vehicle-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media (min-width: 1024px) {
+            #vehicle-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
         }
         
     
@@ -925,14 +943,10 @@ function switchView(v) {
 }
 
 async function loadVehicles() {
-    console.log("✅ loadVehicles() started");
     showLoading();
-    const { data, error } = await client.from('vehicles').select('*').order('created_at', {ascending: false});
-    console.log("✅ Data received:", data);
-    console.log("❌ Error:", error);
+    const { data } = await client.from('vehicles').select('*').order('created_at', {ascending: false});
     allVehicles = data || [];
     renderGrid(allVehicles);
-    console.log("✅ renderGrid() called");
     hideLoading();
 }
         
