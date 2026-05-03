@@ -778,35 +778,51 @@ async function cancelBooking(rentalId, vehicleId) {
         
 async function init() {
 
+    console.log("🔵 init() started");
+
     // =========================================
     // 🔥 1. LOAD GLOBAL DATA FIRST (CRITICAL)
     // =========================================
+    console.log("🔵 Calling loadGlobalData()...");
     await loadGlobalData();
+    console.log("✅ loadGlobalData() done");
 
     // =========================================
     // 🔥 2. AUTO ACTIVATE BOOKINGS
     // =========================================
+    console.log("🔵 Calling autoActivateBookings()...");
     try {
         await autoActivateBookings();
+        console.log("✅ autoActivateBookings() done");
     } catch (err) {
-        console.error("Auto Activate Error:", err);
+        console.error("❌ Auto Activate Error:", err);
     }
 
     // =========================================
     // 🔥 3. LOAD ALL UI
     // =========================================
+    console.log("🔵 Calling loadVehicles()...");
     await loadVehicles();
+    console.log("✅ loadVehicles() done");
 
     if (typeof loadCustomers === 'function') {
+        console.log("🔵 Calling loadCustomers()...");
         await loadCustomers();
+        console.log("✅ loadCustomers() done");
     }
 
+    console.log("🔵 Calling loadRentals()...");
     await loadRentals();
+    console.log("✅ loadRentals() done");
+
+    console.log("🔵 Calling loadSummary()...");
     await loadSummary();
+    console.log("✅ loadSummary() done");
 
     // =========================================
     // 🔥 4. REALTIME SYNC (MAIN FIX 🚀)
     // =========================================
+    console.log("🔵 Setting up realtime...");
     const channel = client
         .channel('fleet-realtime')
 
@@ -847,6 +863,7 @@ async function init() {
         })
 
         .subscribe();
+    console.log("✅ Realtime setup done");
 
     // =========================================
     // 🔥 5. AUTO REFRESH (BACKUP ONLY)
@@ -874,8 +891,10 @@ async function init() {
     if (dateInput) {
         dateInput.valueAsDate = new Date();
     }
+    
+    console.log("✅ init() complete");
 }
-
+        
 function showLoading() {
     const overlay = document.getElementById('loading-overlay');
     if (overlay) {
