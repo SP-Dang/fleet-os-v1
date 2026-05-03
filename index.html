@@ -534,29 +534,39 @@
         </div>
     </div>
 
-    <!-- IMAGE UPLOAD MODAL (GM ONLY) -->
+<!-- IMAGE UPLOAD MODAL -->
 <div id="image-modal"
-    class="fixed inset-0 bg-black/50 hidden items-center justify-center">
+    class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
 
-    <div class="bg-white p-6 rounded-2xl w-[400px]">
+    <div class="bg-white p-6 rounded-2xl w-[450px] max-h-[80vh] overflow-y-auto">
 
-        <h2 class="text-lg font-bold mb-4">Upload Vehicle Image</h2>
+        <h2 class="text-lg font-bold mb-4">Manage Vehicle Images</h2>
 
-        <input type="file" id="image-file" class="w-full mb-4">
+        <!-- Upload Section -->
+        <div class="mb-6 p-4 bg-slate-50 rounded-xl">
+            <p class="text-[10px] font-black uppercase text-slate-400 mb-3">Upload New Image</p>
+            <input type="file" id="image-file" accept="image/*" class="w-full mb-3 text-sm">
+            <button onclick="uploadVehicleImage()"
+                class="w-full bg-blue-600 text-white p-3 rounded-xl font-bold text-sm hover:bg-blue-700 transition">
+                Upload
+            </button>
+        </div>
 
-        <button onclick="uploadVehicleImage()"
-            class="w-full bg-blue-600 text-white p-3 rounded-xl font-bold">
-            Upload
-        </button>
+        <!-- Existing Images Section -->
+        <div class="mb-4">
+            <p class="text-[10px] font-black uppercase text-slate-400 mb-3">Existing Images</p>
+            <div id="existing-images" class="space-y-2 max-h-[300px] overflow-y-auto">
+                <p class="text-sm text-slate-400 text-center py-4">Loading...</p>
+            </div>
+        </div>
 
         <button onclick="closeImageModal()"
-            class="w-full mt-3 text-slate-400">
-            Cancel
+            class="w-full mt-2 text-slate-400 hover:text-slate-600 text-sm font-bold">
+            Close
         </button>
 
     </div>
-</div>
-    
+</div>    
         
     <div id="edit-modal" class="modal">
     <div class="bg-white w-full max-w-lg rounded-[48px] shadow-2xl overflow-hidden flex flex-col border border-slate-200">
@@ -2362,17 +2372,19 @@ async function loadGlobalData() {
     }
 }
 
-  function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
 let selectedVehicleForImage = null;
 
 // OPEN IMAGE MODAL
-function openImageModal(vehicleId) {
+async function openImageModal(vehicleId) {
     selectedVehicleForImage = vehicleId;
-    // FIX #8: Add 'flex' so the modal overlay centers the card
     const modal = document.getElementById('image-modal');
     modal.classList.remove('hidden');
     modal.classList.add('flex');
+    
+    // Load existing images
+    await loadExistingImages(vehicleId);
 }
 
 // CLOSE IMAGE MODAL
@@ -2380,8 +2392,53 @@ function closeImageModal() {
     const modal = document.getElementById('image-modal');
     modal.classList.add('hidden');
     modal.classList.remove('flex');
+    selectedVehicleForImage = null;
 }
 
+// LOAD EXISTING IMAGES
+async function loadExistingImages(vehicleId) {
+    const container = document.getElementById('existing-images');
+    
+    try {
+        const { data: images, error } = await client
+            .from('vehicle_images')
+            .select('*')
+            .eq('vehicle_id', vehicleId)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error("Load images error:", error);
+            container.innerHTML = '<p class="text-sm text-red-400 text-center py-4">Error loading images</p>';
+            return;
+        }
+
+        if (!images || images.length === 0) {
+            container.innerHTML = '<p class="text-sm text-slate-400 text-center py-4">No images yet</p>';
+            return;
+        }
+
+        container.innerHTML = images.map(img => `
+            <div class="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-100 hover:border-red-200 transition group">
+                <div class="flex items-center gap-3 flex-1 min-w-0">
+                    <img src="${img.image_url}" 
+                         class="w-12 h-12 rounded-lg object-cover border border-slate-200"
+                         onerror="this.src='https://via.placeholder.com/48x48?text=No+Image'">
+                    <span class="text-xs text-slate-500 truncate flex-1">${img.image_url.split('/').pop().substring(0, 25)}...</span>
+                </div>
+                <button onclick="deleteVehicleImage('${img.id}', '${img.image_url}')"
+                    class="ml-2 px-3 py-1.5 bg-red-50 text-red-500 rounded-lg text-[10px] font-bold hover:bg-red-500 hover:text-white transition opacity-0 group-hover:opacity-100">
+                    ✕ Delete
+                </button>
+            </div>
+        `).join('');
+
+    } catch (err) {
+        console.error("Image load error:", err);
+        container.innerHTML = '<p class="text-sm text-red-400 text-center py-4">Error loading images</p>';
+    }
+}
+
+// UPLOAD VEHICLE IMAGE
 async function uploadVehicleImage() {
     try {
         const file = document.getElementById('image-file').files[0];
@@ -2391,27 +2448,39 @@ async function uploadVehicleImage() {
             return;
         }
 
-        const fileName = `${Date.now()}_${file.name}`;
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            alert("Please select an image file");
+            return;
+        }
 
-        // UPLOAD
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            alert("Image must be less than 5MB");
+            return;
+        }
+
+        const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+
+        // UPLOAD to storage
         const { error } = await client.storage
             .from('vehicles')
             .upload(fileName, file);
 
         if (error) {
             console.error(error);
-            alert("Upload failed");
+            alert("Upload failed: " + error.message);
             return;
         }
 
-        // GET URL
+        // GET public URL
         const { data } = client.storage
             .from('vehicles')
             .getPublicUrl(fileName);
 
         const publicUrl = data.publicUrl;
 
-        // SAVE DB
+        // SAVE to database
         const { error: dbError } = await client
             .from('vehicle_images')
             .insert([{
@@ -2421,20 +2490,74 @@ async function uploadVehicleImage() {
 
         if (dbError) {
             console.error(dbError);
-            alert("Database error");
+            alert("Database error: " + dbError.message);
             return;
         }
 
-        alert("✅ Image uploaded");
+        // Clear file input
+        document.getElementById('image-file').value = '';
 
-        closeImageModal();
+        // Refresh image list
+        await loadExistingImages(selectedVehicleForImage);
+        
+        // Refresh vehicle grid to show new image
+        await loadVehicles();
+
+        alert("✅ Image uploaded successfully!");
 
     } catch (err) {
         console.error(err);
-        alert("System error");
+        alert("System error: " + err.message);
     }
 }
 
+// DELETE VEHICLE IMAGE
+async function deleteVehicleImage(imageId, imageUrl) {
+    if (!confirm("Are you sure you want to delete this image?")) return;
+
+    try {
+        // Extract filename from URL
+        const urlParts = imageUrl.split('/');
+        const fileName = urlParts[urlParts.length - 1];
+
+        // Delete from storage
+        if (fileName) {
+            const { error: storageError } = await client.storage
+                .from('vehicles')
+                .remove([fileName]);
+
+            if (storageError) {
+                console.warn("Storage delete warning:", storageError.message);
+                // Continue anyway — the DB record should still be removed
+            }
+        }
+
+        // Delete from database
+        const { error: dbError } = await client
+            .from('vehicle_images')
+            .delete()
+            .eq('id', imageId);
+
+        if (dbError) {
+            console.error(dbError);
+            alert("Database error: " + dbError.message);
+            return;
+        }
+
+        // Refresh image list
+        await loadExistingImages(selectedVehicleForImage);
+        
+        // Refresh vehicle grid
+        await loadVehicles();
+
+        alert("✅ Image deleted successfully!");
+
+    } catch (err) {
+        console.error(err);
+        alert("System error: " + err.message);
+    }
+}
+        
 function openRentalModal(r) {
 
     const vehicle = Array.isArray(r.vehicles) ? r.vehicles[0] : r.vehicles;
