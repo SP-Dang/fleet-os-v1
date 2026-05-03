@@ -904,9 +904,13 @@ function switchView(v) {
 }
 
 async function loadVehicles() {
-    const { data } = await client.from('vehicles').select('*').order('created_at', {ascending: false});
+    console.log("✅ loadVehicles() started");
+    const { data, error } = await client.from('vehicles').select('*').order('created_at', {ascending: false});
+    console.log("✅ Data received:", data);
+    console.log("❌ Error:", error);
     allVehicles = data || [];
     renderGrid(allVehicles);
+    console.log("✅ renderGrid() called");
 }
         
  function renderGrid(list) {
